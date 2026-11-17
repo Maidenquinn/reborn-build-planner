@@ -34,9 +34,11 @@ if (!(Test-Path -LiteralPath $venv)) {
   Write-Host "Setting up isolated test venv (no change to game)" -ForegroundColor Cyan
   & $python -m venv (Join-Path $root ".devtools\venv")
   if ($LASTEXITCODE -ne 0) { throw "venv creation failed" }
-  & $venv -m pip install "lupa==2.8"
+  & $venv -m pip install "lupa==2.8" "Pillow"
   if ($LASTEXITCODE -ne 0) { throw "lupa installation failed" }
 }
+if (!(Test-Path -LiteralPath $venv)) { throw "venv not ready" }
+$python = $venv
 Write-Host "Retrieving official public Reborn data into the ignored .local folder" -ForegroundColor Cyan
 $catalog = Join-Path $root ".local\catalog\public-preview"
 & $python -I tools/fetch_catalog_public.py --out $catalog
