@@ -27,7 +27,7 @@ $env:RBP_GAME_EXE = "C:\chemin\vers\executable-du-jeu.exe"
 python -I tools/package_addon.py
 ```
 
-Le script vérifie les clés et emplacements contre le catalogue. Il refuse toute extraction incomplète. Les données générées restent locales dans `GeneratedJewelryMechanics.lua`, initialement vide ; elles ne doivent pas être poussées sur GitHub. Sans exécutable local, le planner reste fonctionnel et utilise uniquement ce que les API exposent réellement.
+Le script vérifie les clés et emplacements contre le catalogue. Il refuse toute extraction incomplète. Les données générées restent dans `.local/generated/GeneratedJewelryMechanics.lua` (ignoré par Git). Le packaging les copie uniquement dans le dossier installable ; le fichier vide versionné reste inchangé. Sans exécutable local, le planner reste fonctionnel et utilise uniquement ce que les API exposent réellement.
 
 Le panneau Détails peut alors afficher un type de bonus et sa valeur de base **sans les présenter comme des statistiques actuelles**. Voir [docs/JEWELRY_SOURCE_AUDIT.md](docs/JEWELRY_SOURCE_AUDIT.md).
 
