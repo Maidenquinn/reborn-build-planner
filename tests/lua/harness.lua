@@ -117,12 +117,13 @@ function H.loadAddon(opts)
 	local env = setmetatable({}, {
 		__index = function(_, k)
 			if base[k] ~= nil then return base[k]; end
+			if opts.globals and opts.globals[k] ~= nil then return opts.globals[k]; end
 			sandbox.reads[k] = true;
 			return nil;
 		end,
 		__newindex = function(t, k, v)
 			sandbox.writes[k] = true;
-			rawset(base, k, v);
+			if opts.globals then opts.globals[k] = v; else rawset(base, k, v); end
 		end,
 	});
 	sandbox.env = env;

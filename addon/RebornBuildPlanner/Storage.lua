@@ -20,10 +20,17 @@ local type, pairs, ipairs, pcall, tostring, tonumber, string, table = type, pair
 
 -- Documented, tested, tunable: not universal. 200 builds is the official planner's own library size.
 S.LIMITS = { builds = 200, trash = 20, quarantine = 50, dbNodes = 400000, dbDepth = 12 };
-S.SETTING_DEFAULTS = { lang = "auto", advancedPhases = false };
+S.SETTING_DEFAULTS = { lang = "auto", advancedPhases = false, scale = 1, lastClass = "" };
 local SETTING_CHECK = {
 	lang = function(v) return v == "auto" or v == "enUS" or v == "frFR"; end,
 	advancedPhases = function(v) return type(v) == "boolean"; end,
+	scale = function(v) return type(v) == "number" and v >= 0.6 and v <= 1.5; end,
+	lastClass = function(v) return type(v) == "string" and #v <= 64; end,
+	-- window position: anchor point, offsets from that point of UIParent (persistent, validated on use)
+	window = function(v)
+		return type(v) == "table" and type(v.point) == "string" and #v.point <= 16 and type(v.x) == "number" and type(v.y) == "number"
+			and v.x == v.x and v.y == v.y and math.abs(v.x) < 1e5 and math.abs(v.y) < 1e5;
+	end,
 };
 
 local H = {};

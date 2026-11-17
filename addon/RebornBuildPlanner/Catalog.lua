@@ -122,6 +122,16 @@ function Catalog:Get(kind, key)
 	return nil;
 end
 
+-- Localized class name with English fallback; an unknown class shows as itself.
+function Catalog:ClassName(key, lang)
+	local c = self.classes[key];
+	if not c then
+		return key;
+	end
+	local tr = lang and self.i18n[lang];
+	return (tr and tr[c.name]) or c.name;
+end
+
 function Catalog:SpellsOfClass(class)
 	local c = self.classes[class];
 	return c and c.spells or {};
