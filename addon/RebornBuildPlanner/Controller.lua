@@ -857,7 +857,8 @@ function Controller:PlanView()
 		for i = 1, #ph[group] do
 			local k = ph[group][i];
 			local name, icon = nm(kind, k);
-			v[group][i] = { key = k, name = name, icon = icon, known = k == "" or (cat ~= nil and cat:Get(kind, k) ~= nil), main = i <= BM.MAIN_SLOTS[group] };
+			v[group][i] = { key = k, name = name, icon = icon, known = k == "" or (cat ~= nil and cat:Get(kind, k) ~= nil), main = i <= BM.MAIN_SLOTS[group],
+				rarity = (k ~= "" and cat and cat:Get(kind, k)) and (cat:Get(kind, k).rarity or (cat:Get(kind, k).spell and "legendary")) or nil };
 		end
 	end
 	return v;
@@ -894,8 +895,12 @@ function Controller:TooltipData(kind, key)
 	local lang = self:Lang() == "frFR" and "frFR" or nil;
 	local entry = cat:Get(kind, key);
 	local ph = e and e.draft.phases[e.phase];
-	local d = { lines = {} };
-	local function line(text, tone) d.lines[#d.lines + 1] = { text = text, tone = tone }; end
+	local d = { lines = {}, state = {}, facts = {} };
+	local function line(text, tone, isState)
+		local l = { text = text, tone = tone };
+		d.lines[#d.lines + 1] = l;
+		if isState then d.state[#d.state + 1] = l; else d.facts[#d.facts + 1] = l; end
+	end
 	if not entry then
 		d.title = key;
 		line(L("Unknown to this catalogue"), "warn");
@@ -911,20 +916,20 @@ function Controller:TooltipData(kind, key)
 		if ph then
 			for i, g in ipairs(ph.spells) do
 				if g.key == key then
-					line(string.format(L("Wanted: priority %d"), i), "ok");
+					line(string.format(L("Wanted: priority %d"), i), "ok", true);
 					if g.mode == "rank" then
 						line(string.format(L("Target rank: %d"), g.rank or 0));
 					elseif g.mode == "unlimited" then
 						line(L("Target: no limit"));
 					end
 					if ph.banishAfter and Util.IndexOf(ph.banishAfter, key) then
-						line(L("Planned: banish after acquisition (nothing is banished automatically)"), "warn");
+						line(L("Planned: banish after acquisition (nothing is banished automatically)"), "warn", true);
 					else
-						line(L("Planned: keep"), "ok");
+						line(L("Planned: keep"), "ok", true);
 					end
 				end
 			end
-			if Util.IndexOf(ph.banish, key) then line(L("In the avoid list: banish if offered"), "warn"); end
+			if Util.IndexOf(ph.banish, key) then line(L("In the avoid list: banish if offered"), "warn", true); end
 		end
 		if not d.spellId then line(L("Detailed effect unavailable"), "dim"); end
 	elseif kind == "jewel" then
@@ -935,7 +940,7 @@ function Controller:TooltipData(kind, key)
 			for i, k in ipairs(ph[group]) do
 				if k == key then
 					line(i <= BM.MAIN_SLOTS[group] and string.format(L("Placed: main %d"), i)
-						or string.format(L("Placed: alternative %d"), i - BM.MAIN_SLOTS[group]), "ok");
+						or string.format(L("Placed: alternative %d"), i - BM.MAIN_SLOTS[group]), "ok", true);
 				end
 			end
 		end
@@ -958,12 +963,16 @@ function Controller:TooltipData(kind, key)
 			for i, k in ipairs(ph.amulets) do
 				if k == key then
 					line(i <= BM.MAIN_SLOTS.amulets and string.format(L("Placed: main %d"), i)
-						or string.format(L("Placed: alternative %d"), i - BM.MAIN_SLOTS.amulets), "ok");
+						or string.format(L("Placed: alternative %d"), i - BM.MAIN_SLOTS.amulets), "ok", true);
 				end
 			end
 		end
-		line(L("Detailed effect unavailable"), "dim");
+		-- effects come from the PUBLISHED data (Describe.lua); without them the piece says so
+		d.sections = ns.Describe and ns.Describe.Amulet(cat, entry, lang) or nil;
+		if not d.sections then line(L("Detailed effect unavailable"), "dim"); end
+		d.preview = ns.Describe and ns.Describe.Preview(d.sections, 3) or {};
 	end
+	d.rarity = entry.rarity or (entry.spell and "legendary") or nil;
 	return d;
 end
 

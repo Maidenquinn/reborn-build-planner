@@ -27,6 +27,9 @@ local RP_X, RP_W = 860, 368;         -- equipment browser
 local EW = 562;                      -- usable width inside the centre panel
 local COLOR = { info = { 0.45, 0.9, 0.55 }, warn = { 0.95, 0.78, 0.35 }, error = { 0.95, 0.4, 0.35 } };
 local TONEHEX = { ok = "8fe0a0", warn = "f0c860", dim = "a8acb8" };
+-- item quality colours (the game's own palette); the label always says the rarity too
+local RARITY_RGB = { common = { 0.85, 0.86, 0.90 }, uncommon = { 0.12, 1, 0.2 }, rare = { 0.30, 0.62, 1 }, epic = { 0.70, 0.35, 0.95 }, legendary = { 1, 0.55, 0.1 } };
+local function rarityRgb(r) return RARITY_RGB[r or ""] or RARITY_RGB.common; end
 local WHITE = "Interface\\Buttons\\WHITE8X8";
 
 -- Palette: deep ink panels, brass/gold accents, red only for destructive actions.
@@ -294,26 +297,42 @@ local TONE = { ok = { 0.55, 0.9, 0.62 }, warn = { 0.95, 0.78, 0.35 }, dim = { 0.
 function UI:ShowTip(owner, d)
 	local tt = GameTooltip;
 	if not d or not tt then return; end
-	tt:SetOwner(owner, "ANCHOR_RIGHT");
+	-- Short preview only (the full text lives in the Details panel). The anchor flips to the left in the right-hand
+	-- half of the screen so the tooltip stays on screen and off the controls it describes. The game's own spell text is
+	-- never mixed in here: it is shown, alone, in the Details panel.
+	local anchor = "ANCHOR_RIGHT";
+	if owner.GetLeft and UIParent.GetWidth then
+		local left = owner:GetLeft();
+		if left and left * (owner.GetEffectiveScale and owner:GetEffectiveScale() or 1)
+			> UIParent:GetWidth() * (UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1) * 0.5 then
+			anchor = "ANCHOR_LEFT";
+		end
+	end
+	tt:SetOwner(owner, anchor);
 	if tt.ClearLines then tt:ClearLines(); end
-	local fromGame = false;
-	if d.spellId and tt.SetHyperlink then
-		pcall(tt.SetHyperlink, tt, "spell:" .. d.spellId);
-		fromGame = tt.NumLines ~= nil and tt:NumLines() > 0;
-		if fromGame then tt:AddLine(" "); end
+	local head = (d.icon and d.icon ~= "") and ("|TInterface\\Icons\\" .. d.icon .. ":16|t ") or "";
+	local rc = rarityRgb(d.rarity);
+	tt:AddLine(head .. fitText(d.title, 300, 14), rc[1], rc[2], rc[3], true);
+	local n = 1;
+	local function add(text, tone)
+		if n >= UI.TIP_LINES then return; end
+		local col = TONE[tone] or { 1, 1, 1 };
+		tt:AddLine(fitText(text, 340, 12), col[1], col[2], col[3], true);
+		n = n + 1;
 	end
-	if not fromGame then
-		local head = (d.icon and d.icon ~= "") and ("|TInterface\\Icons\\" .. d.icon .. ":16|t ") or "";
-		tt:AddLine(head .. d.title, 1, 0.82, 0, true);
-		if d.spellId then tt:AddLine(L("Detailed effect unavailable"), 0.7, 0.7, 0.7, true); end
+	if d.subtitle then add(d.subtitle, "dim"); end
+	for _, ln in ipairs(d.state or {}) do add(ln.text, ln.tone); end
+	if d.preview and d.preview[1] then
+		for _, t in ipairs(d.preview) do add(t); end
+	elseif d.sections == nil and (d.kind ~= "help") then
+		for _, ln in ipairs(d.facts or d.lines or {}) do add(ln.text, ln.tone); end
 	end
-	for _, ln in ipairs(d.lines or {}) do
-		local col = TONE[ln.tone] or { 1, 1, 1 };
-		tt:AddLine(ln.text, col[1], col[2], col[3], true);
-	end
+	if d.helpLines then for _, ln in ipairs(d.helpLines) do add(ln.text, ln.tone); end end
+	if d.moreHint ~= false and d.kind ~= "help" then add(L("Click for the full details."), "dim"); end
 	tt:Show();
 	self.tipOwner = owner;
 end
+UI.TIP_LINES = 7;
 
 function UI:HideTip(owner)
 	if self.tipOwner and (owner == nil or owner == self.tipOwner) then
@@ -372,6 +391,9 @@ local HELP = {
 			"Empty positions are kept as they are." } },
 	star = { "Favourite",
 		{ "Favourite builds come first in the list and in the Favourites filter." } },
+	up = { "Move up", { "Raises this spell's priority by one." } },
+	down = { "Move down", { "Lowers this spell's priority by one." } },
+	del = { "Remove spell", { "Removes this spell from the plan, and its banish-after mark with it." } },
 };
 
 function UI:HelpLines(list)
@@ -381,7 +403,8 @@ function UI:HelpLines(list)
 end
 
 local function helpData(self, key)
-	return { title = L(HELP[key][1]), lines = self:HelpLines(HELP[key][2]) };
+	local lines = self:HelpLines(HELP[key][2]);
+	return { title = L(HELP[key][1]), lines = lines, helpLines = lines, kind = "help", moreHint = false };
 end
 
 -- ------------------------------------------------------------------ construction
@@ -608,9 +631,9 @@ function UI:RefreshLibrary()
 end
 
 -- ------------------------------------------------------------------ EditorPane (centre, top)
-local EQUIP_Y = { rings = 296, trinkets = 338, amulets = 380 };
+local EQUIP_Y = { rings = 286, trinkets = 332, amulets = 378 };
 local EQUIP_GROUPS = { "rings", "trinkets", "amulets" };
-local CELL_W, CELL_H, CELL_X0 = 120, 38, 74;
+local CELL_W, CELL_H, CELL_X0 = 118, 44, 66;
 
 function UI:BuildEditor(v)
 	local c = self.c;
@@ -636,65 +659,71 @@ function UI:BuildEditor(v)
 		ed.phaseTabs[p] = button(v, "", 92, 22, 8 + (p - 1) * 94, 64, function() c:SetPhase(p); end);
 	end
 	ed.adv = button(v, "", 170, 22, 392, 64, function() c:ToggleAdvanced(); end);
-	-- spells
+	-- spells: number | icon | name | keep/banish-after | compact move and remove controls
 	ed.spellHead = header(v, 8, 92, 280);
 	ed.summary = text(v, 292, 92, 270, "GameFontNormal", "RIGHT");
 	ed.spells = {};
 	for i = 1, 6 do
 		local r = { frame = CreateFrame("Frame", nil, v) };
-		local y = 114 + (i - 1) * 25;
+		local y = 114 + (i - 1) * 24;
 		r.frame:SetWidth(EW);
-		r.frame:SetHeight(23);
+		r.frame:SetHeight(22);
 		r.frame:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -y);
 		r.bg = fill(r.frame, i % 2 == 0 and ROW_B or ROW_A);
-		r.num = text(r.frame, 6, 5, 20, "GameFontNormal");
+		r.num = text(r.frame, 6, 4, 20, "GameFontNormal");
 		r.num:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
 		r.icon = r.frame:CreateTexture(nil, "ARTWORK");
 		r.icon:SetWidth(18); r.icon:SetHeight(18);
-		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 26, -2);
-		r.name = text(r.frame, 50, 5, 218, "GameFontHighlight");
-		r.hit = hitArea(r.frame, 24, 0, 246, 23);
-		r.add = button(r.frame, "", 190, 21, 50, 1, function() c:AddSpellTarget(); end);
-		r.tog = button(r.frame, "", 108, 21, 276, 1, function() local k = r.key; if k then c:ToggleBanishAfter(k); end end);
-		r.up = button(r.frame, "", 44, 21, 388, 1, function() c:MoveSpell(i, -1); end);
-		r.down = button(r.frame, "", 46, 21, 434, 1, function() c:MoveSpell(i, 1); end);
-		r.del = button(r.frame, "", 64, 21, 482, 1, function() local k = r.key; if k then c:RemoveSpell(k); end end);
+		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 28, -2);
+		r.name = text(r.frame, 52, 4, 258, "GameFontHighlight");
+		r.hit = hitArea(r.frame, 26, 0, 284, 22);
+		r.add = button(r.frame, "", 190, 20, 52, 1, function() c:AddSpellTarget(); end);
+		r.tog = button(r.frame, "", 108, 20, 316, 1, function() local k = r.key; if k then c:ToggleBanishAfter(k); end end);
+		r.up = button(r.frame, "", 24, 20, 430, 1, function() c:MoveSpell(i, -1); end);
+		r.down = button(r.frame, "", 24, 20, 456, 1, function() c:MoveSpell(i, 1); end);
+		r.del = button(r.frame, "", 24, 20, 482, 1, function() local k = r.key; if k then c:RemoveSpell(k); end end);
 		r.hit:SetScript("OnClick", function() if r.key then c:Inspect("spell", r.key); end end);
 		self:Hover(r.hit, function() return r.key and c:TooltipData("spell", r.key) or nil; end);
 		self:Hover(r.tog, function() return r.key and helpData(self, "toggle") or nil; end);
+		self:Hover(r.up, function() return helpData(self, "up"); end);
+		self:Hover(r.down, function() return helpData(self, "down"); end);
+		self:Hover(r.del, function() return helpData(self, "del"); end);
 		ed.spells[i] = r;
 	end
-	-- equipment: one row per kind, main slots first then alternatives, all visible
-	ed.equipHead = header(v, 8, 274, EW);
+	-- equipment: one row per kind. Each slot is a fixed 118 x 44 cell with RESERVED zones (top strip: role + remove button;
+	-- below: 24 px icon, then a bounded two-line name). Main and alternative slots are separated by a brass rule.
+	ed.equipHead = header(v, 8, 264, EW);
 	ed.groups = {};
 	for _, g in ipairs(EQUIP_GROUPS) do
-		local grp = { label = text(v, 8, EQUIP_Y[g] + 12, 64, "GameFontNormal"), cells = {} };
+		local mains = BM.MAIN_SLOTS[g];
+		local grp = { label = text(v, 8, EQUIP_Y[g] + 16, 64, "GameFontNormal"), cells = {} };
 		grp.label:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
+		grp.sep = v:CreateTexture(nil, "ARTWORK");
+		grp.sep:SetWidth(2);
+		grp.sep:SetHeight(CELL_H);
+		grp.sep:SetPoint("TOPLEFT", v, "TOPLEFT", 8 + CELL_X0 + mains * (CELL_W + 2) + 2, -EQUIP_Y[g]);
+		grp.sep:SetTexture(BRASS[1], BRASS[2], BRASS[3], 0.8);
 		for j = 1, BM.LIMITS[g] do
 			local cell = CreateFrame("Button", nil, v);
 			cell:SetWidth(CELL_W);
 			cell:SetHeight(CELL_H);
-			cell:SetPoint("TOPLEFT", v, "TOPLEFT", 8 + CELL_X0 + (j - 1) * (CELL_W + 2), -EQUIP_Y[g]);
+			cell:SetPoint("TOPLEFT", v, "TOPLEFT", 8 + CELL_X0 + (j - 1) * (CELL_W + 2) + (j > mains and 8 or 0), -EQUIP_Y[g]);
 			cell.base = fill(cell, ROW_A);
 			cell.edge = cell:CreateTexture(nil, "BORDER");           -- brass frame of the slot when it is chosen
 			cell.edge:SetAllPoints(cell);
 			cell.edge:SetTexture(0.85, 0.68, 0.30, 0.9);
 			cell.edge:Hide();
-			cell.role = text(cell, 5, 3, 90, "GameFontNormalSmall");
+			cell.role = text(cell, 5, 2, 84, "GameFontNormalSmall");
+			cell.x = button(cell, "", 22, 14, CELL_W - 24, 2, function() c:ClearSlot(g, j); end);
 			cell.icon = cell:CreateTexture(nil, "OVERLAY");
-			cell.icon:SetWidth(22); cell.icon:SetHeight(22);
-			cell.icon:SetPoint("TOPLEFT", cell, "TOPLEFT", 4, -14);
-			cell.name = wrapped(cell, 30, 15, 88, 22, "GameFontHighlightSmall");
-			cell.x = button(cell, "", 20, 18, 98, 2, function() c:ClearSlot(g, j); end);
+			cell.icon:SetWidth(24); cell.icon:SetHeight(24);
+			cell.icon:SetPoint("TOPLEFT", cell, "TOPLEFT", 4, -18);
+			cell.name = wrapped(cell, 32, 18, 82, 24, "GameFontHighlightSmall");
 			cell:SetScript("OnClick", function() c:SelectSlot(g, j); end);
 			self:Hover(cell, function()
 				local k = cell.key;
 				local d = k and k ~= "" and c:TooltipData(g == "amulets" and "amulet" or "jewel", k) or nil;
-				if d then
-					d.lines[#d.lines + 1] = { text = L(HELP.slots[2][1]) .. " " .. L(HELP.slots[2][2]), tone = "dim" };
-					return d;
-				end
-				return helpData(self, "slots");
+				return d or helpData(self, "slots");
 			end);
 			grp.cells[j] = cell;
 		end
@@ -703,9 +732,9 @@ function UI:BuildEditor(v)
 	-- advanced block (replaces the detail area when open)
 	local nt = {};
 	ed.nt = nt;
-	nt.head = header(v, 8, 424, EW);
-	nt.counter = text(v, 400, 426, 160, "GameFontNormalSmall", "RIGHT");
-	nt.notes = multiline(v, "RebornBuildPlannerNotes", EW, 52, 8, 450, function(t) c:SetNotes(t); end);
+	nt.head = header(v, 8, 430, EW);
+	nt.counter = text(v, 400, 432, 160, "GameFontNormalSmall", "RIGHT");
+	nt.notes = multiline(v, "RebornBuildPlannerNotes", EW, 52, 8, 452, function(t) c:SetNotes(t); end);
 	nt.linkLabel = text(v, 8, 512, 50, "GameFontNormal");
 	nt.link = edit(v, 230, 58, 508, function(t) c:SetLink(t); end, "RebornBuildPlannerLink");
 	nt.talentsLabel = text(v, 300, 512, 66, "GameFontNormal");
@@ -808,12 +837,12 @@ function UI:RefreshEditor()
 			local nm = it.name;
 			if it.mode == "rank" then nm = nm .. " (r" .. tostring(it.rank) .. ")"; elseif it.mode == "unlimited" then nm = nm .. " (+)"; end
 			if not it.known then nm = nm .. " ?"; end
-			r.name:SetText(fitText(nm, 218, 12));
+			r.name:SetText(fitText(nm, 258, 12));
 			setIcon(r.icon, it.icon);
 			r.name:Show(); r.hit:Show(); r.add:Hide();
 			r.tog.role = it.after and "warn" or "quiet";
 			setLabel(r.tog, it.after and L("Banish after") or L("Keep"));
-			setLabel(r.up, L("Up")); setLabel(r.down, L("Down")); setLabel(r.del, L("Remove"));
+			setLabel(r.up, "^"); setLabel(r.down, "v"); setLabel(r.del, "x");
 			r.tog:Show(); r.up:Show(); r.down:Show(); r.del:Show();
 			enable(r.tog, not ro);
 			enable(r.up, not ro and i > 1);
@@ -835,11 +864,12 @@ function UI:RefreshEditor()
 		end
 	end
 	-- equipment
-	ed.equipHead:SetText(L("Equipment: click a slot, then pick a piece on the right"));
+	ed.equipHead:SetText(L("Equipment (main | alternatives)"));
 	for _, g in ipairs(EQUIP_GROUPS) do
 		local grp = ed.groups[g];
 		grp.label:SetText(g == "rings" and L("Rings") or (g == "trinkets" and L("Trinkets") or L("Amulet")));
 		grp.label:Show();
+		grp.sep:Show();
 		local list = pv[g];
 		for j, cell in ipairs(grp.cells) do
 			local it = list[j];
@@ -851,10 +881,13 @@ function UI:RefreshEditor()
 			cell.role:SetTextColor(chosen and GOLD[1] or 0.62, chosen and GOLD[2] or 0.65, chosen and GOLD[3] or 0.72);
 			if it.key == "" then
 				cell.name:SetText("|cff7d8090" .. L("+ Add") .. "|r");
+				cell.name:SetTextColor(1, 1, 1);
 				cell.icon:Hide();
 				cell.x:Hide();
 			else
-				cell.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 160, 10));
+				cell.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 2 * 82 - 6, 10));
+				local rc = rarityRgb(it.rarity);
+				cell.name:SetTextColor(rc[1], rc[2], rc[3]);
 				setIcon(cell.icon, it.icon);
 				cell.x.role = "quiet";
 				setLabel(cell.x, "x");
@@ -908,23 +941,81 @@ function UI:RefreshEditor()
 end
 
 -- ------------------------------------------------------------------ DetailPane (centre, bottom)
+-- A fixed inspector: icon, full name, type line, then SECTIONS (In this build / Description / Information / Effects /
+-- Growth / Availability / Source) in a scrollable pool of 8 wrapped rows (wheel or slider); actions on the right.
+local DET_ROWS, DET_CHARS = 8, 47;
+
+-- word wrap by character budget (a deterministic estimate; long words are cut)
+local function wrapText(textIn, max)
+	local out = {};
+	local line = "";
+	for word in string.gmatch(textIn, "%S+") do
+		while #word > max do
+			if line ~= "" then out[#out + 1] = line; line = ""; end
+			out[#out + 1] = string.sub(word, 1, max);
+			word = string.sub(word, max + 1);
+		end
+		if line == "" then line = word;
+		elseif #line + 1 + #word <= max then line = line .. " " .. word;
+		else out[#out + 1] = line; line = word; end
+	end
+	if line ~= "" then out[#out + 1] = line; end
+	if #out == 0 then out[1] = ""; end
+	return out;
+end
+UI.WrapText = wrapText;
+
 function UI:BuildDetail(v)
+	local c = self.c;
 	local det = {};
 	self.det = det;
-	det.head = header(v, 8, 424, EW);
+	det.head = header(v, 8, 430, EW);
 	det.icon = v:CreateTexture(nil, "ARTWORK");
-	det.icon:SetWidth(40); det.icon:SetHeight(40);
-	det.icon:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -448);
-	det.title = text(v, 56, 448, 330, "GameFontNormalLarge", "LEFT", 18);
-	det.title:SetTextColor(1, 0.9, 0.62);
-	det.type = text(v, 56, 470, 330, "GameFontNormalSmall");
+	det.icon:SetWidth(36); det.icon:SetHeight(36);
+	det.icon:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -454);
+	det.title = text(v, 52, 454, 340, "GameFontNormalLarge", "LEFT", 18);
+	det.type = text(v, 52, 474, 340, "GameFontNormalSmall");
 	det.type:SetTextColor(0.66, 0.68, 0.74);
-	det.body = wrapped(v, 8, 496, 384, 116, "GameFontHighlight");
-	det.source = wrapped(v, 400, 522, 162, 90, "GameFontNormalSmall");
+	det.area = scrollArea(v, 8, 496, 372, DET_ROWS * 15, function(d) self:ScrollDetail(d); end, function(o) self:SetDetailOffset(o); end);
+	det.rows = {};
+	for i = 1, DET_ROWS do
+		det.rows[i] = text(det.area.hold, 0, (i - 1) * 15, 372, "GameFontHighlight");
+	end
+	det.body = det.rows[1];        -- first row (kept for tests and callers that only want "the text")
+	det.source = wrapped(v, 400, 520, 162, 96, "GameFontNormalSmall");
 	det.source:SetTextColor(0.62, 0.64, 0.70);
-	det.act1 = button(v, "", 166, 26, 396, 448, function() self:DetailAct(1); end);
-	det.act2 = button(v, "", 166, 24, 396, 478, function() self:DetailAct(2); end);
+	det.act1 = button(v, "", 166, 26, 396, 454, function() self:DetailAct(1); end);
+	det.act2 = button(v, "", 166, 24, 396, 484, function() self:DetailAct(2); end);
 	det.act1.role = "primary";
+	det.offset, det.lines = 0, {};
+end
+
+-- all the inspector's lines as one text (tests and diagnostics)
+function UI:DetailText()
+	local t = {};
+	for i, ln in ipairs(self.det.lines) do t[i] = ln.text; end
+	return table.concat(t, "\n");
+end
+
+function UI:ScrollDetail(delta) self:SetDetailOffset((self.det.offset or 0) + delta); end
+
+function UI:SetDetailOffset(o)
+	local det = self.det;
+	local max = math.max(0, #det.lines - DET_ROWS);
+	if o > max then o = max; end
+	if o < 0 then o = 0; end
+	det.offset = o;
+	for i, r in ipairs(det.rows) do
+		local ln = det.lines[o + i];
+		if ln then
+			r:SetText(ln.text);
+			r:SetTextColor(ln.rgb[1], ln.rgb[2], ln.rgb[3]);
+			r:Show();
+		else
+			r:SetText("");
+		end
+	end
+	det.area.sync(o, max);
 end
 
 -- runs the selected element's primary (1) or secondary (2) action through the same controller calls as everywhere
@@ -945,45 +1036,74 @@ function UI:DetailAct(which)
 	end
 end
 
+local TONE_RGB = { ok = { 0.56, 0.88, 0.63 }, warn = { 0.94, 0.78, 0.38 }, dim = { 0.66, 0.68, 0.72 } };
+
+-- the inspector's wrapped lines, grouped by section (title rows in gold, body rows by tone)
+function UI:DetailLines(d)
+	local out = {};
+	local function head(title) out[#out + 1] = { text = string.upper(title), rgb = GOLD }; end
+	local function body(textIn, tone)
+		for _, w in ipairs(wrapText(textIn, DET_CHARS)) do out[#out + 1] = { text = w, rgb = TONE_RGB[tone or ""] or { 1, 1, 1 } }; end
+	end
+	if d.state and d.state[1] then
+		head(L("In this build"));
+		for _, ln in ipairs(d.state) do body(ln.text, ln.tone); end
+	end
+	if d.spellId then
+		head(L("Description"));
+		local game = self:GameText(d.spellId);
+		if game then
+			for i, t in ipairs(game) do if i > 1 then body(t); end end
+		else
+			body(L("Detailed effect unavailable"), "dim");
+		end
+	end
+	if d.facts and d.facts[1] then
+		head(L("Information"));
+		for _, ln in ipairs(d.facts) do body(ln.text, ln.tone); end
+	end
+	for _, sec in ipairs(d.sections or {}) do
+		head(sec.title);
+		for _, ln in ipairs(sec.lines) do body(ln.text, ln.tone); end
+	end
+	return out;
+end
+
 function UI:RefreshDetail()
 	local c, det = self.c, self.det;
 	local e = c:Editor();
 	local show = e ~= nil and not e.adv;
-	for _, w in ipairs({ det.head, det.title, det.type, det.body, det.source, det.act1, det.act2 }) do setShown(w, show); end
-	if not show then det.icon:Hide(); return; end
+	for _, w in ipairs({ det.head, det.title, det.type, det.source, det.act1, det.act2 }) do setShown(w, show); end
+	setShown(det.area.hold, show);
+	if not show then det.icon:Hide(); det.area.slider:Hide(); return; end
 	local ro = c:ReadOnly();
 	det.head:SetText(L("Details"));
 	local d = c:InspectorData();
 	local st = c:DetailState();
+	local key = d and (d.title .. "|" .. tostring(c.state.inspect.key)) or "";
 	if not d then
 		det.icon:Hide();
 		det.title:SetText("");
 		det.type:SetText("");
-		det.body:SetText("|cffa8acb8" .. L("Select a spell or a piece to see its details here.") .. "|r");
+		det.lines = {};
+		for _, w in ipairs(wrapText(L("Select a spell or a piece to see its details here."), DET_CHARS)) do det.lines[#det.lines + 1] = { text = w, rgb = TONE_RGB.dim }; end
 		det.source:SetText("");
 		det.act1:Hide(); det.act2:Hide();
+		det.key = nil;
+		self:SetDetailOffset(0);
 		return;
 	end
 	setIcon(det.icon, d.icon);
-	det.title:SetText(fitText(d.title, 330, 16));
-	det.type:SetText(fitText(d.subtitle or "", 330, 10));
-	local out = {};
+	det.title:SetText(fitText(d.title, 340, 16));
+	local rc = rarityRgb(d.rarity);
+	det.title:SetTextColor(rc[1], rc[2], rc[3]);
+	det.type:SetText(fitText(d.subtitle or "", 340, 10));
+	det.lines = self:DetailLines(d);
+	if det.key ~= key then det.offset = 0; det.key = key; end      -- a new selection starts at the top
+	self:SetDetailOffset(det.offset);
 	local source = L("Source: Reborn catalogue (name, type, class).");
-	if d.spellId then
-		local game = self:GameText(d.spellId);
-		if game then
-			for i, t in ipairs(game) do if i > 1 then out[#out + 1] = t; end end   -- line 1 repeats the name
-			source = L("Source: the game's own spell text, and the Reborn catalogue.");
-		else
-			out[#out + 1] = "|cffa8acb8" .. L("Detailed effect unavailable") .. "|r";
-		end
-		out[#out + 1] = "";
-	end
-	for _, ln in ipairs(d.lines) do
-		local hex = TONEHEX[ln.tone];
-		out[#out + 1] = hex and ("|cff" .. hex .. ln.text .. "|r") or ln.text;
-	end
-	det.body:SetText(table.concat(out, "\n"));
+	if d.spellId and self:GameText(d.spellId) then source = L("Source: the game's own spell text, and the Reborn catalogue.");
+	elseif d.sections then source = L("Source: published game data (azreborn.com/data/v1), rank 1 values and the official growth rule."); end
 	det.source:SetText(source);
 	-- actions
 	if st.spell then
@@ -1099,6 +1219,8 @@ function UI:RefreshBrowser()
 		if en then
 			r.tipKind, r.tipKey = kind, en.key;
 			r.name:SetText(fitText(en.name, 228, 12));
+			local rcol = rarityRgb(en.legend and "legendary" or en.rarity);
+			if kind == "amulet" then r.name:SetTextColor(rcol[1], rcol[2], rcol[3]); else r.name:SetTextColor(1, 1, 1); end
 			setIcon(r.icon, en.icon);
 			local sub, tag = "", "";
 			if kind == "spell" then
