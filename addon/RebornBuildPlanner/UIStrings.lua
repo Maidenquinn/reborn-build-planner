@@ -277,3 +277,22 @@ ns.Locale.Register({
 	["Favourite"] = "Favori",
 	["Favourite builds come first in the list and in the Favourites filter."] = "Les builds favoris passent en premier dans la liste et dans le filtre Favoris.",
 });
+
+-- Lot 3.3
+ns.Locale.Register({
+	["Browser"] = "Navigateur",
+	["Spell"] = "Sort",
+	["Avoided"] = "Évité",
+	["In slot"] = "En place",
+	["Open a build to browse spells and equipment."] = "Ouvrez un build pour parcourir sorts et équipement.",
+	["Nothing matches this search."] = "Rien ne correspond à cette recherche.",
+	["Back to the details"] = "Retour aux détails",
+	["Equipment: click a slot, then pick a piece on the right"] = "Équipement : cliquez un emplacement, puis choisissez à droite",
+	["Remove from my spells"] = "Retirer de mes sorts",
+	["Add to my spells"] = "Ajouter à mes sorts",
+	["Stop avoiding"] = "Ne plus éviter",
+	["Avoid this spell"] = "Éviter ce sort",
+	["Empty this slot"] = "Vider l'emplacement",
+	["Already placed"] = "Déjà placé",
+	["Place here"] = "Placer ici",
+});

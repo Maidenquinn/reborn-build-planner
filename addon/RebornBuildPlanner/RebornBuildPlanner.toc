@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: Reborn Build Planner
 ## Notes: Build planner for Azeroth Survivors Reborn (Lot 3: library, editor, import/export window over the validated modules; no live tracking).
-## Version: 0.4.0-alpha
+## Version: 0.4.1-alpha
 ## Dependencies: AzerothSurvivors, AzerothSurvivorsAPI
 ## SavedVariables: RebornBuildPlannerDB
 # Load order = dependency order: Util -> Locale -> catalogue data -> Catalog -> BuildModel -> Storage -> Utf8 -> Base64Url -> Json -> PlannerCodec -> UIStrings -> Controller -> UI -> Commands -> Core.
