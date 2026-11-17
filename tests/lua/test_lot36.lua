@@ -64,7 +64,11 @@ return function(H)
 		end
 		eq(n, 23);
 		-- nothing in Media that the theme does not declare (no stray / copied file)
-		local listing = io.popen and io.popen('dir /b "' .. MEDIA:gsub("/", "\\") .. '" 2>nul');
+		local listing;
+		if io.popen then
+			local worked, pipe = pcall(io.popen, 'dir /b "' .. MEDIA:gsub("/", "\\") .. '" 2>nul');
+			if worked then listing = pipe; end -- lupa's Lua 5.1 deliberately forbids popen
+		end
 		if listing then
 			local seen = 0;
 			for f in listing:lines() do if f:find("%.tga$") then seen = seen + 1; ok(T.FILES[f:gsub("%.tga$", "")], "undeclared file: " .. f); end end
@@ -257,7 +261,7 @@ return function(H)
 					eq(n, 2, label .. " in both columns");
 				end
 				ok(world.hasText("Ce client : SetGradientAlpha:oui"));
-				ok(world.hasText("laboratoire visuel v2"));
+				ok(world.hasText("laboratoire Ultimate UI v3"), "lab title identifies the currently tested fantasy theme");
 				-- columns: equal widths, side by side
 				local cols = {};
 				for _, f in ipairs(world.all) do if f.kind == "Frame" and f.w == 560 and f.h == 700 then cols[#cols + 1] = f; end end
