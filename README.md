@@ -1,6 +1,6 @@
 # Reborn Build Planner
 
-Addon WoW 3.3.5a (Interface 30300) pour Azeroth Survivors Reborn : bibliothèque de builds, éditeur, import/export compatible avec le planner officiel. Version 0.4.3-proto1. **Dépôt privé.**
+Addon WoW 3.3.5a (Interface 30300) pour Azeroth Survivors Reborn : bibliothèque de builds, éditeur, import/export compatible avec le planner officiel. Version de travail 0.4.4-alpha-UltimateUI. **Dépôt privé.**
 
 Pour reprendre le développement, lire d'abord **[docs/HANDOFF_TO_GPT.md](docs/HANDOFF_TO_GPT.md)**, puis `docs/PROJECT_STATE.md`.
 
@@ -17,6 +17,20 @@ Le fichier `addon/RebornBuildPlanner/GeneratedCatalog.lua` est référencé par 
    Cela écrit `addon/RebornBuildPlanner/GeneratedCatalog.lua` (ignoré par git).
 3. Packager / installer : `python -I tools/package_addon.py`, ou copier `addon/RebornBuildPlanner/` dans `Interface\AddOns\`.
 
+## Nouveau : informations de bijoux et d'anneaux depuis l'installation locale
+
+Le site officiel ne publie pas les effets de `jewelry.json`, mais le client Reborn contient des métadonnées de comportement. Un générateur **indépendant, en lecture seule** permet d'enrichir l'inspecteur sans copier de code ASRAdvisor :
+
+```powershell
+$env:RBP_CATALOG_DIR = "C:\chemin\vers\data\v1"
+$env:RBP_GAME_EXE = "C:\chemin\vers\executable-du-jeu.exe"
+python -I tools/package_addon.py
+```
+
+Le script vérifie les clés et emplacements contre le catalogue. Il refuse toute extraction incomplète. Les données générées restent locales dans `GeneratedJewelryMechanics.lua`, initialement vide ; elles ne doivent pas être poussées sur GitHub. Sans exécutable local, le planner reste fonctionnel et utilise uniquement ce que les API exposent réellement.
+
+Le panneau Détails peut alors afficher un type de bonus et sa valeur de base **sans les présenter comme des statistiques actuelles**. Voir [docs/JEWELRY_SOURCE_AUDIT.md](docs/JEWELRY_SOURCE_AUDIT.md).
+
 Optionnel : `RBP_OFFICIAL_BUNDLE` (chemin du bundle officiel `BYjmu0KK.js`) active la comparaison JS↔Lua.
 
 ## Tests
@@ -28,4 +42,4 @@ Chaque étape finit PASS, SKIPPED ou FAIL (sortie 0 / 3 / 1). Sans catalogue, se
 ## Contenu
 `addon/` planner · `addon_lab/` laboratoire graphique (textures TGA originales dans `Media/`, générées par `tools/make_textures.py`) · `tools/` générateurs et exécuteurs · `tests/` Lua / Python / Node · `docs/` documentation.
 
-**Statut visuel :** le thème v2 du laboratoire a été refusé par Kevin ; il n'est pas validé et n'est pas appliqué au planner.
+**Statut visuel :** le thème Ultimate UI v3 est effectivement chargé dans Reborn selon les captures du testeur. Il progresse, mais la qualité visuelle est encore en cours de recette ; le Lot 4 n'a pas commencé.
