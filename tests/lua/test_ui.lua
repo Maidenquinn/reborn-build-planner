@@ -96,7 +96,7 @@ return function(H)
 		ok(e.world.chat[#e.world.chat]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat]);
 		e.G.SlashCmdList.REBORNPLANNER("what");
 		ok(e.world.chat[#e.world.chat]:find("Usage", 1, true));
-		eq(e.root.strata, "DIALOG");
+		eq(e.root.strata, "FULLSCREEN_DIALOG", "fantasy theme must remain above the game HUD");
 		ok(e.root.clamped, "window is clamped to the screen");
 	end);
 
