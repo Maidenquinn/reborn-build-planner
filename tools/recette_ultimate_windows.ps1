@@ -6,6 +6,7 @@ param(
   [Parameter(Mandatory=$true)][string]$GameExe,
   [Parameter(Mandatory=$true)][string]$CatalogDir,
   [string]$OfficialBundle = "",
+  [string]$NativeRoot = "",
   [string]$OutputDir = ""
 )
 $ErrorActionPreference = "Stop"
@@ -34,7 +35,12 @@ if ($OfficialBundle) {
 }
 
 Write-Host "1/4 Running read-only tests (Lua 5.1, model, codec, original textures)" -ForegroundColor Cyan
-& $python -I tools/run_all.py
+$testArgs = @("-I", "tools/run_all.py")
+if ($NativeRoot) {
+  if (!(Test-Path -LiteralPath $NativeRoot -PathType Container)) { throw "Native addon root not found: $NativeRoot" }
+  $testArgs += @("--native-root", [IO.Path]::GetFullPath($NativeRoot))
+}
+& $python @testArgs
 $testExit = $LASTEXITCODE
 if ($testExit -eq 1) { throw "A test FAILED. Read tests\results\last_run.txt. No ZIP was produced." }
 if ($testExit -ne 0 -and $testExit -ne 3) { throw "Unexpected test exit code $testExit" }
