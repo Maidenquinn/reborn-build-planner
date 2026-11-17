@@ -44,7 +44,7 @@ def main(argv):
             return 2
         args = [sys.executable, os.path.join(ROOT, "tools", "extract_jewelry_local.py"),
                 "--exe", exe, "--catalog", os.path.join(catalogue, "jewelry.json"),
-                "--out", os.path.join(SRC, "GeneratedJewelryMechanics.lua")]
+                "--out", os.path.join(ROOT, ".local", "generated", "GeneratedJewelryMechanics.lua")]
         if subprocess.run(args, cwd=ROOT).returncode != 0:
             sys.stderr.write("REFUSED: local jewelry extraction failed; package not produced\\n")
             return 2
@@ -54,6 +54,10 @@ def main(argv):
     os.makedirs(dest)
     for f in files + ["RebornBuildPlanner.toc"]:
         shutil.copyfile(os.path.join(SRC, f), os.path.join(dest, f))
+    # Overlay local-only mechanics in the PACKAGE, never modify tracked source.
+    if exe:
+        local_mechanics = os.path.join(ROOT, ".local", "generated", "GeneratedJewelryMechanics.lua")
+        shutil.copyfile(local_mechanics, os.path.join(dest, "GeneratedJewelryMechanics.lua"))
     # Original fantasy UI assets: regenerate locally if absent, never fetch third-party assets.
     lab_media = os.path.join(ROOT, "addon_lab", "RebornPlannerThemeLab", "Media")
     needed = ("ultimate_corner.tga", "ultimate_crest.tga", "ultimate_titlebar.tga", "ultimate_panel.tga")
