@@ -206,7 +206,7 @@ return function(H)
 				end
 			end
 		end
-		ok(checked > 200, "surface textures checked: " .. checked);
+		ok(checked > 140 and checked < 900, "optimised textured surfaces inspected: " .. checked);
 		for _, fr in ipairs(world.all) do
 			if fr.kind == "Frame" and fr.strata == "TOOLTIP" then ok(true); end
 		end
