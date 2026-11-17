@@ -4,7 +4,7 @@ Outputs uncompressed 32-bit TGA files; no runtime network dependency.
 """
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
-import random, math, sys
+import random, math, struct, sys
 
 G=(224,175,78,255); L=(255,225,153,255); B=(116,70,30,255)
 
@@ -64,10 +64,22 @@ def panel():
         d.ellipse((x-5,y-5,x+5,y+5),fill=G,outline=L)
     return im
 
+def tga_bytes(im):
+    """WoW-compatible 18-byte header, uncompressed bottom-left BGRA rows."""
+    w, h = im.size
+    result = bytearray(struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, w, h, 32, 8))
+    px = im.load()
+    for y in range(h - 1, -1, -1):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            result.extend((b, g, r, a))
+    return bytes(result)
+
+
 def main(out):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     textures={"ultimate_corner":corner(),"ultimate_crest":crest(),"ultimate_titlebar":title(),"ultimate_panel":panel()}
-    for name,im in textures.items():im.save(out/(name+".tga"),format="TGA",compression=None)
+    for name,im in textures.items():(out/(name+".tga")).write_bytes(tga_bytes(im))
     print("Generated",len(textures),"original textures in",out)
 
 if __name__=="__main__":
