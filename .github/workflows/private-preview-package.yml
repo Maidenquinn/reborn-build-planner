@@ -18,8 +18,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install visual build dependencies only
-        run: python -m pip install pillow
+      - name: Install isolated build and Lua 5.1 validation dependencies
+        run: python -m pip install pillow lupa==2.8
       - name: Fetch coherent public Reborn catalogue
         run: python -I tools/fetch_catalog_public.py --out .local/catalog/public-preview
       - name: Generate Lua catalogue (not committed)
@@ -30,6 +30,10 @@ jobs:
         run: |
           python -I tools/make_textures.py addon_lab/RebornPlannerThemeLab/Media
           python -I tools/make_ultimate_art.py addon_lab/RebornPlannerThemeLab/Media
+      - name: Run complete Lua 5.1 addon suites against public catalogue snapshot
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tools/run_lua_tests.py
       - name: Assemble separate installable preview (no user executable)
         run: python -I tools/package_addon.py --out dist/private-preview
       - name: Verify addon ZIP paths
