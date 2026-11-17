@@ -96,7 +96,7 @@ return function(H)
 		ok(e.world.chat[#e.world.chat]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat]);
 		e.G.SlashCmdList.REBORNPLANNER("what");
 		ok(e.world.chat[#e.world.chat]:find("Usage", 1, true));
-		eq(e.root.strata, "HIGH");
+		eq(e.root.strata, "DIALOG");
 		ok(e.root.clamped, "window is clamped to the screen");
 	end);
 
@@ -299,7 +299,7 @@ return function(H)
 		eq(e.c:Editor().draft.phases[1].spells[1].key, keys[1]);
 		e.world.click(ed.plan.spells[1].del);
 		eq(#e.c:Editor().draft.phases[1].spells, 5);
-		ok(e.world.hasText("A planned banish is not a banish already done."), e.texts());
+		ok(e.world.hasText("Planning only: nothing is banished or picked for you."), e.texts());
 		e.world.click(ed.plan.banish[1].del);
 		eq(#e.c:Editor().draft.phases[1].banish, 2);
 	end);
@@ -733,6 +733,8 @@ return function(H)
 		for p = 1, 6 do e.c:AddSpell(e.c:CatalogEntries()[p].key); end
 		for p = 1, 3 do e.c:AddBanish(e.c:CatalogEntries()[6 + p].key); end
 		lint("editor spells");
+		for p = 1, 3 do e.c:ToggleBanishAfter(e.c:Editor().draft.phases[1].spells[p].key); end
+		lint("editor spells with banish-after marks");
 		e.c:SetTab("jewels");
 		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
 			e.c:SetGroup(g);

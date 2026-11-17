@@ -195,3 +195,18 @@ Code : `UIStrings.lua`, `Controller.lua` (tout le comportement, sans widget), `U
 | U9 | « Suivre » (activer) exige un build sans conflit ni erreur et une classe connue ; « Enregistrer et suivre » enregistre toujours, puis tente d'activer ; un import n'est jamais actif. | CONFIRMÉ SIMULÉ |
 | U10 | Ce que l'éditeur ne sait pas encore éditer (statistiques, objectifs `rank`/`unlimited`, `ext`, étapes en trop) est **listé** dans l'onglet Notes et conservé à l'enregistrement (test de conservation). | CONFIRMÉ SIMULÉ |
 | U11 | Contrôle de mise en page (`world.lint`) sur tailles estimées de texte (0,6 × corps) : fenêtre dans l'écran, textes dans leur cadre, libellés dans leurs boutons, pas de recouvrement de contrôles ; 1365×768, 1920×1080, 1024×768, 800×600 ; EN et FR ; noms longs, notes longues. **Ce n'est pas un rendu** : aucune capture réelle n'existe. | SIMULÉ |
+
+---
+
+## 10. Lot 3.1 : bannissement après acquisition, infobulles, apparence
+
+| # | Contrat / décision | Statut |
+|---|---|---|
+| V1 | `phase.banishAfter = {clé…}` : sous-ensemble des `spells` de la même étape, max 3, ordre = ordre d'ajout ; absent = vide. Un sort peut être souhaité et marqué (pas de conflit). Marque sur un sort non souhaité = conflit `BANISH_AFTER_NOT_WANTED` ; doublon = `DUPLICATE_ENTRY` ; plus de 3 / non-chaîne = erreur. | CONFIRMÉ (Lua 5.1) |
+| V2 | `phase.banish` garde son sens « à éviter » et les limites du site. Souhaité + évité reste `CONFLICT_SPELL_BANISH` ; `BuildModel.ConvertBanishToAfter` est l'unique conversion, déclenchée par le joueur. | CONFIRMÉ |
+| V3 | Retirer un sort retire sa marque (`RemoveSpell`) ; réordonner ne change rien (marques par clé). L'identité d'un conflit pour « cette édition en ajoute-t-elle un ? » est code+clé comptés (et non le chemin). | CONFIRMÉ |
+| V4 | `azsb1:` ne peut pas représenter `banishAfter` : le décodeur du site supprime tout bannissement présent aussi dans les sorts. `PlanExport` ajoute une perte d'intention par marque et n'injecte rien dans `banish`. | CONFIRMÉ par le décodeur du site (hors ligne) ; non rejoué dans l'interface du site |
+| V5 | Règle de jeu « un sort acquis peut-il être banni plus tard ? » : non établie. Texte du site : « A banished spell never comes up in a level-up that run. Banish needs its account talent. » Le planner n'agit jamais et ne promet aucun moment. | INCONNU (D16) |
+| V6 | Infobulle : un `GameTooltip` partagé, au survol seulement ; sorts : `SetHyperlink("spell:<id>")` à la volée (même appel que `AzerothSurvivors/Inspect.lua`) puis lignes du planner ; sans texte du jeu : « Effet détaillé indisponible » ; bijoux/amulettes : uniquement les champs du catalogue (aucun effet ni statistique). | Simulé ; fidélité du texte natif à Reborn : INCONNUE (D9) |
+| V7 | Fenêtre : fond uni alpha 1, strate `DIALOG` niveau 20 ; boîte de dialogue `FULLSCREEN_DIALOG` niveau 100 ; panneau par vue. | Simulé ; rendu réel INCONNU (D2) |
+

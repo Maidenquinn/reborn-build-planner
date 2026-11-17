@@ -69,7 +69,7 @@ function Stub.new(opts)
 	function F:StartMoving() self.moving = true; end
 	function F:StopMovingOrSizing() self.moving = false; end
 	function F:SetBackdrop(b) self.backdrop = b; end
-	function F:SetBackdropColor() end
+	function F:SetBackdropColor(r, g, b, a) self.backdropColor = { r, g, b, a }; end
 	function F:SetBackdropBorderColor() end
 	function F:SetTextColor(r, g, b) self.color = { r, g, b }; end
 	function F:SetJustifyH(j) self.justifyH = j; end
@@ -249,6 +249,30 @@ function Stub.new(opts)
 	G.time = function() return 1700000000; end;
 	G.GetTime = function() return 1000; end;
 
+	-- GameTooltip mock: records what the UI draws. opts.gameSpells = { [id] = { "Name", "description..." } } stands for the
+	-- game's own spell tooltip (an unknown id shows nothing, like the client).
+	do
+		local tt = { lines = {}, shown = false, owner = nil, calls = 0 };
+		function tt:SetOwner(o, anchor) self.owner, self.anchor, self.shown = o, anchor, false; self.lines = {}; end
+		function tt:GetOwner() return self.owner; end
+		function tt:ClearLines() self.lines = {}; end
+		function tt:SetHyperlink(link)
+			self.calls = self.calls + 1;
+			local id = tonumber(string.match(link, "spell:(%d+)"));
+			local g = id and opts.gameSpells and opts.gameSpells[id];
+			self.lines = {};
+			if g then for _, l in ipairs(g) do self.lines[#self.lines + 1] = l; end end
+		end
+		function tt:AddLine(text) self.lines[#self.lines + 1] = text; end
+		function tt:NumLines() return #self.lines; end
+		function tt:Show() self.shown = true; end
+		function tt:Hide() self.shown = false; self.owner = nil; self.lines = {}; end
+		function tt:IsShown() return self.shown; end
+		function tt:Text() return table.concat(self.lines, "\n"); end
+		G.GameTooltip = tt;
+		world.tooltip = tt;
+	end
+
 	G.CreateFrame = function(kind, name, parent, template)
 		local f = new(kind, name, parent or UIParent);
 		f.template = template;
@@ -293,7 +317,7 @@ function Stub.new(opts)
 	-- visible button (not a text region) whose label equals `label`
 	function world.button(label, within)
 		for _, f in ipairs(world.all) do
-			if (f.kind == "Button" or f.kind == "CheckButton") and f.text == label and f:IsVisible() and (not within or world.inside(f, within)) then return f; end
+			if (f.kind == "Button" or f.kind == "CheckButton") and plain(f.text) == label and f:IsVisible() and (not within or world.inside(f, within)) then return f; end
 		end
 		return nil;
 	end
@@ -303,6 +327,15 @@ function Stub.new(opts)
 			f = f.parent;
 		end
 		return false;
+	end
+
+	function world.hover(f)
+		assert(f and f:IsVisible(), "hover: widget not visible");
+		if f.scripts.OnEnter then f.scripts.OnEnter(f); end
+		return world.tooltip;
+	end
+	function world.unhover(f)
+		if f.scripts.OnLeave then f.scripts.OnLeave(f); end
 	end
 
 	function world.click(f)

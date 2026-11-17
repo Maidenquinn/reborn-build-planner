@@ -1,6 +1,6 @@
 # PROJECT_STATE — Reborn Build Planner
 
-Mis à jour : 2026-11-17 · Lots 0, 1, 1.1, 2 validés (PASS ou PASS CONDITIONNEL) · **Lot 3 livré : PASS CONDITIONNEL (simulé, client non testé)** · Lot 4 (suivi, conseils) non commencé.
+Mis à jour : 2026-11-17 · Lots 0, 1, 1.1, 2 validés · Lot 3 PASS CONDITIONNEL (première recette client partielle faite par Kevin) · **Lot 3.1 livré : PASS CONDITIONNEL (simulé, client non testé)** · Lot 4 (suivi, conseils) non commencé.
 
 ## Décisions acquises
 * Addon natif `RebornBuildPlanner`, `## Interface: 30300`, dépendances `AzerothSurvivors, AzerothSurvivorsAPI`, SavedVariables **`RebornBuildPlannerDB`** (seule globale propre) ; namespace global `RebornBuildPlanner`. Commandes `/rbp`, `/rebornplanner` à valider (collision non vérifiée).
@@ -35,3 +35,11 @@ Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOA
 ## Prochaine action
 1. **Kevin** : exécuter la recette client du Lot 3 (≈ 25 min, package `reborn-build-planner-recette-lot3\`), puis P-W1 (1)-(4) et la recette `S-A…S-D` (~30 min) qui lèvent `P-C1/P-S2/P-J*`.
 2. Lot 4 (suivi en partie, évaluation, conseils de sorts) seulement après `P-C1`, `P-S2` et les corrections issues de la recette du Lot 3.
+
+## Lot 3.1 (0.3.1-lot3.1)
+* **Modèle** : `phase.banishAfter` (sous-ensemble des sorts souhaités, max 3) = « bannir après acquisition » ; `phase.banish` = liste à éviter (inchangée, format du site). Souhaité + marqué n'est pas un conflit ; souhaité + évité en reste un (anciens builds), converti seulement sur clic. Stockage : schéma 1 inchangé, champ optionnel (absent = vide).
+* **azsb1** : ne peut pas représenter `banishAfter` (le décodeur du site supprime les bannissements qui chevauchent les sorts : `tools/site_overlap_probe.mjs`). Export : perte d'intention annoncée, acceptation requise, rien écrit dans la liste de bannissement.
+* **Interface** : fenêtre opaque (strate DIALOG), panneaux contrastés, rôles de boutons, éditeur réagencé, infobulles au survol (catalogue, plan, bijouterie) : texte de sort demandé au jeu par id à la volée, sinon « Effet détaillé indisponible ». Le catalogue n'a ni description ni statistique.
+* **Tests** : Lua 5.1 162 cas / 7 171 assertions / 0 échec. **Lot 0 : 17 ancrages statiques de `AzerothSurvivors` (Run/Cards/Units) ont bougé : le code natif installé a changé ; à ré-ancrer avant le Lot 4.**
+* **Non fait / à valider en jeu** : `RECETTE_CLIENT_LOT3_1.md` (D1-D16) + C1-C18 du Lot 3 restants ; règle de jeu « bannir un sort déjà acquis » (D16) ; format natif complémentaire pour exporter `banishAfter` ; navigation clavier.
+* **Prochaine action** : Kevin exécute D1-D16 et répond à D16 ; GPT relit REPORT_LOT3_1 ; puis ré-ancrage des constats Lot 0 et Lot 4.

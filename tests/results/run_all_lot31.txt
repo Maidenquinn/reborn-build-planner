@@ -1,0 +1,29 @@
+== catalogue up to date: PASS
+   catalogue up to date
+== generator tests: PASS
+   generator tests: 84 assertions passed, 0 failed
+== Lot 0 suite: FAIL (exit 1)
+     FAIL anchor C13 AzerothSurvivors/Cards.lua:1335 pattern at [1337], claimed 1335
+   256 assertions passed, 17 failed
+   FAILED:
+     anchor R06 AzerothSurvivors/Run.lua:423 pattern at [428], claimed 423
+     anchor R07 AzerothSurvivors/Run.lua:432 pattern at [437], claimed 432
+     anchor R12 AzerothSurvivors/Run.lua:414 pattern at [419], claimed 414
+     anchor U01 AzerothSurvivors/Units.lua:53 pattern at [73], claimed 53
+     anchor C01 AzerothSurvivors/Cards.lua:1455 pattern at [1457], claimed 1455
+     anchor C02 AzerothSurvivors/Cards.lua:1461 pattern at [1463], claimed 1461
+     anchor C03 AzerothSurvivors/Cards.lua:1473 pattern at [1475], claimed 1473
+     anchor C04 AzerothSurvivors/Cards.lua:1487 pattern at [1489], claimed 1487
+     anchor C05 AzerothSurvivors/Cards.lua:1334 pattern at [1336], claimed 1334
+     anchor C07 AzerothSurvivors/Cards.lua:1505 pattern at [1507], claimed 1505
+     anchor C08 AzerothSurvivors/Cards.lua:1151 pattern at [1153], claimed 1151
+     anchor C09 AzerothSurvivors/Cards.lua:415 pattern at [], claimed 415
+     anchor C10 AzerothSurvivors/Cards.lua:1496 pattern at [1498], claimed 1496
+     anchor C11 AzerothSurvivors/Cards.lua:1109 pattern at [1111], claimed 1109
+     anchor C13 AzerothSurvivors/Cards.lua:1335 pattern at [1337], claimed 1335
+== Lua 5.1 suites: PASS
+     191 assertions passed so far in this suite
+     339 assertions passed so far in this suite
+   Lua tests: 162 test cases, 7171 assertions passed, 0 failed (Lua 5.1)
+== JS <-> Lua cross-check (official decoder): PASS
+   verified 63 codes with the official decoder (JS->Lua->JS: 60, Lua->JS: 3)
