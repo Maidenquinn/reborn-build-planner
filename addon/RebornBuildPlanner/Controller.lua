@@ -947,8 +947,14 @@ function Controller:TooltipData(kind, key)
 				end
 			end
 		end
-		line(L("Detailed effect unavailable"), "dim");
-		line(L("The Reborn catalogue gives no statistics for this piece."), "dim");
+		-- Prefer explicitly sourced client metadata. Never turn a base value into a live stat.
+		d.sections = ns.JewelryEffects and ns.JewelryEffects.Sections(key, entry.slot, lang == "frFR") or nil;
+		if d.sections then
+			d.preview = ns.Describe and ns.Describe.Preview(d.sections, 3) or {};
+		else
+			line(L("Detailed effect unavailable"), "dim");
+			line(L("The Reborn catalogue gives no statistics for this piece."), "dim");
+		end
 	else
 		local isLegend = entry.spell ~= nil;
 		d.subtitle = isLegend and (L("Legendary amulet") .. " | " .. self:ClassName(entry.class)) or (L("Amulet") .. " | " .. L(RARITY[entry.rarity or ""] or "Unknown"));
