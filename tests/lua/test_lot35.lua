@@ -7,7 +7,7 @@ return function(H)
 	local cat = ns0.Catalog.New(ns0.GeneratedCatalog);
 	local J = ns0.Json;
 	local function fixture(name)
-		local text = H.readFile(H.root .. "/tests/fixtures/catalog/384db000d5ac311d/" .. name);
+		local text = H.readFile(H.catalogDir .. "/" .. name);
 		local function denull(v)
 			if v == J.null then return nil; end
 			if type(v) == "table" then local o = {}; for k, x in pairs(v) do o[k] = denull(x); end return o; end

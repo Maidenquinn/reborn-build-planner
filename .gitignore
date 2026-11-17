@@ -2,3 +2,8 @@
 __pycache__/
 *.pyc
 *.tmp
+
+# local-only inputs, never versioned (see docs/PROVENANCE.md)
+.local/
+addon/RebornBuildPlanner/GeneratedCatalog.lua
+*.bundle

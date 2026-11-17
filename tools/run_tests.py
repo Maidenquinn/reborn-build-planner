@@ -16,7 +16,10 @@ import glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
-CATALOG = os.path.join(ROOT, "tests", "fixtures", "catalog", "384db000d5ac311d")
+CATALOG = os.environ.get("RBP_CATALOG_DIR") or os.path.join(ROOT, ".local", "catalog", "384db000d5ac311d")
+if not os.path.isdir(CATALOG):
+    print("SKIPPED: catalogue source (RBP_CATALOG_DIR or .local/catalog/...) missing; see docs/PROVENANCE.md")
+    sys.exit(3)
 
 spec = importlib.util.spec_from_file_location("lot0_model", os.path.join(HERE, "lot0_model.py"))
 M = importlib.util.module_from_spec(spec)

@@ -17,7 +17,7 @@ GENERATOR_VERSION = 2
 SUPPORTED_SCHEMA = 1
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
-DEFAULT_DATA = os.path.join(ROOT, "tests", "fixtures", "catalog", "384db000d5ac311d")
+DEFAULT_DATA = os.environ.get("RBP_CATALOG_DIR") or os.path.join(ROOT, ".local", "catalog", "384db000d5ac311d")
 DEFAULT_OUT = os.path.join(ROOT, "addon", "RebornBuildPlanner", "GeneratedCatalog.lua")
 DEFAULT_REPORT = os.path.join(ROOT, "tests", "results", "catalog_report.txt")
 

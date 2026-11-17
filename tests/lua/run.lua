@@ -1,7 +1,8 @@
 -- Entry point (Lua 5.1). Expects global ROOT (project root, forward slashes) set by tools/run_lua_tests.py.
 local H = dofile(ROOT .. "/tests/lua/harness.lua");
 H.root = ROOT;
-local suites = { "test_catalog", "test_model", "test_storage", "test_storage_hardening", "test_codec", "test_ui", "test_lot31", "test_lot32", "test_lot33", "test_lot34", "test_lot35", "test_lot36", "test_sandbox" };
+H.catalogDir = CATALOG_DIR;
+local suites = { "test_standalone", "test_catalog", "test_model", "test_storage", "test_storage_hardening", "test_codec", "test_ui", "test_lot31", "test_lot32", "test_lot33", "test_lot34", "test_lot35", "test_lot36", "test_sandbox" };
 if ONLY then suites = { ONLY }; end
 for _, name in ipairs(suites) do
 	print("[" .. name .. "]");

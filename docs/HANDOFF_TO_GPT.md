@@ -48,13 +48,13 @@ Contraintes constantes : Lua 5.1, pas d'`OnUpdate`/timer, aucun réseau à l'ex�
 ```
 python -I tools/run_all.py
 ```
-Étapes : catalogue à jour, textures à jour, tests du générateur, suite Lot 0 (Python), suites Lua 5.1 (via `lupa` dans `.devtools/venv`, non versionné), recoupement JS↔Lua (Node).
-Dernier résultat (2026-11-17, exit 0) : générateur 84 assertions ; Lot 0 273 assertions ; **Lua 5.1 : 220 cas, 14 196 assertions, 0 échec** ; JS↔Lua PASS.
-Versions : Python 3.13.1 · Node v24.19.0 · Lua 5.1 (lupa 2.8 dans le venv).
+Chaque étape finit **PASS / SKIPPED / FAIL** (sortie 0 / 3 / 1). Un SKIPPED n'est jamais un succès.
+**Ressources locales non versionnées** (voir `PROVENANCE.md`) : `RBP_CATALOG_DIR` (données officielles `data/v1`) → génère `GeneratedCatalog.lua` et débloque Lot 0, générateur, 14 000+ assertions Lua ; `RBP_OFFICIAL_BUNDLE` (bundle `BYjmu0KK.js`, optionnel) → comparaison JS↔Lua. Sans elles : `test_standalone` (codec, 86 assertions) tourne seul.
+Étapes : catalogue à jour, textures à jour, tests du générateur, Lot 0 (Python), Lua 5.1 standalone, Lua 5.1 catalogue (via `lupa` dans `.devtools/venv`, non versionné), JS↔Lua (Node).
+Résultat de référence (avec ressources locales) : 7 PASS, 0 SKIPPED, 0 FAIL ; Lua : 225 cas, 14 282 assertions ; générateur 84 ; Lot 0 273 ; JS↔Lua 63 codes vérifiés.
+Versions : Python 3.13.1 · Node v24.19.0 · Lua 5.1 (lupa 2.8).
 Recréer le venv : `python -m venv .devtools/venv` puis `.devtools/venv/Scripts/pip install lupa`.
-**Non exécuté** : tout test dans le client réel pour le thème v2 (aucune capture côté développeur) ; les suites Lua simulent les widgets (`tests/lua/wowstub.lua`) et **ne prouvent aucun rendu**.
-Le nombre d'assertions n'est pas un indicateur de succès visuel.
-
+**Non exécuté** : tout test du thème v2 dans le vrai client ; les suites simulent les widgets (`tests/lua/wowstub.lua`) et **ne prouvent aucun rendu**.
 ## 8. API du client
 Confirmées présentes par Kevin (`/rbplab diag`, client Reborn) : `SetGradientAlpha`, `SetBackdrop`, `SetHighlightTexture`, `SetPushedTexture`, `GetHighlightTexture`, `SetFontString`, `SetTextInsets`, `GetStringHeight`, `SetVertexColor`, `SetTexCoord`. Détail et inconnus : `COMPAT_CLIENT_LOT3_5B.md`.
 
@@ -70,10 +70,10 @@ Confirmées présentes par Kevin (`/rbplab diag`, client Reborn) : `SetGradientA
 * `RebornBuildPlannerDB` : schéma versionné, migrations dans `Storage.lua` ; ne jamais renommer la globale ni supprimer de champs sans migration (perte de builds des joueurs).
 * Appliquer le thème modifie toute l'UI : garder `UI.lua` 0.4.2 comme repli tant que le rendu n'est pas validé.
 * `GeneratedCatalog.lua` dépend du catalogue public du site (hash de contenu `384db000d5ac311d`) ; un changement de schéma amont est refusé volontairement par le décodeur.
-* Fichier tiers : `tests/fixtures/codec/reference/BYjmu0KK.js` (bundle du site officiel) sert de preuve d'exécution du codec ; droits de redistribution **non établis** (voir le rapport de transfert).
+* **Ressources tierces exclues** (bundle officiel, copie du catalogue, `GeneratedCatalog.lua`) : voir `EXCLUDED_RESOURCES.md` et `PROVENANCE.md`. L'addon ne se charge pas sans `GeneratedCatalog.lua` (à générer localement).
 
 ## 11. Installation / désinstallation
-* Planner : copier `addon/RebornBuildPlanner/` dans `World of Warcraft\Interface\AddOns\` (ou utiliser `python -I tools/package_addon.py`, sortie dans le dossier frère `reborn-build-planner-recette-lot3-5b`). Prérequis : `AzerothSurvivors`, `AzerothSurvivorsAPI`.
+* Planner : **générer d'abord** `GeneratedCatalog.lua` (`PROVENANCE.md`), puis copier `addon/RebornBuildPlanner/` dans `World of Warcraft\Interface\AddOns\` (ou utiliser `python -I tools/package_addon.py`, sortie dans le dossier frère `reborn-build-planner-recette-lot3-5b`). Prérequis : `AzerothSurvivors`, `AzerothSurvivorsAPI`.
 * Lab : copier `RebornPlannerThemeLab/` (avec `Media/`) ; supprimer toute ancienne version avant.
 * Désinstaller : supprimer le dossier d'addon ; optionnel : supprimer `WTF\Account\<compte>\SavedVariables\RebornBuildPlannerDB.lua` (supprime les builds enregistrés) et `RebornPlannerThemeLabDB.lua`.
 * Ne jamais committer de SavedVariables réelles.

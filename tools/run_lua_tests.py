@@ -18,6 +18,11 @@ except ImportError:
 lua = LuaRuntime(unpack_returned_tuples=True)
 g = lua.globals()
 g.ROOT = root.replace("\\", "/")
+g.CATALOG_DIR = (os.environ.get("RBP_CATALOG_DIR") or os.path.join(root, ".local", "catalog", "384db000d5ac311d")).replace("\\", "/")
+HAVE_CAT = os.path.exists(os.path.join(root, "addon", "RebornBuildPlanner", "GeneratedCatalog.lua"))
+if not HAVE_CAT and len(sys.argv) <= 1:
+    sys.argv.append("test_standalone")
+    sys.stderr.write("SKIPPED: catalogue-dependent Lua suites (GeneratedCatalog.lua absent; see docs/PROVENANCE.md); running test_standalone only\n")
 if len(sys.argv) > 1:
     g.ONLY = sys.argv[1]
 with open(os.path.join(root, "tests", "lua", "run.lua"), encoding="utf-8") as fh:

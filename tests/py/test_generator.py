@@ -12,11 +12,15 @@ import tempfile
 from contextlib import redirect_stderr, redirect_stdout
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-SRC = os.path.join(ROOT, "tests", "fixtures", "catalog", "384db000d5ac311d")
+SRC = os.environ.get("RBP_CATALOG_DIR") or os.path.join(ROOT, ".local", "catalog", "384db000d5ac311d")
 OUT = os.path.join(ROOT, "addon", "RebornBuildPlanner", "GeneratedCatalog.lua")
 spec = importlib.util.spec_from_file_location("generate_catalog", os.path.join(ROOT, "tools", "generate_catalog.py"))
 G = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(G)
+
+if not (os.path.isdir(SRC) and os.path.exists(OUT)):
+    print("SKIPPED: catalogue source (RBP_CATALOG_DIR or .local/catalog/...) or generated catalogue missing; see docs/PROVENANCE.md")
+    sys.exit(3)
 
 passed = failed = 0
 

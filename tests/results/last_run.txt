@@ -6,9 +6,13 @@
    generator tests: 84 assertions passed, 0 failed
 == Lot 0 suite: PASS
    273 assertions passed, 0 failed
-== Lua 5.1 suites: PASS
+== Lua 5.1 standalone suite (no catalogue, no bundle): PASS
+     86 assertions passed so far in this suite
+   Lua tests: 5 test cases, 86 assertions passed, 0 failed (Lua 5.1)
+== Lua 5.1 catalogue suites: PASS
      2282 assertions passed so far in this suite
      396 assertions passed so far in this suite
-   Lua tests: 220 test cases, 14196 assertions passed, 0 failed (Lua 5.1)
+   Lua tests: 225 test cases, 14282 assertions passed, 0 failed (Lua 5.1)
 == JS <-> Lua cross-check (official decoder): PASS
    verified 63 codes with the official decoder (JS->Lua->JS: 60, Lua->JS: 3)
+== summary: 7 PASS, 0 SKIPPED, 0 FAIL

@@ -43,7 +43,7 @@ return function(H)
 		return v;
 	end
 	local function fixture(name)
-		local text = H.readFile(H.root .. "/tests/fixtures/catalog/384db000d5ac311d/" .. name);
+		local text = H.readFile(H.catalogDir .. "/" .. name);
 		return denull(assert(J.Decode(text)));
 	end
 
