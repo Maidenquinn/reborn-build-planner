@@ -16,8 +16,8 @@ Set-Location $root
 if (!(Test-Path -LiteralPath $GameExe -PathType Leaf)) { throw "Executable missing: $GameExe" }
 if (!(Test-Path -LiteralPath (Join-Path $CatalogDir "jewelry.json") -PathType Leaf)) { throw "Missing official jewelry.json in $CatalogDir" }
 if (!(Test-Path -LiteralPath (Join-Path $CatalogDir "index.json") -PathType Leaf)) { throw "Missing index.json in $CatalogDir" }
-$python = (Get-Command python -ErrorAction Stop).Source
 $venv = Join-Path $root ".devtools\venv\Scripts\python.exe"
+$python = $venv
 if (!(Test-Path -LiteralPath $venv)) { throw "Lua 5.1 venv missing. See README.md: python -m venv .devtools\venv; .devtools\venv\Scripts\python.exe -m pip install lupa" }
 if (!$OutputDir) { $OutputDir = Join-Path $root "dist\ultimate-0.4.5-recette" }
 $outFull = [IO.Path]::GetFullPath($OutputDir)
@@ -34,6 +34,11 @@ if ($OfficialBundle) {
   Remove-Item Env:RBP_OFFICIAL_BUNDLE -ErrorAction SilentlyContinue
 }
 
+# Always regenerate original assets for this commit, not stale TGA from a previous version.
+& $python -I tools/make_textures.py addon_lab/RebornPlannerThemeLab/Media
+if ($LASTEXITCODE -ne 0) { throw "Base texture generation failed" }
+& $python -I tools/make_ultimate_art.py addon_lab/RebornPlannerThemeLab/Media
+if ($LASTEXITCODE -ne 0) { throw "Moonlight texture generation failed" }
 Write-Host "1/4 Running read-only tests (Lua 5.1, model, codec, original textures)" -ForegroundColor Cyan
 $testArgs = @("-I", "tools/run_all.py")
 if ($NativeRoot) {
