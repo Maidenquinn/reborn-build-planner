@@ -61,7 +61,7 @@ jobs:
       - name: Publish private 7-day recette artifact (NOT a release)
         uses: actions/upload-artifact@v4
         with:
-          name: RebornBuildPlanner-0.4.5-alpha-private-recette
+          name: RebornBuildPlanner-0.4.6-alpha-moonlight-recette
           path: |
             dist/private-preview/RebornBuildPlanner-*-recette.zip
             dist/private-preview/SHA256SUMS.txt
