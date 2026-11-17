@@ -94,7 +94,7 @@ return function(H)
 		ok(root:IsShown());
 		e.G.SlashCmdList.REBORNPLANNER("diag");
 		ok(e.world.chat[#e.world.chat - 1]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat - 1]);
-	\tok(e.world.chat[#e.world.chat]:find("bijoux :", 1, true));
+			ok(e.world.chat[#e.world.chat]:find("bijoux :", 1, true));
 		e.G.SlashCmdList.REBORNPLANNER("what");
 		ok(e.world.chat[#e.world.chat]:find("Usage", 1, true));
 		eq(e.root.strata, "FULLSCREEN_DIALOG", "fantasy theme must remain above the game HUD");
