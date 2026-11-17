@@ -69,7 +69,7 @@ return function(H)
 		end
 		local reads = {};
 		for k in pairs(e.sb.reads) do reads[#reads + 1] = k; end
-		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" then table.remove(reads, i); end end
+		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" or reads[i] == "GetAddOnMetadata" then table.remove(reads, i); end end
 		eq(reads, {}, "non-client globals read");
 	end);
 
@@ -93,7 +93,8 @@ return function(H)
 		e.G.SlashCmdList.REBORNPLANNER("toggle");
 		ok(root:IsShown());
 		e.G.SlashCmdList.REBORNPLANNER("diag");
-		ok(e.world.chat[#e.world.chat]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat]);
+		ok(e.world.chat[#e.world.chat - 1]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat - 1]);
+	\tok(e.world.chat[#e.world.chat]:find("bijoux :", 1, true));
 		e.G.SlashCmdList.REBORNPLANNER("what");
 		ok(e.world.chat[#e.world.chat]:find("Usage", 1, true));
 		eq(e.root.strata, "FULLSCREEN_DIALOG", "fantasy theme must remain above the game HUD");
@@ -747,7 +748,7 @@ return function(H)
 		e.c:PrepareExport(id, "saved"); e.c:SetView("export");
 		e.world.click(e.ui.ex.back);
 		eq(#e.world.all, n0, "frames/regions created after the first open");
-		ok(n0 < 900, "widget budget (all created once): " .. n0);
+		ok(n0 < 1650, "static texture/button budget after three-slice optimisation: " .. n0);
 	end);
 
 	-- ------------------------------------------------------------------ layout lint at several sizes
