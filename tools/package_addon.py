@@ -10,6 +10,7 @@ Output (default: ../reborn-build-planner-recette-lot3):
 Refuses to run if the .toc lists a missing file or the addon folder holds a file the .toc does not list.
 """
 import hashlib
+import subprocess
 import os
 import re
 import shutil
@@ -29,7 +30,7 @@ def main(argv):
     version = re.search(r"^## Version:\s*(\S+)", toc, re.M).group(1)
     present = sorted(os.listdir(SRC))
     missing = [f for f in files if not os.path.exists(os.path.join(SRC, f))]
-    extra = [f for f in present if f not in files and f != "RebornBuildPlanner.toc"]
+    extra = [f for f in present if f not in files and f not in ("RebornBuildPlanner.toc", "Media")]
     if missing or extra:
         sys.stderr.write("REFUSED: toc lists missing %r, folder holds unlisted %r\n" % (missing, extra))
         return 2
@@ -39,6 +40,18 @@ def main(argv):
     os.makedirs(dest)
     for f in files + ["RebornBuildPlanner.toc"]:
         shutil.copyfile(os.path.join(SRC, f), os.path.join(dest, f))
+    # Original fantasy UI assets: regenerate locally if absent, never fetch third-party assets.
+    lab_media = os.path.join(ROOT, "addon_lab", "RebornPlannerThemeLab", "Media")
+    needed = ("ultimate_corner.tga", "ultimate_crest.tga", "ultimate_titlebar.tga", "ultimate_panel.tga")
+    if not all(os.path.isfile(os.path.join(lab_media, n)) for n in needed):
+        print("Generating original fantasy textures (build-time Pillow required)")
+        subprocess.run([sys.executable, os.path.join(ROOT, "tools", "make_ultimate_art.py"), lab_media], check=True)
+    media_dest = os.path.join(dest, "Media")
+    os.makedirs(media_dest, exist_ok=True)
+    for n in os.listdir(lab_media):
+        if n.lower().endswith(".tga"):
+            shutil.copyfile(os.path.join(lab_media, n), os.path.join(media_dest, n))
+
     for doc in ("RECETTE_LAB_V2_LOT3_5B.md", "TEXTURES_INVENTORY.md", "COMPAT_CLIENT_LOT3_5B.md", "RECETTE_LAB_LOT3_5.md", "UPDATE_FROM_0.4.2.md", "DIAGNOSTIC_RENDU.md", "GLOSSARY_FR.md", "RECETTE_CLIENT_LOT3_4.md", "UPDATE_FROM_0.4.1.md", "API_PROPOSAL_JEWELRY.md", "RECETTE_CLIENT_LOT3_3.md", "UPDATE_FROM_0.4.0.md", "RECETTE_CLIENT_LOT3_2.md", "UPDATE_FROM_0.3.1.md", "INSTALL.md", "CHANGELOG.md", "DESCRIPTION_SOURCES.md", "RECETTE_CLIENT_LOT3_1.md", "UPDATE_FROM_0.3.0.md", "RECETTE_CLIENT_LOT3.md"):
         shutil.copyfile(os.path.join(ROOT, "docs", doc), os.path.join(out, doc))
     # visual lab (separate addon; Theme.lua is the planner's own file)
@@ -61,8 +74,10 @@ def main(argv):
                 z.write(os.path.join(media_dest, f), "RebornPlannerThemeLab/Media/" + f)
     zpath = os.path.join(out, "RebornBuildPlanner-%s-recette.zip" % version)
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
-        for f in sorted(files + ["RebornBuildPlanner.toc"]):
-            z.write(os.path.join(dest, f), "RebornBuildPlanner/" + f)
+        for base, _, names in os.walk(dest):
+            for name in sorted(names):
+                pth = os.path.join(base, name)
+                z.write(pth, os.path.relpath(pth, out).replace("\\", "/"))
     sums = []
     for base, _, names in sorted(os.walk(out)):
         for n in sorted(names):
