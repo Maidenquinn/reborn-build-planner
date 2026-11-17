@@ -34,12 +34,12 @@ local function rarityRgb(r) return RARITY_RGB[r or ""] or RARITY_RGB.common; end
 local WHITE = "Interface\\Buttons\\WHITE8X8";
 
 -- Palette: deep ink panels, brass/gold accents, red only for destructive actions.
-local BG = { 0.035, 0.040, 0.055 };
-local PANEL = { 0.072, 0.078, 0.108, 1 };
-local ROW_A, ROW_B = { 0.100, 0.108, 0.145, 1 }, { 0.086, 0.093, 0.126, 1 };
-local ROW_SEL = { 0.55, 0.42, 0.18, 0.38 };
-local GOLD = { 0.92, 0.78, 0.42 };
-local BRASS = { 0.50, 0.41, 0.22, 1 };
+local BG = { 0.018, 0.045, 0.090 };
+local PANEL = { 0.050, 0.095, 0.170, 1 };
+local ROW_A, ROW_B = { 0.083, 0.137, 0.218, 1 }, { 0.066, 0.111, 0.185, 1 };
+local ROW_SEL = { 0.22, 0.49, 0.76, 0.42 };
+local GOLD = { 0.71, 0.86, 0.97 };
+local BRASS = { 0.31, 0.52, 0.73, 1 };
 local SKIN = {
 	primary = { bg = { 0.33, 0.25, 0.09, 1 }, bd = { 0.78, 0.62, 0.28, 1 }, tx = "ffe6a0" },
 	quiet = { bg = { 0.125, 0.135, 0.185, 1 }, bd = { 0.30, 0.32, 0.40, 1 }, tx = "c9ccd6" },
