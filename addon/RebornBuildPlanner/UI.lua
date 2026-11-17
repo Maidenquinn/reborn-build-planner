@@ -144,8 +144,10 @@ local function paint(b)
 	if b.themed then
 		if b.painted ~= label then b.painted = label; b:SetText(label); end
 		local roles = { quiet = "secondary", warn = "selected", primary = "primary", danger = "danger" };
-		local role = (b.enabledFlag == false) and "disabled" or (roles[b.role] or "secondary");
+		local semanticRole = b.role or "quiet";
+		local role = (b.enabledFlag == false) and "disabled" or (roles[semanticRole] or "secondary");
 		THEME.SetRole(b, role);
+		b.role = semanticRole; -- keep the controller's role across disabled -> enabled transitions
 		return;
 	end
 	local sk = SKIN[b.role or "quiet"] or SKIN.quiet;
