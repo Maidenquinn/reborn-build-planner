@@ -102,6 +102,28 @@ return function(H)
 		source.items.accuria = nil;
 	end);
 
+
+	test("jewelry live API: exact unique slot/name only, never stale hub data", function()
+		local snapshots = {
+			AZS_RUN = { ph = "playing" },
+			AZS_ZONE = { hub = 0 },
+			AZS_GEAR = { { slot = "ring", name = "Band of Accuria", text = "Damage +17% (game snapshot)" } }
+		};
+		local ns = H.loadAddon({ extra = snapshots });
+		local c = ns.Catalog.New(ns.GeneratedCatalog);
+		local live = ns.JewelryEffects.LiveSections(c, "accuria", "ring", false);
+		ok(live and live[1] and live[1].lines[1].text:find("Damage +17%%"), "trusted equipped item text");
+		eq(ns.JewelryEffects.LiveSections(c, "blackhand", "trinket", false), nil, "different key");
+		snapshots.AZS_GEAR[1].slot = "trinket";
+		eq(ns.JewelryEffects.LiveSections(c, "accuria", "ring", false), nil, "slot mismatch");
+		snapshots.AZS_GEAR[1].slot = "ring";
+		snapshots.AZS_ZONE.hub = 1;
+		eq(ns.JewelryEffects.LiveSections(c, "accuria", "ring", false), nil, "hub snapshot must not leak into a run");
+		snapshots.AZS_ZONE.hub = 0;
+		snapshots.AZS_RUN.ph = "ready";
+		eq(ns.JewelryEffects.LiveSections(c, "accuria", "ring", false), nil, "ready is not a run");
+	end);
+
 	-- ------------------------------------------------------------------ official rules
 	test("3.4 rules: multiplier = 3 - 2 x (1 - growth/2)^(rank-1); fixed pieces grow linearly and stop at rank 11", function()
 		eq(D.Multiplier(0.2, 1), 1);
