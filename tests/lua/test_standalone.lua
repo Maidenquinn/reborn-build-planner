@@ -55,6 +55,44 @@ return function(H)
 		ok(J.Decode('{"a":1,}') == nil, "trailing comma refused");
 	end);
 
+
+	test("jewelry: local coefficients use honest base units without requiring the game catalogue", function()
+		local j = H.loadAddon({ only = { "JewelryEffects.lua" } });
+		j.GeneratedJewelryMechanics = { items = {
+			accuria = { slot = "ring", behavior = "damage", base = 0.17 },
+			blackhand = { slot = "trinket", behavior = "crit_damage", base = 0.195 }
+		} };
+		local item = assert(j.JewelryEffects.Sections("accuria", "ring", true));
+		eq(item[2].lines[1].text, "17 %", "share shown as BASE percentage");
+		ok(item[2].lines[2].text:find("Ce n'est pas", 1, true), "not represented as an actual run value");
+		eq(j.JewelryEffects.Sections("accuria", "trinket", true), nil, "wrong slot cannot match");
+		eq(j.JewelryEffects.Sections("none", "ring", true), nil, "unknown must stay unavailable");
+	end);
+
+	test("jewelry: live text is read only for an exact unique identity during an active run", function()
+		local snapshots = {
+			AZS_RUN = { ph = "playing" }, AZS_ZONE = { hub = 0 },
+			AZS_GEAR = { { name = "Band of Accuria", slot = "ring", text = "Game-provided effect" } }
+		};
+		local j = H.loadAddon({ only = { "JewelryEffects.lua" }, extra = snapshots });
+		local candidates = { { key = "accuria" } };
+		local catalog = {
+			FindByName = function(self, kind, name, lang)
+				return kind == "rings" and name == "Band of Accuria" and candidates or {};
+			end
+		};
+		local e = j.JewelryEffects;
+		eq(e.LiveSections(catalog, "accuria", "ring", false)[1].lines[1].text, "Game-provided effect");
+		eq(e.LiveSections(catalog, "blackhand", "trinket", false), nil);
+		candidates = { { key = "accuria" }, { key = "other" } };
+		eq(e.LiveSections(catalog, "accuria", "ring", false), nil, "ambiguous names never match");
+		candidates = { { key = "accuria" } };
+		snapshots.AZS_ZONE.hub = 1;
+		eq(e.LiveSections(catalog, "accuria", "ring", false), nil, "hub cannot reuse old snapshot");
+		snapshots.AZS_ZONE.hub = 0; snapshots.AZS_RUN.ph = "ready";
+		eq(e.LiveSections(catalog, "accuria", "ring", false), nil, "no run, no live text");
+	end);
+
 	test("UTF-16 length accounting (the site counts UTF-16 units)", function()
 		eq(Utf8.Len16("abc"), 3);
 		eq(Utf8.Len16("\195\169"), 1);
