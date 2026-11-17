@@ -1,0 +1,715 @@
+-- Controller: ALL the behaviour of the planner window, with no widget in it (so it is testable headless and
+-- the widget layer in UI.lua stays a thin renderer). It holds the view state, the editor DRAFT (a copy of the
+-- build, distinct from the persisted one), and calls only the validated modules: Storage, BuildModel, Catalog,
+-- PlannerCodec. Nothing is saved implicitly; nothing is activated except by an explicit call.
+local ADDON, ns = ...;
+ns = ns or {};
+local Util, BM, Locale = ns.Util, ns.BuildModel, ns.Locale;
+assert(Util and BM and Locale and ns.PlannerCodec, "RebornBuildPlanner: Controller.lua must load after the codec");
+local Controller = { LIB_PAGE = 8, CATALOG_PAGE = 9, ISSUE_PAGE = 6 };
+ns.Controller = Controller;
+Controller.__index = Controller;
+
+local L = function(s) return Locale.T(s); end
+
+function Controller.New(env)
+	local self = setmetatable({ env = env or ns, listeners = {} }, Controller);
+	self.state = { view = "library", classFilter = nil, selectedId = nil, page = 1, trashMode = false, message = nil, undo = nil,
+		editor = nil, import = nil, export = nil };
+	return self;
+end
+
+-- ------------------------------------------------------------------ plumbing
+function Controller:Handle() return self.env.storage; end
+function Controller:Catalog() return self.env.catalog; end
+function Controller:Lang() return Locale.lang; end
+function Controller:ReadOnly() local h = self:Handle(); return h == nil or h.readOnly == true; end
+
+function Controller:Subscribe(fn) self.listeners[#self.listeners + 1] = fn; end
+function Controller:Notify()
+	for _, fn in ipairs(self.listeners) do fn(self); end
+end
+
+function Controller:Say(level, text)
+	self.state.message = text and { level = level, text = text } or nil;
+	self:Notify();
+end
+
+function Controller:StorageStatusText()
+	local h = self:Handle();
+	if not h then return L("Storage unavailable"); end
+	if h.readOnly then
+		if h.status == "FUTURE_SCHEMA" then return L("Read only: the saved data comes from a newer version"); end
+		if h.status == "REPAIR_REFUSED" or h.status == "MIGRATION_FAILED" then return L("Read only: the saved data could not be repaired safely"); end
+		return L("Read only");
+	end
+	return nil;
+end
+
+-- first useful explanation out of a model/storage report
+local REASON = {
+	TOO_MANY = "Limit reached",
+	DUPLICATE_ENTRY = "Already in this list",
+	DUPLICATE_PIECE = "Already in this list",
+	CONFLICT_SPELL_BANISH = "A spell cannot be both wanted and banished",
+	WRONG_CLASS = "This entry belongs to another class",
+	WRONG_SLOT = "This piece does not fit this slot",
+	TOO_LONG = "Text too long",
+	INVALID_VALUE = "Invalid value",
+	READ_ONLY = "Read only",
+	NOT_ACTIVATABLE = "This build needs repair before it can be followed",
+	STALE_REVISION = "The build changed elsewhere; reopen it",
+	LIBRARY_FULL = "The library is full",
+	NOT_FOUND = "Not found",
+	INVALID_BUILD = "The build is invalid",
+};
+local function explain(rep)
+	if type(rep) ~= "table" then return L("Refused"); end
+	local it = (rep.errors and rep.errors[1]) or (rep.conflicts and rep.conflicts[1]) or (rep.issues and rep.issues[1]);
+	local code = it and it.code or rep.code;
+	if code == "INVALID_BUILD" and type(rep.detail) == "table" then
+		return explain(rep.detail);
+	end
+	return L(REASON[code] or "Refused");
+end
+Controller.Explain = explain;
+
+-- ------------------------------------------------------------------ library
+function Controller:ClassKeys()
+	local cat = self:Catalog();
+	return cat and cat:ClassKeys() or {};
+end
+
+function Controller:ClassName(key)
+	local cat = self:Catalog();
+	return cat and cat:ClassName(key, self:Lang() == "frFR" and "frFR" or nil) or tostring(key);
+end
+
+-- dir = 1 / -1 cycles: all classes (nil) -> first class -> ... -> last -> all
+function Controller:CycleClassFilter(dir)
+	local keys = self:ClassKeys();
+	local cur = self.state.classFilter;
+	local i = 0;
+	if cur then
+		i = Util.IndexOf(keys, cur) or 0;
+	end
+	i = i + dir;
+	if i < 0 then i = #keys; end
+	if i > #keys then i = 0; end
+	self:SetClassFilter(i == 0 and nil or keys[i]);
+end
+
+function Controller:SetClassFilter(class)
+	self.state.classFilter = class;
+	self.state.page = 1;
+	self.state.selectedId = nil;
+	self:Notify();
+end
+
+-- Rows of the library page. Items for the trash when trashMode.
+function Controller:Rows()
+	local h = self:Handle();
+	local out = {};
+	if not h then return out; end
+	if self.state.trashMode then
+		for _, t in ipairs(h:Trash()) do
+			if not self.state.classFilter or t.class == self.state.classFilter then
+				out[#out + 1] = { id = t.id, name = t.name, class = t.class, className = self:ClassName(t.class), trashed = true };
+			end
+		end
+		return out;
+	end
+	for _, e in ipairs(h:List(self.state.classFilter)) do
+		out[#out + 1] = { id = e.id, name = e.name, class = e.class, className = self:ClassName(e.class), revision = e.revision,
+			clean = e.clean, active = h:GetActive(e.class) == e.id };
+	end
+	return out;
+end
+
+function Controller:PageCount()
+	return math.max(1, math.ceil(#self:Rows() / Controller.LIB_PAGE));
+end
+
+function Controller:SetPage(p)
+	self.state.page = math.max(1, math.min(self:PageCount(), p));
+	self:Notify();
+end
+
+function Controller:PageRows()
+	local rows, out = self:Rows(), {};
+	if self.state.page > self:PageCount() then self.state.page = self:PageCount(); end
+	local first = (self.state.page - 1) * Controller.LIB_PAGE;
+	for i = 1, Controller.LIB_PAGE do
+		out[i] = rows[first + i];
+	end
+	return out;
+end
+
+function Controller:Select(id)
+	self.state.selectedId = id;
+	self:Notify();
+end
+
+function Controller:Selected()
+	for _, r in ipairs(self:Rows()) do
+		if r.id == self.state.selectedId then return r; end
+	end
+	return nil;
+end
+
+function Controller:ShowTrash(on)
+	self.state.trashMode = on and true or false;
+	self.state.page = 1;
+	self.state.selectedId = nil;
+	self:Notify();
+end
+
+-- class for a new build: the filter, else the player's class (token) when known, else the first class
+function Controller:DefaultClass()
+	local cat = self:Catalog();
+	if self.state.classFilter then return self.state.classFilter; end
+	local h = self:Handle();
+	local last = h and h:GetSetting("lastClass");
+	if cat and last and cat:IsClass(last) then return last; end
+	if cat and self.env.playerClassToken then
+		local c = cat:NormalizeClass(self.env.playerClassToken());
+		if c then return c; end
+	end
+	return cat and cat:ClassKeys()[1] or nil;
+end
+
+function Controller:Create(name, class)
+	local h = self:Handle();
+	if not h or h.readOnly then self:Say("error", L("Read only")); return nil; end
+	name = (name or "");
+	local id, b = h:Create({ name = name, class = class });
+	if not id then self:Say("error", explain(b)); return nil; end
+	h:SetSetting("lastClass", class);
+	self.state.trashMode = false;
+	self.state.selectedId = id;
+	self:Say("info", L("Build created (not active)"));
+	return id;
+end
+
+function Controller:Duplicate(id)
+	local h = self:Handle();
+	local nid, b = h:Duplicate(id);
+	if not nid then self:Say("error", explain(b)); return nil; end
+	self.state.selectedId = nid;
+	self:Say("info", L("Build duplicated (not active)"));
+	return nid;
+end
+
+function Controller:Rename(id, name)
+	local h = self:Handle();
+	local cur = h and h:Get(id);
+	if not cur then self:Say("error", L("Not found")); return false; end
+	local nb, rep = BM.SetName(cur, name, self:Catalog());
+	if not nb then self:Say("error", explain(rep)); return false; end
+	local ok, err = h:Update(id, nb);
+	if not ok then self:Say("error", explain(err)); return false; end
+	-- an open editor on this build must not keep a stale name
+	local e = self.state.editor;
+	if e and e.id == id then
+		e.saved = h:Get(id);
+		if e.draft.name == cur.name then e.draft = BM.Clone(e.saved); end
+	end
+	self:Say("info", L("Renamed"));
+	return true;
+end
+
+-- Deletion goes through the trash and can be undone; the 20-entry cap is explained to the player.
+function Controller:DeleteInfo(id)
+	local h = self:Handle();
+	local b = h and h:Get(id);
+	return { name = b and b.name or "?", trashSize = #h:Trash(), cap = ns.Storage.LIMITS.trash };
+end
+
+function Controller:ConfirmDelete(id)
+	local h = self:Handle();
+	local b = h:Get(id);
+	if not b then self:Say("error", L("Not found")); return false; end
+	local e = self.state.editor;
+	if e and e.id == id and self:EditorDirty() then
+		self:Say("error", L("Close the editor of this build first"));
+		return false;
+	end
+	local ok, evicted = h:Delete(id);
+	if not ok then self:Say("error", explain(evicted)); return false; end
+	if e and e.id == id then self.state.editor = nil; end
+	self.state.undo = { id = id, name = b.name };
+	self.state.selectedId = nil;
+	if evicted then
+		self:Say("warn", string.format(L("Deleted. The trash is full: \"%s\" was removed for good"), evicted.name));
+	else
+		self:Say("info", string.format(L("\"%s\" moved to the trash"), b.name));
+	end
+	return true;
+end
+
+function Controller:UndoDelete()
+	local u = self.state.undo;
+	if not u then return false; end
+	local ok, err = self:Handle():Restore(u.id);
+	if not ok then self:Say("error", explain(err)); return false; end
+	self.state.undo = nil;
+	self.state.selectedId = u.id;
+	self:Say("info", L("Build restored"));
+	return true;
+end
+
+function Controller:Restore(id)
+	local ok, err = self:Handle():Restore(id);
+	if not ok then self:Say("error", explain(err)); return false; end
+	self.state.undo = nil;
+	self.state.trashMode = false;
+	self.state.selectedId = id;
+	self:Say("info", L("Build restored"));
+	return true;
+end
+
+function Controller:Activate(id)
+	local h = self:Handle();
+	local b = h:Get(id);
+	if not b then return false; end
+	local ok, err = h:SetActive(b.class, id);
+	if not ok then self:Say("error", explain(err)); return false; end
+	self:Say("info", L("Active build for this class"));
+	return true;
+end
+
+function Controller:Deactivate(id)
+	local h = self:Handle();
+	local b = h:Get(id);
+	if not b then return false; end
+	h:ClearActive(b.class);
+	self:Say("info", L("No active build for this class"));
+	return true;
+end
+
+-- ------------------------------------------------------------------ editor (draft / saved)
+local function strip(b)
+	local c = Util.DeepCopy(b);
+	c.revision = nil;
+	return c;
+end
+
+function Controller:Editor() return self.state.editor; end
+
+function Controller:OpenEditor(id)
+	local h = self:Handle();
+	local b = h and h:Get(id);
+	if not b then self:Say("error", L("Not found")); return false; end
+	local cur = self.state.editor;
+	if cur and cur.id ~= id and self:EditorDirty() then
+		return false, "DIRTY";
+	end
+	self.state.editor = { id = id, saved = b, draft = BM.Clone(b), phase = 1, tab = "spells", group = "rings", slot = 1, search = "", page = 1 };
+	self.state.view = "editor";
+	self.state.message = nil;
+	self:Notify();
+	return true;
+end
+
+function Controller:EditorDirty()
+	local e = self.state.editor;
+	return e ~= nil and not Util.DeepEqual(strip(e.draft), strip(e.saved));
+end
+
+-- "readonly" | "dirty" | "repair" | "saved" (primary status), plus needsRepair separately
+function Controller:EditorStatus()
+	local e = self.state.editor;
+	if not e then return nil; end
+	local rep = BM.Validate(e.draft, self:Catalog());
+	local needs = not rep.clean;
+	if self:ReadOnly() then return "readonly", needs; end
+	if self:EditorDirty() then return "dirty", needs; end
+	if needs then return "repair", needs; end
+	return "saved", needs;
+end
+
+function Controller:EditorReport()
+	local e = self.state.editor;
+	return e and BM.Validate(e.draft, self:Catalog()) or nil;
+end
+
+function Controller:EditorIsActive()
+	local e = self.state.editor;
+	return e and self:Handle():GetActive(e.draft.class) == e.id or false;
+end
+
+function Controller:Save()
+	local e = self.state.editor;
+	if not e then return false; end
+	if self:ReadOnly() then self:Say("error", L("Read only")); return false; end
+	if not self:EditorDirty() then self:Say("info", L("Nothing to save")); return true; end
+	local ok, err = self:Handle():Update(e.id, e.draft);
+	if not ok then self:Say("error", explain(err)); return false; end
+	e.saved = self:Handle():Get(e.id);
+	e.draft = BM.Clone(e.saved);
+	local _, needs = self:EditorStatus();
+	self:Say(needs and "warn" or "info", needs and L("Saved. The build needs repair before it can be followed") or L("Saved"));
+	return true;
+end
+
+-- save, then make it the active build of its class; the save is kept even if activation is refused
+function Controller:SaveAndFollow()
+	local e = self.state.editor;
+	if not e then return false; end
+	if not self:Save() then return false; end
+	local ok, err = self:Handle():SetActive(e.draft.class, e.id);
+	if not ok then
+		self:Say("warn", L("Saved, but not followed: ") .. explain(err));
+		return true, "not_active";
+	end
+	self:Say("info", L("Saved and followed"));
+	return true, "active";
+end
+
+function Controller:Revert()
+	local e = self.state.editor;
+	if not e then return; end
+	e.draft = BM.Clone(e.saved);
+	self:Say("info", L("Changes discarded"));
+end
+
+-- "close" when nothing is at stake, "prompt" when there are unsaved changes
+function Controller:RequestCloseEditor()
+	if self:EditorDirty() then return "prompt"; end
+	self:CloseEditor();
+	return "close";
+end
+
+function Controller:ResolveClose(choice)
+	if choice == "cancel" then return false; end
+	if choice == "save" then
+		if not self:Save() then return false; end
+	end
+	self:CloseEditor();
+	return true;
+end
+
+function Controller:CloseEditor()
+	self.state.editor = nil;
+	self.state.view = "library";
+	self:Notify();
+end
+
+-- ---- editing the draft
+local function edit(self, fn, ...)
+	local e = self.state.editor;
+	if not e then return false; end
+	if self:ReadOnly() then self:Say("error", L("Read only")); return false; end
+	local nb, rep = fn(e.draft, ...);
+	if not nb then
+		self:Say("error", explain(rep));
+		return false, rep;
+	end
+	e.draft = nb;
+	self.state.message = nil;
+	self:Notify();
+	return true;
+end
+
+function Controller:SetName(name) return edit(self, function(b) return BM.SetName(b, name, self:Catalog()); end); end
+function Controller:SetTalents(t) return edit(self, function(b) return BM.SetTalents(b, t, self:Catalog()); end); end
+function Controller:SetNotes(text) return edit(self, function(b) return BM.SetNotes(b, self.state.editor.phase, text, self:Catalog()); end); end
+function Controller:SetLink(text) return edit(self, function(b) return BM.SetLink(b, self.state.editor.phase, text, self:Catalog()); end); end
+function Controller:SetLabel(text) return edit(self, function(b) return BM.SetLabel(b, self.state.editor.phase, text, self:Catalog()); end); end
+
+function Controller:AddSpell(key)
+	local ph = self.state.editor.draft.phases[self.state.editor.phase];
+	for _, b in ipairs(ph.banish) do
+		if b == key then self:Say("error", L("This spell is in the banish list: remove it there first")); return false; end
+	end
+	return edit(self, function(b) return BM.AddSpell(b, self.state.editor.phase, key, nil, self:Catalog()); end);
+end
+
+function Controller:AddBanish(key)
+	local ph = self.state.editor.draft.phases[self.state.editor.phase];
+	for _, g in ipairs(ph.spells) do
+		if g.key == key then self:Say("error", L("This spell is wanted: remove it from the plan first")); return false; end
+	end
+	return edit(self, function(b) return BM.AddBanish(b, self.state.editor.phase, key, self:Catalog()); end);
+end
+
+function Controller:RemoveSpell(key) return edit(self, function(b) return BM.RemoveSpell(b, self.state.editor.phase, key, self:Catalog()); end); end
+function Controller:RemoveBanish(key) return edit(self, function(b) return BM.RemoveBanish(b, self.state.editor.phase, key, self:Catalog()); end); end
+
+function Controller:MoveSpell(index, dir)
+	return edit(self, function(b) return BM.MoveSpell(b, self.state.editor.phase, index, index + dir, self:Catalog()); end);
+end
+
+function Controller:SetSlot(group, pos, key)
+	return edit(self, function(b) return BM.SetSlot(b, self.state.editor.phase, group, pos, key, self:Catalog()); end);
+end
+
+function Controller:ClearSlot(group, pos)
+	return edit(self, function(b) return BM.ClearSlot(b, self.state.editor.phase, group, pos, self:Catalog()); end);
+end
+
+function Controller:SetTab(tab) self.state.editor.tab = tab; self.state.editor.page = 1; self:Notify(); end
+function Controller:SetGroup(group) local e = self.state.editor; e.group = group; e.slot = 1; e.page = 1; self:Notify(); end
+function Controller:SetSlotTarget(pos) self.state.editor.slot = pos; self:Notify(); end
+function Controller:SetSearch(text) local e = self.state.editor; if e.search ~= text then e.search = text; e.page = 1; self:Notify(); end end
+function Controller:SetEditorPage(p) local e = self.state.editor; e.page = math.max(1, math.min(self:CatalogPageCount(), p)); self:Notify(); end
+
+function Controller:SetPhase(p)
+	local e = self.state.editor;
+	if p >= 1 and p <= 4 then e.phase = p; e.page = 1; self:Notify(); end
+end
+
+-- Phases 2-4 stay hidden until needed: an imported/edited build that uses them shows them at once.
+local function phaseUsed(ph)
+	return #ph.spells > 0 or #ph.banish > 0 or ph.notes ~= "" or ph.link ~= "" or ph.label ~= "" or next(ph.stats) ~= nil
+		or next(ph.ext) ~= nil or ph.rings[1] .. ph.rings[2] .. ph.rings[3] .. ph.rings[4] .. ph.trinkets[1] .. ph.trinkets[2] .. ph.trinkets[3]
+		.. ph.trinkets[4] .. ph.amulets[1] .. ph.amulets[2] .. ph.amulets[3] .. ph.amulets[4] ~= "";
+end
+
+function Controller:ShowAllPhases()
+	local e = self.state.editor;
+	if not e then return false; end
+	if e.showPhases then return true; end
+	local h = self:Handle();
+	if h and h:GetSetting("advancedPhases") then return true; end
+	for p = 2, 4 do
+		if phaseUsed(e.draft.phases[p]) then return true; end
+	end
+	return false;
+end
+
+function Controller:RevealPhases() self.state.editor.showPhases = true; self:Notify(); end
+
+function Controller:PhaseTitle(p)
+	local e = self.state.editor;
+	local label = e and e.draft.phases[p].label or "";
+	if label ~= "" then return label; end
+	return L(BM.DEFAULT_LABELS[p]);
+end
+
+-- ---- catalogue lists for the editor (identifiers are the catalogue keys; names are display only)
+local function matches(entryNames, filter)
+	if filter == "" then return true; end
+	local f = string.lower(filter);
+	for _, n in ipairs(entryNames) do
+		if string.find(string.lower(n), f, 1, true) then return true; end
+	end
+	return false;
+end
+
+-- list of { key, name, icon, state } for the current tab/group
+function Controller:CatalogEntries()
+	local e, cat = self.state.editor, self:Catalog();
+	local out = {};
+	if not e or not cat then return out; end
+	local class = e.draft.class;
+	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local ph = e.draft.phases[e.phase];
+	local keys, kind = {}, "spell";
+	if e.tab == "spells" then
+		if cat:IsClass(class) then keys = cat:SpellsOfClass(class); end
+	elseif e.group == "rings" then
+		keys, kind = cat:JewelsBySlot("ring"), "jewel";
+	elseif e.group == "trinkets" then
+		keys, kind = cat:JewelsBySlot("trinket"), "jewel";
+	else
+		kind = "amulet";
+		keys = {};
+		if cat:IsClass(class) then
+			for _, k in ipairs(cat:AmuletsForClass(class)) do keys[#keys + 1] = k; end
+			for _, k in ipairs(cat:LegendsOfClass(class)) do keys[#keys + 1] = k; end
+		end
+	end
+	local used = {};
+	if e.tab == "spells" then
+		for _, g in ipairs(ph.spells) do used[g.key] = "wanted"; end
+		for _, k in ipairs(ph.banish) do used[k] = "banished"; end
+	else
+		for _, k in ipairs(ph[e.group]) do if k ~= "" then used[k] = "placed"; end end
+	end
+	for _, k in ipairs(keys) do
+		local entry = cat:Get(kind, k);
+		if entry then
+			local name = cat:Name(kind, k, lang);
+			if matches({ name, entry.name }, e.search) then
+				out[#out + 1] = { key = k, name = name, icon = entry.icon, state = used[k], rarity = entry.rarity };
+			end
+		end
+	end
+	return out;
+end
+
+function Controller:CatalogPageCount()
+	return math.max(1, math.ceil(#self:CatalogEntries() / Controller.CATALOG_PAGE));
+end
+
+function Controller:CatalogPage()
+	local all, out = self:CatalogEntries(), {};
+	local e = self.state.editor;
+	if e.page > self:CatalogPageCount() then e.page = self:CatalogPageCount(); end
+	local first = (e.page - 1) * Controller.CATALOG_PAGE;
+	for i = 1, Controller.CATALOG_PAGE do out[i] = all[first + i]; end
+	return out;
+end
+
+-- display rows of the plan (wanted spells, banish, slot lists) with localized names; unknown keys shown raw
+function Controller:PlanView()
+	local e, cat = self.state.editor, self:Catalog();
+	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local ph = e.draft.phases[e.phase];
+	local function nm(kind, k)
+		if k == "" then return ""; end
+		if cat and cat:Get(kind, k) then return cat:Name(kind, k, lang), cat:Get(kind, k).icon; end
+		return k, nil;
+	end
+	local v = { spells = {}, banish = {}, rings = {}, trinkets = {}, amulets = {} };
+	for i, g in ipairs(ph.spells) do
+		local name, icon = nm("spell", g.key);
+		v.spells[i] = { key = g.key, name = name, icon = icon, known = cat ~= nil and cat:Get("spell", g.key) ~= nil, mode = g.mode, rank = g.rank };
+	end
+	for i, k in ipairs(ph.banish) do
+		local name, icon = nm("spell", k);
+		v.banish[i] = { key = k, name = name, icon = icon, known = cat ~= nil and cat:Get("spell", k) ~= nil };
+	end
+	for _, group in ipairs({ "rings", "trinkets", "amulets" }) do
+		local kind = group == "amulets" and "amulet" or "jewel";
+		for i = 1, #ph[group] do
+			local k = ph[group][i];
+			local name, icon = nm(kind, k);
+			v[group][i] = { key = k, name = name, icon = icon, known = k == "" or (cat ~= nil and cat:Get(kind, k) ~= nil), main = i <= BM.MAIN_SLOTS[group] };
+		end
+	end
+	return v;
+end
+
+-- what the draft holds that this editor cannot edit yet: shown, never dropped
+function Controller:HiddenData()
+	local e = self.state.editor;
+	local out = {};
+	if not e then return out; end
+	local function add(fmt, ...) out[#out + 1] = string.format(L(fmt), ...); end
+	local statN, rankN, extN = 0, 0, 0;
+	for _, ph in ipairs(e.draft.phases) do
+		for _ in pairs(ph.stats) do statN = statN + 1; end
+		for _, g in ipairs(ph.spells) do if g.mode ~= "acquire" then rankN = rankN + 1; end end
+		if next(ph.ext) then extN = extN + 1; end
+	end
+	if statN > 0 then add("%d statistic objective(s) kept (no editor yet)", statN); end
+	if rankN > 0 then add("%d rank / unlimited target(s) kept (no editor yet)", rankN); end
+	if extN > 0 then add("Extra data in %d phase(s) kept", extN); end
+	if next(e.draft.ext) then add("Extra build data kept: %s", table.concat(Util.SortedKeys(e.draft.ext), ", ")); end
+	return out;
+end
+
+-- ------------------------------------------------------------------ import
+function Controller:AnalyzeImport(text)
+	local cat = self:Catalog();
+	local pv = ns.PlannerCodec.Decode(text, cat);
+	self.state.import = { preview = pv, name = "", class = pv.class, page = 1, done = false };
+	self:Notify();
+	return pv;
+end
+
+function Controller:ImportState() return self.state.import; end
+
+function Controller:SetImportClass(class) local i = self.state.import; if i then i.class = class; self:Notify(); end end
+function Controller:SetImportName(name) local i = self.state.import; if i then i.name = name; end end
+function Controller:SetImportPage(p)
+	local i = self.state.import;
+	if i then i.page = math.max(1, math.min(self:ImportPageCount(), p)); self:Notify(); end
+end
+
+function Controller:ImportIssues()
+	local i = self.state.import;
+	return i and i.preview.issues.list or {};
+end
+
+function Controller:ImportPageCount()
+	return math.max(1, math.ceil(#self:ImportIssues() / Controller.ISSUE_PAGE));
+end
+
+function Controller:ImportReady()
+	local i = self.state.import;
+	if not i or not i.preview.ok or i.done or self:ReadOnly() then return false; end
+	if i.preview.kind == "talents" then
+		return (i.preview.class or i.class) ~= nil;
+	end
+	return true;
+end
+
+function Controller:CommitImport()
+	local i = self.state.import;
+	if not self:ImportReady() then
+		self:Say("error", self:ReadOnly() and L("Read only") or L("Nothing to import"));
+		return nil;
+	end
+	local id, rep = ns.PlannerCodec.CommitImport(self:Handle(), i.preview, { name = i.name ~= "" and i.name or nil, class = i.class });
+	if not id then
+		self:Say("error", explain(rep));
+		return nil;
+	end
+	i.done = true;
+	self.state.selectedId = id;
+	self.state.classFilter = nil;
+	self.state.trashMode = false;
+	self:Say(i.preview.status == "needs_repair" and "warn" or "info",
+		i.preview.status == "needs_repair" and L("Imported (not active): the build needs repair") or L("Imported (not active)"));
+	return id;
+end
+
+function Controller:ClearImport() self.state.import = nil; self:Notify(); end
+
+-- ------------------------------------------------------------------ export
+-- source = "saved" (the persisted build) or "draft" (what the editor shows)
+function Controller:PrepareExport(id, source)
+	local h = self:Handle();
+	local b;
+	if source == "draft" and self.state.editor and self.state.editor.id == id then
+		b = BM.Clone(self.state.editor.draft);
+	else
+		b = h and h:Get(id);
+	end
+	if not b then self:Say("error", L("Not found")); return nil; end
+	local report = ns.PlannerCodec.PlanExport(b, self:Catalog());
+	local x = { id = id, source = source, build = b, report = report, accepted = false, page = 1 };
+	if report.ok and report.intentLosses == 0 then
+		x.code = ns.PlannerCodec.Encode(b, self:Catalog());
+	end
+	self.state.export = x;
+	self:Notify();
+	return x;
+end
+
+function Controller:AcceptLosses()
+	local x = self.state.export;
+	if not x or not x.report.ok then return false; end
+	local code = ns.PlannerCodec.Encode(x.build, self:Catalog(), { acceptLosses = true });
+	if not code then return false; end
+	x.accepted, x.code = true, code;
+	self:Notify();
+	return true;
+end
+
+function Controller:ExportLosses()
+	local x = self.state.export;
+	local out = {};
+	if not x then return out; end
+	for _, l in ipairs(x.report.losses) do
+		if l.severity == "intent" then out[#out + 1] = l; end
+	end
+	for _, l in ipairs(x.report.losses) do
+		if l.severity ~= "intent" then out[#out + 1] = l; end
+	end
+	return out;
+end
+
+function Controller:ExportPageCount() return math.max(1, math.ceil(#self:ExportLosses() / Controller.ISSUE_PAGE)); end
+function Controller:SetExportPage(p) local x = self.state.export; if x then x.page = math.max(1, math.min(self:ExportPageCount(), p)); self:Notify(); end end
+function Controller:ClearExport() self.state.export = nil; self:Notify(); end
+
+-- ------------------------------------------------------------------ views
+function Controller:SetView(view, keepMessage)
+	self.state.view = view;
+	if not keepMessage then self.state.message = nil; end
+	self:Notify();
+end
