@@ -204,7 +204,13 @@ function Catalog:Name(kind, key, lang)
 		return key;
 	end
 	local tr = lang and self.i18n[lang];
-	return (tr and tr[e.name]) or e.name;
+	if tr and tr[e.name] then return tr[e.name]; end
+	-- a legendary has no official translation (the heads are English only in the published data): keep the canonical
+	-- head and localize only the spell part, when the spell name IS translated; otherwise the English title as is
+	if tr and e.head and e.spell and self.spells[e.spell] and tr[self.spells[e.spell].name] then
+		return e.head .. ": " .. tr[self.spells[e.spell].name];
+	end
+	return e.name;
 end
 
 -- Candidates whose English or localized name equals `name` (exact). Several results = ambiguous; the

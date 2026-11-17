@@ -13,7 +13,7 @@ import os
 import re
 import sys
 
-GENERATOR_VERSION = 1
+GENERATOR_VERSION = 2
 SUPPORTED_SCHEMA = 1
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
@@ -228,7 +228,23 @@ def lv(v):
         return repr(v)
     if isinstance(v, str):
         return q(v)
+    if isinstance(v, (dict, list)):
+        return lua(v)
     raise TypeError(type(v))
+
+
+def lua(v):
+    """Nested published data (effects, special): dicts with sorted keys, lists, scalars. Never lossy."""
+    if isinstance(v, dict):
+        return "{" + ",".join("[%s]=%s" % (q(k), lua(v[k])) for k in sorted(v)) + "}"
+    if isinstance(v, list):
+        return "{" + ",".join(lua(x) for x in v) + "}"
+    return lv(v)
+
+
+def opt_fields(row, names):
+    """(name, value) pairs of the published fields that are not null (a null field is simply absent in Lua)."""
+    return [(n, row[n]) for n in names if row.get(n) is not None]
 
 
 def rec(pairs):
@@ -253,9 +269,11 @@ def build_lua(index, tables, tr, info, warnings):
                                                    ("icon", s["icon"]), ("legendary", s["legendary"])]) + ",\n" for s in T["spells.json"]) + "}")
     body.append("jewelry={\n" + "".join(" " + rec([("key", j["key"]), ("slot", j["slot"]), ("name", j["name"]), ("icon", j["icon"])]) + ",\n" for j in T["jewelry.json"]) + "}")
     body.append("amulets={\n" + "".join(" " + rec([("key", a["key"]), ("rarity", a["rarity"]), ("name", a["name"]), ("icon", a["icon"])])[:-1]
-                                         + ",classes=" + arr(a["classes"]) + "},\n" for a in T["amulets.json"]) + "}")
+                                         + ",classes=" + arr(a["classes"])
+                                         + "".join(",%s=%s" % (k, lv(v)) for k, v in opt_fields(a, ["growth", "effects", "special", "world", "needs"]))
+                                         + "},\n" for a in T["amulets.json"]) + "}")
     body.append("legends={\n" + "".join(" " + rec([("key", g["key"]), ("spell", g["spell"]), ("class", g["class"]), ("name", g["name"]),
-                                                    ("head", g["head"]), ("icon", g["icon"])]) + ",\n" for g in T["legends.json"]) + "}")
+                                                    ("head", g["head"]), ("icon", g["icon"])] + opt_fields(g, ["template", "form", "effects", "growth", "fixed"])) + ",\n" for g in T["legends.json"]) + "}")
     byclass = {}
     for g in T["legends.json"]:
         byclass.setdefault(g["class"], []).append(g["key"])
