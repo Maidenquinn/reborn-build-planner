@@ -112,8 +112,10 @@ return function(H)
 		local ns = H.loadAddon({ extra = snapshots });
 		local c = ns.Catalog.New(ns.GeneratedCatalog);
 		snapshots.AZS_GEAR[1].name = c:Name("jewel", "accuria");
+		local hits = c:FindByName("rings", snapshots.AZS_GEAR[1].name, "enUS");
+		ok(#hits == 1 and hits[1].key == "accuria", "current catalogue must uniquely resolve the chosen ring, candidates " .. tostring(#hits));
 		local live = ns.JewelryEffects.LiveSections(c, "accuria", "ring", false);
-		ok(live and live[1] and live[1].lines[1].text:find("Damage +17%%"), "trusted equipped item text");
+		ok(live and live[1] and live[1].lines[1].text:find("Damage +17%%"), "trusted equipped item text; name=" .. tostring(snapshots.AZS_GEAR[1].name));
 		eq(ns.JewelryEffects.LiveSections(c, "blackhand", "trinket", false), nil, "different key");
 		snapshots.AZS_GEAR[1].slot = "trinket";
 		eq(ns.JewelryEffects.LiveSections(c, "accuria", "ring", false), nil, "slot mismatch");
