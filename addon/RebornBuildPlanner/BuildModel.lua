@@ -18,10 +18,10 @@ ns.BuildModel = M;
 local type, pairs, ipairs, tostring, tonumber, string, table = type, pairs, ipairs, tostring, tonumber, string, table;
 
 -- Limits: spells/banish/slot counts mirror the official planner (Z = {spells 6, banish 3, rings 2+2,
--- trinkets 2+2, amulets 1+3}); text limits are BYTES here (the site counts UTF-16 units: the codec of
+-- trinkets 2+2, amulets 1+3}); text limits are BYTES here (link 900 = 300 UTF-16 units of up to 3 bytes) (the site counts UTF-16 units: the codec of
 -- Lot 2 enforces those on exchange). All are tunable data, none is assumed universal.
 M.LIMITS = { phases = 4, spells = 6, banish = 3, rings = 4, trinkets = 4, amulets = 4, name = 240, label = 96,
-	notes = 8000, link = 300, talents = 400, stats = 32, statValue = 999, maxRank = 99, extNodes = 2000, extDepth = 8 };
+	notes = 8000, link = 900, talents = 400, stats = 32, statValue = 999, maxRank = 99, extNodes = 2000, extDepth = 8 };
 M.MAIN_SLOTS = { rings = 2, trinkets = 2, amulets = 1 };
 M.LIST_NAMES = { "spells", "banish", "rings", "trinkets", "amulets" };
 M.SLOT_LISTS = { "rings", "trinkets", "amulets" };

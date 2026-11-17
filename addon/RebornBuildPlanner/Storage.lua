@@ -523,6 +523,9 @@ function H:Update(id, candidate)
 		return nil, issue("INVALID_BUILD", "build refused", rep);
 	end
 	local copy = Util.DeepCopy(candidate);
+	if not rep.clean and self.db.active[cur.class] == id then
+		self.db.active[cur.class] = nil;      -- an active build must stay conflict-free
+	end
 	if copy.class ~= cur.class then
 		libRemove(self.db, cur.class, id);
 		if self.db.active[cur.class] == id then
@@ -605,6 +608,15 @@ function H:SetActive(class, id)
 	local b = self.db.builds[id];
 	if not b or b.class ~= class then
 		return nil, issue("NOT_FOUND", "no build " .. tostring(id) .. " for class " .. tostring(class));
+	end
+	-- A build that holds conflicts (imported with a wrong-class key, a duplicate...) may be stored and repaired
+	-- but never drives advice: it cannot be made active.
+	local rep = BM.Validate(b, self.catalog);
+	if not rep.clean then
+		return nil, issue("NOT_ACTIVATABLE", "the build has " .. #rep.conflicts .. " conflict(s) to repair first", rep);
+	end
+	if self.catalog and not self.catalog:IsClass(b.class) then
+		return nil, issue("NOT_ACTIVATABLE", "unknown class " .. tostring(b.class) .. ": no advice can be given");
 	end
 	self.db.active[class] = id;
 	return true;

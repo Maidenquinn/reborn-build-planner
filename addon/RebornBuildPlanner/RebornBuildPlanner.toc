@@ -1,14 +1,18 @@
 ## Interface: 30300
 ## Title: Reborn Build Planner
-## Notes: Build planner for Azeroth Survivors Reborn (Lot 1: catalogue, build model and storage; no UI yet).
-## Version: 0.1.0-lot1
+## Notes: Build planner for Azeroth Survivors Reborn (Lot 2: catalogue, build model, storage and official planner codec; no UI yet).
+## Version: 0.2.0-lot2
 ## Dependencies: AzerothSurvivors, AzerothSurvivorsAPI
 ## SavedVariables: RebornBuildPlannerDB
-# Load order = dependency order: Util -> Locale -> catalogue data -> Catalog -> BuildModel -> Storage -> Core.
+# Load order = dependency order: Util -> Locale -> catalogue data -> Catalog -> BuildModel -> Storage -> Utf8 -> Base64Url -> Json -> PlannerCodec -> Core.
 Util.lua
 Locale.lua
 GeneratedCatalog.lua
 Catalog.lua
 BuildModel.lua
 Storage.lua
+Utf8.lua
+Base64Url.lua
+Json.lua
+PlannerCodec.lua
 Core.lua

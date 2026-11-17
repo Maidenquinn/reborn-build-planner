@@ -22,6 +22,13 @@ local FR = {
 	["Unknown class"] = "Classe inconnue",
 };
 
+-- Lets another module add its FR strings (English text is the key).
+function Locale.Register(fr)
+	for k, v in pairs(fr) do
+		FR[k] = v;
+	end
+end
+
 function Locale.SetLang(lang)
 	Locale.lang = (lang == "frFR") and "frFR" or "enUS";
 end
