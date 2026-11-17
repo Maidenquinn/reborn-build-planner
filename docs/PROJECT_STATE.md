@@ -81,3 +81,7 @@ Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOA
 * **19 textures originales** (`tools/make_textures.py`, déterministe, octets vérifiés par `run_all.py`) ; `Theme.lua` v2 (neuf segments, états visibles, strata `FULLSCREEN_DIALOG`) ; lab v2 `RebornPlannerThemeLab` avec dossier `Media\`. Docs : `TEXTURES_INVENTORY.md`, `COMPAT_CLIENT_LOT3_5B.md`, `RECETTE_LAB_V2_LOT3_5B.md`, `REPORT_LOT3_5B.md`.
 * **Tests** : Lua 5.1 220 cas / 14 196 assertions / 0 échec (simulation).
 * **Bloquant** : verdict de Kevin (M1-M10) : fichiers chargés ? différence évidente ? texte du jeu encore visible ? Le planner complet reste inchangé (0.4.3-proto1).
+
+## Transfert vers GPT
+* Le pilotage du code, de la direction artistique et de l'UI passe à GPT. Point d'entrée : `docs/HANDOFF_TO_GPT.md`. Branche de travail : `dev/ultimate-ui` ; `main` = état stable.
+* Kevin a explicitement refusé le rendu du prototype v2 (lab) : thème NON validé, non appliqué au planner.
