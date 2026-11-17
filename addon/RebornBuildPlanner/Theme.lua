@@ -56,6 +56,7 @@ T.Mid = mid;
 
 -- texture files of the theme: name -> { pixel size, corner (nine-slice only) }; mirrored by the generator and the tests
 T.FILES = {
+	ultimate_panel = { 256, 20 }, ultimate_corner = { 128 }, ultimate_crest = { 128 }, ultimate_titlebar = { 512 },
 	panel_nine = { 64, 16 }, window_nine = { 128, 28 }, inset_nine = { 32, 6 }, titlebar_nine = { 64, 12, 32 }, tooltip_nine = { 64, 14 },
 	slot_normal_nine = { 32, 8 }, slot_selected_nine = { 32, 8 }, slot_empty_nine = { 32, 8 },
 	button_primary_nine = { 32, 8 }, button_secondary_nine = { 32, 8 }, button_danger_nine = { 32, 8 }, button_selected_nine = { 32, 8 },
@@ -64,7 +65,7 @@ T.FILES = {
 };
 
 -- surface kind -> texture file
-local SURFACE = { window = "window_nine", panel = "panel_nine", inset = "inset_nine", card = "slot_normal_nine", tooltip = "tooltip_nine",
+local SURFACE = { window = "window_nine", panel = "ultimate_panel", inset = "inset_nine", card = "slot_normal_nine", tooltip = "tooltip_nine",
 	titlebar = "titlebar_nine" };
 T.SURFACE = {
 	window = { top = { 0.07, 0.085, 0.14 }, bottom = { 0.035, 0.043, 0.075 } },
@@ -158,6 +159,18 @@ function T.Window(parent, w, h, name)
 	f:SetFrameStrata("FULLSCREEN_DIALOG");
 	f:SetFrameLevel(100);
 	if f.SetToplevel then f:SetToplevel(true); end
+	if T.mode == "textures" then
+		-- Fantasy corners are decoration only; mouse handling stays on the parent frame.
+		for i, place in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+			local tex = f:CreateTexture(nil, "BORDER");
+			tex:SetTexture(M("ultimate_corner"));
+			tex:SetWidth(64); tex:SetHeight(64);
+			tex:SetPoint(place, f, place, 0, 0);
+			if i == 2 then tex:SetTexCoord(1, 0, 0, 1);
+			elseif i == 3 then tex:SetTexCoord(0, 1, 1, 0);
+			elseif i == 4 then tex:SetTexCoord(1, 0, 1, 0); end
+		end
+	end
 	f:EnableMouse(true);
 	return f;
 end
@@ -199,9 +212,14 @@ function T.TitleBar(parent, label, x, y, w, h)
 		bar:SetBackdropColor(0.10, 0.11, 0.16, 1);
 		bar:SetBackdropBorderColor(0.35, 0.28, 0.17, 1);
 	else
-		bar.nine = T.Nine(bar, "titlebar_nine", "BACKGROUND");
+		local art = bar:CreateTexture(nil, "BACKGROUND");
+		art:SetTexture(M("ultimate_titlebar")); art:SetAllPoints(bar);
+		local crest = bar:CreateTexture(nil, "ARTWORK");
+		crest:SetTexture(M("ultimate_crest"));
+		crest:SetWidth(52); crest:SetHeight(52);
+		crest:SetPoint("LEFT", bar, "LEFT", 6, 0);
 	end
-	bar.title = T.Text(bar, T.FONT.window, C.ivory, 0, math.floor(((h or 34) - 16) / 2), w, 18, "CENTER");
+	bar.title = T.Text(bar, T.FONT.window, C.ivory, 50, math.floor(((h or 34) - 16) / 2), w - 60, 18, "CENTER");
 	bar.title:SetText(label or "");
 	return bar;
 end
