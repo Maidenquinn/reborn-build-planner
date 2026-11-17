@@ -4,17 +4,29 @@ local ADDON, ns = ...
 local E = {}
 ns.JewelryEffects = E
 local labels = {
-  damage = {"Bonus de dégâts", "Damage bonus"}, cooldown = {"Réduction des temps de recharge", "Cooldown reduction"},
+  damage = {"Dégâts", "Damage"}, cooldown = {"Réduction des temps de recharge", "Cooldown reduction"},
   crit_damage = {"Bonus de dégâts critiques", "Critical damage bonus"},
   crit = {"Chance de critique", "Critical strike chance"},
   max_health = {"Santé maximale", "Maximum health"}, reduction_and_health = {"Réduction et santé", "Reduction and health"},
   reduction = {"Réduction des dégâts", "Damage reduction"}, lifesteal = {"Vol de vie", "Lifesteal"},
   speed = {"Vitesse", "Speed"}, regen = {"Régénération", "Regeneration"},
   gold = {"Or", "Gold"}, luck = {"Chance", "Luck"}, echo = {"Répétition de sort", "Repeat spell"},
-  area = {"Zone d'effet", "Area"}, cooldown = {"Réduction du temps de recharge", "Cooldown reduction"},
+  area = {"Zone d'effet", "Area"},
   pickup = {"Rayon de ramassage", "Pickup radius"}, kill_heal = {"Soins après élimination", "Heal on kill"},
   lives = {"Vies supplémentaires", "Additional lives"},
 }
+-- Percentages represent base catalog coefficients only, BEFORE rarity or upgrade multipliers.
+-- Special/conditional behaviors are deliberately excluded from this set.
+local SHARE = {
+  damage = true, cooldown = true, crit_damage = true, crit = true,
+  max_health = true, reduction = true, lifesteal = true, speed = true,
+  gold = true, luck = true, echo = true, area = true, pickup = true,
+}
+local RAW = { regen = true, kill_heal = true, lives = true }
+local function number(n, fr)
+  local v = string.format("%.5g", n)
+  return fr and v:gsub("%.", ",") or v
+end
 local function field(g, key)
   if type(g) ~= "table" then return nil end
   for _, row in ipairs(g.jewels or {}) do
@@ -43,14 +55,21 @@ function E.Sections(key, slot, french)
   local source = origin == "runtime"
     and (fr and "Catalogue natif AZS_GEN" or "Native AZS_GEN catalogue")
     or (fr and "Métadonnées extraites du client local" or "Locally extracted client metadata")
-  local base = string.format("%.8g", row.base)
-  if fr then base = base:gsub("%.", ",") end
+  local isShare = SHARE[row.behavior]
+  local isRaw = RAW[row.behavior]
+  local base = number(isShare and row.base * 100 or row.base, fr)
+  local value = isShare and (base .. (fr and " %" or "%")) or base
+  local amountLabel = isShare and (fr and "Coefficient de base" or "Base coefficient")
+    or (isRaw and (fr and "Valeur de base" or "Base value")
+      or (fr and "Paramètre interne (effet conditionnel)" or "Internal parameter (conditional effect)"))
+  local caution = fr and
+    "Avant rareté et améliorations. Ce n'est pas la valeur effective pendant une partie."
+    or "Before rarity and upgrades. Not the actual in-run value."
   return {
     { title = fr and "Effet identifié" or "Identified effect", lines = { { text = label } } },
-    { title = fr and "Valeur de base" or "Base value", lines = {
-      { text = base },
-      { text = fr and "Échelle interne du jeu ; ce n'est pas le bonus réel de la partie." or
-        "Game internal scale; not the actual bonus during a run.", tone = "dim" }
+    { title = amountLabel, lines = {
+      { text = value },
+      { text = caution, tone = "dim" }
     } },
     { title = fr and "Origine" or "Source", lines = { { text = source, tone = "dim" } } }
   }
