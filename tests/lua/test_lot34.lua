@@ -115,7 +115,7 @@ return function(H)
 		local hits = c:FindByName("rings", snapshots.AZS_GEAR[1].name, "enUS");
 		ok(#hits == 1 and hits[1].key == "accuria", "current catalogue must uniquely resolve the chosen ring, candidates " .. tostring(#hits));
 		local live = ns.JewelryEffects.LiveSections(c, "accuria", "ring", false);
-		ok(live and live[1] and live[1].lines[1].text:find("Damage +17%%"), "trusted equipped item text; name=" .. tostring(snapshots.AZS_GEAR[1].name));
+		ok(live and live[1] and live[1].lines[1].text:find("Damage +17%", 1, true), "trusted equipped item text; name=" .. tostring(snapshots.AZS_GEAR[1].name));
 		eq(ns.JewelryEffects.LiveSections(c, "blackhand", "trinket", false), nil, "different key");
 		snapshots.AZS_GEAR[1].slot = "trinket";
 		eq(ns.JewelryEffects.LiveSections(c, "accuria", "ring", false), nil, "slot mismatch");
