@@ -216,7 +216,7 @@ function T.TitleBar(parent, label, x, y, w, h)
 		art:SetTexture(M("ultimate_titlebar")); art:SetAllPoints(bar);
 		local crest = bar:CreateTexture(nil, "ARTWORK");
 		crest:SetTexture(M("ultimate_crest"));
-		crest:SetWidth(52); crest:SetHeight(52);
+		crest:SetWidth(38); crest:SetHeight(38); -- keep decorative texture inside title bar bounds
 		crest:SetPoint("LEFT", bar, "LEFT", 6, 0);
 	end
 	bar.title = T.Text(bar, T.FONT.window, C.ivory, 50, math.floor(((h or 34) - 16) / 2), w - 60, 18, "CENTER");
