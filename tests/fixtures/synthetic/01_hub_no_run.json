@@ -1,0 +1,37 @@
+{
+ "id": "01_hub_no_run",
+ "description": "Hub without a run: AZS_RUN.ph may read 'playing' in a hub (Api.lua:215-216) yet there is no run",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "SYNCING"
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "zone=stormwind;class=warrior;hub=1;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=300;ph=playing;lvl=1"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "NO_RUN",
+    "handValid": false
+   }
+  }
+ ]
+}

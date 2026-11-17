@@ -1,0 +1,40 @@
+{
+ "id": "06_legendary_homonyms_warlock",
+ "description": "Legendaries sharing the full name 'Eye of the Splitting Sky: Death Coil' (and the icon) across classes: class decides, no class = AMBIGUOUS; head/icon never used",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warlock;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=200;ph=playing;lvl=2;sl=0;kills=200;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "amulet,4,x_synthetic,2,INV_Jewelry_Necklace_16,Eye of the Splitting Sky: Death Coil,+20% damage"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "gear[1]": {
+     "status": "HEURISTIC",
+     "key": "legendary:death_coil",
+     "via": "class+full-name",
+     "rank": 2
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "id": "05_trinket_ambiguous",
+ "description": "Ambiguous worn rings: shared icon, locale/catalogue drift, conflicting name/icon, unknown name. A shared icon alone never yields a key",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=120;ph=playing;lvl=2;sl=0;kills=120;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "ring,1,x_synthetic,1,INV_Jewelry_Ring_15,Anneau inconnu,+5% damage;ring,1,x_synthetic,1,INV_Jewelry_Ring_15,Band of Accuria,+5% damage;ring,1,x_synthetic,1,INV_Jewelry_Ring_15,Elementium Signet,+5% damage;ring,1,x_synthetic,1,INV_Jewelry_Ring_07,Band of Accuria,+5% damage"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "gear[1]": {
+     "status": "UNKNOWN",
+     "key": null,
+     "icon_candidates": [
+      "accuria",
+      "elementium_signet"
+     ]
+    },
+    "gear[2]": {
+     "status": "HEURISTIC",
+     "key": "accuria",
+     "icon_shared_with": [
+      "elementium_signet"
+     ],
+     "countable": false
+    },
+    "gear[3]": {
+     "status": "HEURISTIC",
+     "key": "elementium_signet",
+     "icon_shared_with": [
+      "accuria"
+     ]
+    },
+    "gear[4]": {
+     "status": "CONFLICT",
+     "key": null
+    }
+   }
+  }
+ ]
+}

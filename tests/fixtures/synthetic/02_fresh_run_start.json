@@ -1,0 +1,68 @@
+{
+ "id": "02_fresh_run_start",
+ "description": "Fresh run: SYNCING -> READY -> ACTIVE; class normalised; endless unknown vs false vs true",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=WARRIOR;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "SYNCING",
+    "runId": "azs:r0000a001",
+    "class": "warrior",
+    "availability": {
+     "spells": "UNKNOWN",
+     "gear": "UNKNOWN",
+     "cards": "UNKNOWN"
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=0;ph=ready;lvl=1;sl=0;kills=0;gold=0"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "READY",
+    "runId": "azs:r0000a001",
+    "endless": null
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=5;ph=playing;lvl=2;sl=0;kills=5;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "ACTIVE",
+    "endless": false
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=900;ph=playing;lvl=2;sl=0;kills=900;gold=40;rr=0;endless=1"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "endless": true
+   }
+  }
+ ]
+}

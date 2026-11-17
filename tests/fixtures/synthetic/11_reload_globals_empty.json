@@ -1,0 +1,141 @@
+{
+ "id": "11_reload_globals_empty",
+ "description": "/reload mid-hand: native tables restart empty and the server re-sends in documented order; UNKNOWN until each line arrives, EMPTY only by an explicit empty line; same server run id survives, old tokens do not",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=300;ph=choosing;lvl=2;sl=0;kills=300;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": "whirlwind,1680,1,0,6"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "trinket,2,x_synthetic,1,Spell_Nature_AbolishMagic,Earthstrike,+10% luck"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSCARDS",
+   "msg": "kind=spell;bn=2;c=execute,5308,1,0,1,x"
+  },
+  {
+   "op": "token",
+   "name": "pre"
+  },
+  {
+   "op": "check",
+   "tokens": {
+    "pre": "OK"
+   }
+  },
+  {
+   "op": "world_enter",
+   "session": "S2"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "SYNCING",
+    "handValid": false,
+    "runId": null,
+    "availability": {
+     "spells": "UNKNOWN",
+     "gear": "UNKNOWN",
+     "cards": "UNKNOWN"
+    }
+   },
+   "tokens": {
+    "pre": "STALE_NO_RUN"
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "SYNCING"
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=301;ph=choosing;lvl=2;sl=0;kills=301;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "CHOOSING_NO_HAND",
+    "runId": "azs:r0000a001",
+    "availability": {
+     "spells": "UNKNOWN",
+     "gear": "UNKNOWN",
+     "cards": "UNKNOWN"
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": ""
+  },
+  {
+   "op": "check",
+   "expect": {
+    "availability": {
+     "spells": "EMPTY",
+     "gear": "UNKNOWN"
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": "whirlwind,1680,1,0,6"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "trinket,2,x_synthetic,1,Spell_Nature_AbolishMagic,Earthstrike,+10% luck"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSCARDS",
+   "msg": "kind=spell;bn=2;c=execute,5308,1,0,1,x"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "CHOOSING",
+    "handValid": true,
+    "availability": {
+     "spells": "KNOWN",
+     "gear": "KNOWN",
+     "cards": "KNOWN"
+    }
+   },
+   "tokens": {
+    "pre": "STALE_EPOCH"
+   }
+  }
+ ]
+}

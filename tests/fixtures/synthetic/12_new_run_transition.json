@@ -1,0 +1,123 @@
+{
+ "id": "12_new_run_transition",
+ "description": "Run ends (dead + AZSEND) then a new run: ids change, copies of the old run (gear, spells, hand) are never reused, tokens die; AZS_END is never a run marker",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=600;ph=playing;lvl=2;sl=0;kills=600;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": "whirlwind,1680,3,0,6"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "trinket,2,x_synthetic,1,Spell_Nature_AbolishMagic,Earthstrike,+10% luck"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=601;ph=choosing;lvl=2;sl=0;kills=601;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSCARDS",
+   "msg": "kind=spell;bn=1;c=execute,5308,1,0,1,x"
+  },
+  {
+   "op": "token",
+   "name": "old"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=650;ph=dead;lvl=2;sl=0;kills=650;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSEND",
+   "msg": "result=dead;t=650"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "ENDED",
+    "handValid": false
+   },
+   "tokens": {
+    "old": "STALE_NO_RUN"
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000b002;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=0;ph=ready;lvl=1;sl=0;kills=0;gold=0"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "READY",
+    "runId": "azs:r0000b002",
+    "handValid": false,
+    "availability": {
+     "spells": "UNKNOWN",
+     "gear": "UNKNOWN",
+     "cards": "UNKNOWN"
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=3;ph=playing;lvl=2;sl=0;kills=3;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "ACTIVE"
+   },
+   "tokens": {
+    "old": "STALE_RUN"
+   }
+  },
+  {
+   "op": "token",
+   "name": "new"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=400;ph=choosing;lvl=2;sl=0;kills=400;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "CHOOSING_NO_HAND"
+   },
+   "tokens": {
+    "new": "STALE_STATE"
+   }
+  }
+ ]
+}

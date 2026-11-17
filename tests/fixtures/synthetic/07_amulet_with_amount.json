@@ -1,0 +1,68 @@
+{
+ "id": "07_amulet_with_amount",
+ "description": "Fixed amulet: amount is the amulet rank (Gear.lua:84), class-filtered, rarity cross-checked; amount 0 is unknown, not 1",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=200;ph=playing;lvl=2;sl=0;kills=200;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "amulet,4,x_synthetic,3,INV_Jewelry_Necklace_18,Warglaives of Azzinoth,+15% damage"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "gear[1]": {
+     "status": "HEURISTIC",
+     "key": "warglaives",
+     "via": "class+name",
+     "rank": 3
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "amulet,4,x_synthetic,0,INV_Jewelry_Necklace_18,Warglaives of Azzinoth,+15% damage"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "gear[1]": {
+     "key": "warglaives",
+     "rank": null
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "amulet,4,x_synthetic,1,INV_Jewelry_Necklace_18,Shadowmourne,+15% damage"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "gear[1]": {
+     "status": "UNKNOWN",
+     "key": null
+    }
+   }
+  }
+ ]
+}

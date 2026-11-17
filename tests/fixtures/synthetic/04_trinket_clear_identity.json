@@ -1,0 +1,45 @@
+{
+ "id": "04_trinket_clear_identity",
+ "description": "Worn trinket whose slot+name+icon match exactly one catalogue piece: HEURISTIC, never countable until the client proves the identity",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=120;ph=playing;lvl=2;sl=0;kills=120;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "trinket,2,x_synthetic,1,Spell_Nature_AbolishMagic,Earthstrike,+10% luck"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "availability": {
+     "gear": "KNOWN"
+    }
+   },
+   "identities": {
+    "gear[1]": {
+     "status": "HEURISTIC",
+     "key": "earthstrike",
+     "via": "slot+name+icon",
+     "countable": false
+    }
+   }
+  }
+ ]
+}

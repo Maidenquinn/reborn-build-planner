@@ -1,0 +1,131 @@
+{
+ "id": "08_hand_spells_and_jewels",
+ "description": "A level-up hand (spells + one dash card), then a treasure hand (ring, grown worn trinket, amulet, gold): jewel cards are never recommendable while identity is unverified",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=300;ph=playing;lvl=2;sl=0;kills=300;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSGEAR",
+   "msg": "trinket,2,x_synthetic,1,Spell_Nature_AbolishMagic,Earthstrike,+10% luck"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=305;ph=choosing;lvl=2;sl=0;kills=305;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSCARDS",
+   "msg": "kind=spell;lvl=3;rr=2;rc=50;sk=10;bn=2;sl=2;slm=6;c=whirlwind,1680,1,0,1,d12:0:12/execute,5308,2,1,0,d8:12:20/dash_1,0,1,0,1,x0:0:0"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "CHOOSING",
+    "handValid": true,
+    "hands": {
+     "kind": "spell",
+     "count": 3,
+     "bn": 2
+    }
+   },
+   "identities": {
+    "card[1]": {
+     "status": "RESOLVED",
+     "key": "whirlwind",
+     "is_new": true,
+     "resulting_rank": 1,
+     "recommendable": true
+    },
+    "card[2]": {
+     "key": "execute",
+     "is_new": false,
+     "resulting_rank": 2
+    },
+    "card[3]": {
+     "status": "NOT_CATALOGUE",
+     "key": null,
+     "recommendable": false
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=310;ph=playing;lvl=2;sl=0;kills=310;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSCARDS",
+   "msg": "kind=spell;c="
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "ACTIVE",
+    "handValid": false
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=320;ph=choosing;lvl=2;sl=0;kills=320;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSCARDS",
+   "msg": "kind=jewel;src=cache;rr=1;rc=30;sk=15;c=new~1~INV_Jewelry_Ring_07~Quick Strike Ring~+5% damage~~~ring/grow~2~Spell_Nature_AbolishMagic~Earthstrike~+10% luck~luck=10=15=u~Upgrade~trinket/amulet~4~INV_Jewelry_Necklace_18~Warglaives of Azzinoth~+15% damage~~Replaces X for good~amulet/gold~0~INV_Misc_Coin_01~Gold~+50 gold~~~"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "lifecycle": "CHOOSING",
+    "handValid": true,
+    "hands": {
+     "kind": "jewel",
+     "count": 4,
+     "bn": null
+    }
+   },
+   "identities": {
+    "card[1]": {
+     "status": "HEURISTIC",
+     "key": "quick_strike",
+     "recommendable": false
+    },
+    "card[2]": {
+     "key": "earthstrike",
+     "links_worn": [
+      "gear[1]"
+     ],
+     "recommendable": false
+    },
+    "card[3]": {
+     "status": "HEURISTIC",
+     "key": "warglaives",
+     "recommendable": false
+    },
+    "card[4]": {
+     "status": "NOT_CATALOGUE"
+    }
+   }
+  }
+ ]
+}

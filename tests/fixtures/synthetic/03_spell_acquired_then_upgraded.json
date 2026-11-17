@@ -1,0 +1,106 @@
+{
+ "id": "03_spell_acquired_then_upgraded",
+ "description": "Spell acquired then upgraded: key+id resolution, live rank",
+ "provenance": "reconstructed-from-code",
+ "warning": "Synthetic, anonymised, deterministic. RECONSTRUCTED FROM CODE (not a client capture). Line grammar per Core.lua/Cards.lua; field VALUES for AZSGEAR.bonus, the jewel card `mode` of a new ring/trinket, server-localised names and run ids are invented stand-ins for values still UNKNOWN (docs/CONTRACTS.md).",
+ "catalog": "384db000d5ac311d",
+ "clientLanguage": "enUS",
+ "steps": [
+  {
+   "op": "world_enter",
+   "session": "S1"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSZONE",
+   "msg": "run=r0000a001;zone=elwynn;class=warrior;hub=0;dt=0;heroic=0;hero=Testhero"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSRUN",
+   "msg": "t=60;ph=playing;lvl=2;sl=0;kills=60;gold=40;rr=0;endless=0"
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": "whirlwind,1680,1,0,6"
+  },
+  {
+   "op": "check",
+   "expect": {
+    "availability": {
+     "spells": "KNOWN"
+    }
+   },
+   "identities": {
+    "spell[1]": {
+     "status": "RESOLVED",
+     "key": "whirlwind",
+     "via": "key+id",
+     "rank": 1
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": "whirlwind,1680,2,0,6;execute,5308,1,0,8"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "spell[1]": {
+     "key": "whirlwind",
+     "rank": 2
+    },
+    "spell[2]": {
+     "status": "RESOLVED",
+     "key": "execute",
+     "rank": 1
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": "whirlwind,9999,2,0,6"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "spell[1]": {
+     "status": "CONFLICT",
+     "key": null
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": "zzz_fake,1,1,0,1"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "spell[1]": {
+     "status": "UNKNOWN",
+     "key": null
+    }
+   }
+  },
+  {
+   "op": "line",
+   "prefix": "AZSSPELLS",
+   "msg": "death_coil,6789,1,0,6"
+  },
+  {
+   "op": "check",
+   "identities": {
+    "spell[1]": {
+     "status": "OTHER_CLASS",
+     "key": null
+    }
+   }
+  }
+ ]
+}

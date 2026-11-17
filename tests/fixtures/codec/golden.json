@@ -1,0 +1,3480 @@
+{
+ "source": {
+  "asset": "BYjmu0KK.js",
+  "sha256": "df3e982b20b94fb939a3e2443bf7b3e4b29054f264fe0958ad01183b3d3d2c1c",
+  "note": "public planner asset snapshot 2026-11-17; functions mt/ht/yt/St/Ct/wt, constants Z/Qe/Xe"
+ },
+ "catalog": "384db000d5ac311d",
+ "generatedBy": "tools/gen_codec_golden.mjs",
+ "constants": {
+  "root": 1,
+  "slots": {
+   "spells": {
+    "main": 6,
+    "alt": 0
+   },
+   "banish": {
+    "main": 3,
+    "alt": 0
+   },
+   "rings": {
+    "main": 2,
+    "alt": 2
+   },
+   "trinkets": {
+    "main": 2,
+    "alt": 2
+   },
+   "amulets": {
+    "main": 1,
+    "alt": 3
+   }
+  },
+  "statOrder": [
+   "damage",
+   "cooldown",
+   "crit",
+   "critdmg",
+   "area",
+   "speed",
+   "armor",
+   "lifesteal",
+   "pickup",
+   "luck",
+   "gold"
+  ],
+  "defaultLabels": [
+   "Early Game",
+   "Mid Game",
+   "End Game",
+   "Endless"
+  ]
+ },
+ "vectors": [
+  {
+   "id": "empty_warrior",
+   "description": "Nothing set: code is just the header",
+   "plan": {
+    "name": "",
+    "cls": "warrior",
+    "talents": "",
+    "phases": [
+     {
+      "label": "Early Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Mid Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "End Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Endless",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     }
+    ]
+   },
+   "code": "azsb1:WzEsIiIsIndhcnJpb3IiLCIiXQ",
+   "array": [
+    1,
+    "",
+    "warrior",
+    ""
+   ]
+  },
+  {
+   "id": "spells_and_banish",
+   "description": "Six spells + three distinct banishes in phase 0",
+   "plan": {
+    "name": "WW",
+    "cls": "warrior",
+    "talents": "",
+    "phases": [
+     {
+      "label": "Early Game",
+      "spells": [
+       "whirlwind",
+       "execute",
+       "cleave",
+       "rend",
+       "bloodthirst",
+       "shockwave"
+      ],
+      "banish": [
+       "battle_shout",
+       "demo_shout",
+       "bloodrage"
+      ],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Mid Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "End Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Endless",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     }
+    ]
+   },
+   "code": "azsb1:WzEsIldXIiwid2FycmlvciIsIiIsWyIiLFsid2hpcmx3aW5kIiwiZXhlY3V0ZSIsImNsZWF2ZSIsInJlbmQiLCJibG9vZHRoaXJzdCIsInNob2Nrd2F2ZSJdLFsiYmF0dGxlX3Nob3V0IiwiZGVtb19zaG91dCIsImJsb29kcmFnZSJdXV0",
+   "array": [
+    1,
+    "WW",
+    "warrior",
+    "",
+    [
+     "",
+     [
+      "whirlwind",
+      "execute",
+      "cleave",
+      "rend",
+      "bloodthirst",
+      "shockwave"
+     ],
+     [
+      "battle_shout",
+      "demo_shout",
+      "bloodrage"
+     ]
+    ]
+   ]
+  },
+  {
+   "id": "four_phases_with_null",
+   "description": "Phase 0 and 3 used; phases 1 and 2 empty are serialised as null (inner), nothing trailing",
+   "plan": {
+    "name": "Four",
+    "cls": "warrior",
+    "talents": "",
+    "phases": [
+     {
+      "label": "Early Game",
+      "spells": [
+       "cleave"
+      ],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Mid Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "End Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Endless",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "late",
+      "link": ""
+     }
+    ]
+   },
+   "code": "azsb1:WzEsIkZvdXIiLCJ3YXJyaW9yIiwiIixbIiIsWyJjbGVhdmUiXV0sbnVsbCxudWxsLFsiIixbXSxbXSxbIiIsIiIsIiIsIiJdLFsiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiXSxbXSwibGF0ZSJdXQ",
+   "array": [
+    1,
+    "Four",
+    "warrior",
+    "",
+    [
+     "",
+     [
+      "cleave"
+     ]
+    ],
+    null,
+    null,
+    [
+     "",
+     [],
+     [],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [],
+     "late"
+    ]
+   ]
+  },
+  {
+   "id": "holes_in_alternatives",
+   "description": "Empty strings are kept inside rings/trinkets/amulets so main vs alternative positions survive",
+   "plan": {
+    "name": "Holes",
+    "cls": "warrior",
+    "talents": "",
+    "phases": [
+     {
+      "label": "Early Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "accuria",
+       "",
+       "quick_strike",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "earthstrike",
+       "",
+       "hoj"
+      ],
+      "amulets": [
+       "",
+       "",
+       "warglaives",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Mid Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "End Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Endless",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     }
+    ]
+   },
+   "code": "azsb1:WzEsIkhvbGVzIiwid2FycmlvciIsIiIsWyIiLFtdLFtdLFsiYWNjdXJpYSIsIiIsInF1aWNrX3N0cmlrZSIsIiJdLFsiIiwiZWFydGhzdHJpa2UiLCIiLCJob2oiXSxbIiIsIiIsIndhcmdsYWl2ZXMiLCIiXV1d",
+   "array": [
+    1,
+    "Holes",
+    "warrior",
+    "",
+    [
+     "",
+     [],
+     [],
+     [
+      "accuria",
+      "",
+      "quick_strike",
+      ""
+     ],
+     [
+      "",
+      "earthstrike",
+      "",
+      "hoj"
+     ],
+     [
+      "",
+      "",
+      "warglaives",
+      ""
+     ]
+    ]
+   ]
+  },
+  {
+   "id": "legend_amulet",
+   "description": "Legendary amulet identifier is the catalogue legends key (legendary:<spell>)",
+   "plan": {
+    "name": "Leg",
+    "cls": "warrior",
+    "talents": "",
+    "phases": [
+     {
+      "label": "Early Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "legendary:cleave",
+       "warglaives",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Mid Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "End Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Endless",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     }
+    ]
+   },
+   "code": "azsb1:WzEsIkxlZyIsIndhcnJpb3IiLCIiLFsiIixbXSxbXSxbIiIsIiIsIiIsIiJdLFsiIiwiIiwiIiwiIl0sWyJsZWdlbmRhcnk6Y2xlYXZlIiwid2FyZ2xhaXZlcyIsIiIsIiJdXV0",
+   "array": [
+    1,
+    "Leg",
+    "warrior",
+    "",
+    [
+     "",
+     [],
+     [],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      "legendary:cleave",
+      "warglaives",
+      "",
+      ""
+     ]
+    ]
+   ]
+  },
+  {
+   "id": "stats_indexes",
+   "description": "Stats are [index, value] pairs, index 0-based in the site order damage..gold",
+   "plan": {
+    "name": "Stats",
+    "cls": "warrior",
+    "talents": "",
+    "phases": [
+     {
+      "label": "Early Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {
+       "damage": 50,
+       "crit": 12.34,
+       "gold": 5
+      },
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Mid Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "End Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Endless",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     }
+    ]
+   },
+   "code": "azsb1:WzEsIlN0YXRzIiwid2FycmlvciIsIiIsWyIiLFtdLFtdLFsiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiXSxbIiIsIiIsIiIsIiJdLFtbMCw1MF0sWzIsMTIuMzRdLFsxMCw1XV1dXQ",
+   "array": [
+    1,
+    "Stats",
+    "warrior",
+    "",
+    [
+     "",
+     [],
+     [],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      [
+       0,
+       50
+      ],
+      [
+       2,
+       12.34
+      ],
+      [
+       10,
+       5
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "id": "unicode_notes",
+   "description": "Accents, emoji (surrogate pair), newline, custom label, link",
+   "plan": {
+    "name": "Guerrier été ⚔️",
+    "cls": "warrior",
+    "talents": "10203-000-0110",
+    "phases": [
+     {
+      "label": "Début",
+      "spells": [
+       "execute"
+      ],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "Ligne 1\nLigne 2 😀",
+      "link": "https://azreborn.com/planner/warrior"
+     },
+     {
+      "label": "Mid Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "End Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Endless",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     }
+    ]
+   },
+   "code": "azsb1:WzEsIkd1ZXJyaWVyIMOpdMOpIOKalO-4jyIsIndhcnJpb3IiLCIxMDIwMy0wMDAtMDExMCIsWyJEw6lidXQiLFsiZXhlY3V0ZSJdLFtdLFsiIiwiIiwiIiwiIl0sWyIiLCIiLCIiLCIiXSxbIiIsIiIsIiIsIiJdLFtdLCJMaWduZSAxXG5MaWduZSAyIPCfmIAiLCJodHRwczovL2F6cmVib3JuLmNvbS9wbGFubmVyL3dhcnJpb3IiXV0",
+   "array": [
+    1,
+    "Guerrier été ⚔️",
+    "warrior",
+    "10203-000-0110",
+    [
+     "Début",
+     [
+      "execute"
+     ],
+     [],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [
+      "",
+      "",
+      "",
+      ""
+     ],
+     [],
+     "Ligne 1\nLigne 2 😀",
+     "https://azreborn.com/planner/warrior"
+    ]
+   ]
+  },
+  {
+   "id": "default_label_blank",
+   "description": "A label equal to the default is serialised as an empty first field",
+   "plan": {
+    "name": "Lbl",
+    "cls": "warrior",
+    "talents": "",
+    "phases": [
+     {
+      "label": "Early Game",
+      "spells": [
+       "rend"
+      ],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Mid Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "End Game",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     },
+     {
+      "label": "Endless",
+      "spells": [],
+      "banish": [],
+      "rings": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "trinkets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "amulets": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "stats": {},
+      "notes": "",
+      "link": ""
+     }
+    ]
+   },
+   "code": "azsb1:WzEsIkxibCIsIndhcnJpb3IiLCIiLFsiIixbInJlbmQiXV1d",
+   "array": [
+    1,
+    "Lbl",
+    "warrior",
+    "",
+    [
+     "",
+     [
+      "rend"
+     ]
+    ]
+   ]
+  }
+ ],
+ "decodeCases": [
+  {
+   "id": "valid_colon_prefix",
+   "description": "canonical code",
+   "input": "azsb1:WzEsIldXIiwid2FycmlvciIsIiIsWyIiLFsid2hpcmx3aW5kIiwiZXhlY3V0ZSIsImNsZWF2ZSIsInJlbmQiLCJibG9vZHRoaXJzdCIsInNob2Nrd2F2ZSJdLFsiYmF0dGxlX3Nob3V0IiwiZGVtb19zaG91dCIsImJsb29kcmFnZSJdXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "WW",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "whirlwind",
+        "execute",
+        "cleave",
+        "rend",
+        "bloodthirst",
+        "shockwave"
+       ],
+       "banish": [
+        "battle_shout",
+        "demo_shout",
+        "bloodrage"
+       ],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "valid_dot_prefix",
+   "description": "azsb1. prefix is accepted too",
+   "input": "azsb1.WzEsIldXIiwid2FycmlvciIsIiIsWyIiLFsid2hpcmx3aW5kIiwiZXhlY3V0ZSIsImNsZWF2ZSIsInJlbmQiLCJibG9vZHRoaXJzdCIsInNob2Nrd2F2ZSJdLFsiYmF0dGxlX3Nob3V0IiwiZGVtb19zaG91dCIsImJsb29kcmFnZSJdXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "WW",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "whirlwind",
+        "execute",
+        "cleave",
+        "rend",
+        "bloodthirst",
+        "shockwave"
+       ],
+       "banish": [
+        "battle_shout",
+        "demo_shout",
+        "bloodrage"
+       ],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "valid_no_prefix",
+   "description": "bare payload is accepted",
+   "input": "WzEsIldXIiwid2FycmlvciIsIiIsWyIiLFsid2hpcmx3aW5kIiwiZXhlY3V0ZSIsImNsZWF2ZSIsInJlbmQiLCJibG9vZHRoaXJzdCIsInNob2Nrd2F2ZSJdLFsiYmF0dGxlX3Nob3V0IiwiZGVtb19zaG91dCIsImJsb29kcmFnZSJdXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "WW",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "whirlwind",
+        "execute",
+        "cleave",
+        "rend",
+        "bloodthirst",
+        "shockwave"
+       ],
+       "banish": [
+        "battle_shout",
+        "demo_shout",
+        "bloodrage"
+       ],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "url_p",
+   "description": "URL with ?p= (class is inside the payload)",
+   "input": "https://azreborn.com/planner/warrior?p=WzEsIldXIiwid2FycmlvciIsIiIsWyIiLFsid2hpcmx3aW5kIiwiZXhlY3V0ZSIsImNsZWF2ZSIsInJlbmQiLCJibG9vZHRoaXJzdCIsInNob2Nrd2F2ZSJdLFsiYmF0dGxlX3Nob3V0IiwiZGVtb19zaG91dCIsImJsb29kcmFnZSJdXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "WW",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "whirlwind",
+        "execute",
+        "cleave",
+        "rend",
+        "bloodthirst",
+        "shockwave"
+       ],
+       "banish": [
+        "battle_shout",
+        "demo_shout",
+        "bloodrage"
+       ],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "url_b_talents_only",
+   "description": "URL with ?b= returns talents only",
+   "input": "https://azreborn.com/planner/warrior?b=10203-000-0110",
+   "accepted": true,
+   "result": {
+    "talents": "10203-000-0110"
+   }
+  },
+  {
+   "id": "url_without_params",
+   "description": "URL with neither p nor b is rejected",
+   "input": "https://azreborn.com/planner/warrior",
+   "accepted": false,
+   "result": null
+  },
+  {
+   "id": "bare_talents",
+   "description": "digits and dashes with at least one dash = talents only",
+   "input": "10203-000-0110",
+   "accepted": true,
+   "result": {
+    "talents": "10203-000-0110"
+   }
+  },
+  {
+   "id": "bad_base64",
+   "description": "not base64",
+   "input": "azsb1:!!!!",
+   "accepted": false,
+   "result": null
+  },
+  {
+   "id": "wrong_version",
+   "description": "root version 2",
+   "input": "azsb1:WzIsIngiLCJ3YXJyaW9yIiwiIl0",
+   "accepted": false,
+   "result": null
+  },
+  {
+   "id": "unknown_class",
+   "description": "class not in catalogue",
+   "input": "azsb1:WzEsIngiLCJub3N1Y2hjbGFzcyIsIiJd",
+   "accepted": false,
+   "result": null
+  },
+  {
+   "id": "not_array",
+   "description": "JSON object",
+   "input": "azsb1:eyJhIjoxfQ",
+   "accepted": false,
+   "result": null
+  },
+  {
+   "id": "other_class_spell_dropped",
+   "description": "death_coil is a warlock spell: dropped silently on a warrior",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsWyJ3aGlybHdpbmQiLCJkZWF0aF9jb2lsIl1dXQ",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "whirlwind"
+       ],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "duplicate_spells_collapse",
+   "description": "duplicate spell key kept once",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsWyJ3aGlybHdpbmQiLCJ3aGlybHdpbmQiLCJleGVjdXRlIl1dXQ",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "whirlwind",
+        "execute"
+       ],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "banish_overlap_dropped",
+   "description": "a banish already in spells is dropped",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsWyJ3aGlybHdpbmQiXSxbIndoaXJsd2luZCIsInJlbmQiXV1d",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "whirlwind"
+       ],
+       "banish": [
+        "rend"
+       ],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "seventh_spell_dropped",
+   "description": "more than 6 spells: extra dropped",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsWyJ3aGlybHdpbmQiLCJleGVjdXRlIiwiY2xlYXZlIiwicmVuZCIsImJsb29kdGhpcnN0Iiwic2hvY2t3YXZlIiwic2hpZWxkX3NsYW0iXV1d",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "whirlwind",
+        "execute",
+        "cleave",
+        "rend",
+        "bloodthirst",
+        "shockwave"
+       ],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "ring_in_trinket_slot",
+   "description": "a ring key in trinkets becomes an empty hole",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsW10sW10sW10sWyJhY2N1cmlhIiwiZWFydGhzdHJpa2UiXV1d",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "earthstrike",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "duplicate_ring_hole",
+   "description": "duplicate ring: the second occurrence becomes a hole, position kept",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsW10sW10sWyJhY2N1cmlhIiwiYWNjdXJpYSIsInF1aWNrX3N0cmlrZSJdXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "accuria",
+        "",
+        "quick_strike",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "legend_of_other_class",
+   "description": "legendary key of another class is dropped to a hole",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsW10sW10sW10sW10sWyJsZWdlbmRhcnk6ZGVhdGhfY29pbCIsIndhcmdsYWl2ZXMiXV1d",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "warglaives",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "stats_rounding_and_cap",
+   "description": "stats: >0 finite only, rounded to 1 decimal, capped 999",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsW10sW10sW10sW10sW10sW1swLDEyLjM0XSxbMSwtNV0sWzIsNTAwMF0sWzk5LDNdLFs0LCJhIl1dXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {
+        "damage": 12.3,
+        "crit": 999
+       },
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "extra_phase_ignored",
+   "description": "a fifth phase is ignored",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsWyJyZW5kIl1dLG51bGwsbnVsbCxudWxsLFsiIixbImNsZWF2ZSJdXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [
+        "rend"
+       ],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "name_truncated_60",
+   "description": "name cut to 60 UTF-16 units",
+   "input": "azsb1:WzEsIm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5uIiwid2FycmlvciIsIiJd",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "notes_truncated_2000",
+   "description": "notes cut to 2000 UTF-16 units",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsW10sW10sW10sW10sW10sW10sInp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enoiXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "link_non_http_dropped",
+   "description": "non-http link is dropped",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIiIsW10sW10sW10sW10sW10sW10sIiIsImphdmFzY3JpcHQ6YWxlcnQoMSkiXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "talents_invalid_chars",
+   "description": "talents with letters become empty",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiMTJhLTMiXQ",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "Early Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "label_over_24",
+   "description": "label cut to 24 characters",
+   "input": "azsb1:WzEsIngiLCJ3YXJyaW9yIiwiIixbIkxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEwiXV0",
+   "accepted": true,
+   "result": {
+    "plan": {
+     "name": "x",
+     "cls": "warrior",
+     "talents": "",
+     "phases": [
+      {
+       "label": "LLLLLLLLLLLLLLLLLLLLLLLL",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Mid Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "End Game",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      },
+      {
+       "label": "Endless",
+       "spells": [],
+       "banish": [],
+       "rings": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "trinkets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "amulets": [
+        "",
+        "",
+        "",
+        ""
+       ],
+       "stats": {},
+       "notes": "",
+       "link": ""
+      }
+     ]
+    }
+   }
+  }
+ ]
+}
