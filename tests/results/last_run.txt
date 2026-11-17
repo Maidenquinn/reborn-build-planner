@@ -5,6 +5,8 @@
 == Lot 0 suite: PASS
    273 assertions passed, 0 failed
 == Lua 5.1 suites: PASS
-     193 assertions passed so far in this suite
-     187 assertions passed so far in this suite
-   Lua tests: 66 test cases, 2339 assertions passed, 0 failed (Lua 5.1)
+     4111 assertions passed so far in this suite
+     263 assertions passed so far in this suite
+   Lua tests: 92 test cases, 6526 assertions passed, 0 failed (Lua 5.1)
+== JS <-> Lua cross-check (official decoder): PASS
+   verified 63 codes with the official decoder (JS->Lua->JS: 60, Lua->JS: 3)

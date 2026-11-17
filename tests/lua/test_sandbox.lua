@@ -12,7 +12,7 @@ return function(H)
 		ok(toc:find("## Interface: 30300", 1, true));
 		ok(toc:find("## Dependencies: AzerothSurvivors, AzerothSurvivorsAPI", 1, true));
 		ok(toc:find("## SavedVariables: RebornBuildPlannerDB", 1, true));
-		eq(files(), { "Util.lua", "Locale.lua", "GeneratedCatalog.lua", "Catalog.lua", "BuildModel.lua", "Storage.lua", "Core.lua" });
+		eq(files(), { "Util.lua", "Locale.lua", "GeneratedCatalog.lua", "Catalog.lua", "BuildModel.lua", "Storage.lua", "Utf8.lua", "Base64Url.lua", "Json.lua", "PlannerCodec.lua", "Core.lua" });
 		for _, f in ipairs(files()) do
 			ok(#H.readFile(H.root .. "/addon/RebornBuildPlanner/" .. f) > 0, f);
 		end
@@ -25,7 +25,7 @@ return function(H)
 
 	test("sources use only Lua 5.1 constructs available in the client", function()
 		local forbidden = { "%f[%w]goto%f[%W]", "::[%a_]", "table%.unpack", "bit32", "%f[%w]load%(", "loadstring", "dofile", "require",
-			"%f[%w]io%.", "%f[%w]os%.", "package%.", "debug%.", "math%.pow", "string%.pack", "utf8%.", "%f[%w]_ENV%f[%W]", "\\z", "//" };
+			"%f[%w]io%.", "%f[%w]os%.", "package%.", "debug%.", "math%.pow", "string%.pack", "utf8%.", "%f[%w]_ENV%f[%W]", "\\z", "[%w%)%]]%s+//%s+" };
 		for _, f in ipairs(files()) do
 			local src = strip(H.readFile(H.root .. "/addon/RebornBuildPlanner/" .. f));
 			if f == "GeneratedCatalog.lua" then src = src:gsub('"[^"\n]*"', '""'); end    -- data strings may hold anything

@@ -327,7 +327,7 @@ return function(H)
 		end
 		bad(function(r) r.name = string.rep("x", 241); end, "TOO_LONG", "name");
 		bad(function(r) r.phases[1].notes = string.rep("n", 8001); end, "TOO_LONG", "phases[1].notes");
-		bad(function(r) r.phases[1].link = string.rep("l", 301); end, "TOO_LONG", "phases[1].link");
+		bad(function(r) r.phases[1].link = string.rep("l", 901); end, "TOO_LONG", "phases[1].link");
 		bad(function(r) r.phases[1].label = string.rep("l", 97); end, "TOO_LONG", "phases[1].label");
 		bad(function(r) r.talents = string.rep("1", 401); end, "TOO_LONG", "talents");
 		bad(function(r) r.phases[1].stats = { damage = 1000 }; end, "INVALID_VALUE", "phases[1].stats.damage");
