@@ -1131,6 +1131,9 @@ function UI:RefreshDetail()
 	self:SetDetailOffset(det.offset);
 	local source = L("Source: Reborn catalogue (name, type, class).");
 	if d.spellId and self:GameText(d.spellId) then source = L("Source: the game's own spell text, and the Reborn catalogue.");
+	elseif d.sourceKind == "jewelry_live" then source = (c:Lang() == "frFR" and
+		"Source : texte de l'objet actuellement équipé dans Reborn ; suivi de ses valeurs de base si disponibles." or
+		"Source: currently equipped item text from Reborn, followed by available base values.");
 	elseif d.sourceKind == "jewelry_local" then source = (c:Lang() == "frFR" and
 		"Source : mécaniques locales du client Reborn (valeurs de base, non actuelles)." or
 		"Source: local Reborn client mechanics (base values, not current stats).");
