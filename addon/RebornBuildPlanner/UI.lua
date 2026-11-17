@@ -96,6 +96,7 @@ end
 
 -- A gold section title with a thin brass rule under it.
 local function header(parent, x, y, w)
+	if THEME then return THEME.SectionTitle(parent, "", x, y, w); end
 	local fs = text(parent, x, y, w, "GameFontNormal");
 	fs:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
 	local rule = parent:CreateTexture(nil, "BACKGROUND");
@@ -445,8 +446,8 @@ function UI:Build()
 	self.root = root;
 	root:SetWidth(UI.WIDTH);
 	root:SetHeight(UI.HEIGHT);
-	root:SetFrameStrata("DIALOG");        -- above the game's HUD texts, below the modal
-	root:SetFrameLevel(20);
+	root:SetFrameStrata(THEME and "FULLSCREEN_DIALOG" or "DIALOG"); -- respect theme stacking
+	root:SetFrameLevel(THEME and 100 or 20);
 	if not THEME then
 		root:SetBackdrop({ bgFile = WHITE, edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = false, edgeSize = 14,
 			insets = { left = 3, right = 3, top = 3, bottom = 3 } });
@@ -1130,6 +1131,9 @@ function UI:RefreshDetail()
 	self:SetDetailOffset(det.offset);
 	local source = L("Source: Reborn catalogue (name, type, class).");
 	if d.spellId and self:GameText(d.spellId) then source = L("Source: the game's own spell text, and the Reborn catalogue.");
+	elseif d.sourceKind == "jewelry_local" then source = (c:Lang() == "frFR" and
+		"Source : mécaniques locales du client Reborn (valeurs de base, non actuelles)." or
+		"Source: local Reborn client mechanics (base values, not current stats).");
 	elseif d.sections then source = L("Source: published game data (azreborn.com/data/v1), rank 1 values and the official growth rule."); end
 	det.source:SetText(source);
 	-- actions
