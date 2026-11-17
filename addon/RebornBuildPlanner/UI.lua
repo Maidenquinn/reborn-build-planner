@@ -1460,7 +1460,7 @@ function UI:BuildModal()
 	m:SetWidth(460);
 	m:SetHeight(250);
 	m:SetFrameStrata("FULLSCREEN_DIALOG");
-	m:SetFrameLevel(100);
+	m:SetFrameLevel(160); -- must stay above the planner root (level 100)
 	m:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
 	m:SetClampedToScreen(true);
 	m:EnableMouse(true);
