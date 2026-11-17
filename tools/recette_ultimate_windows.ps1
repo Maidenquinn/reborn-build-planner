@@ -18,7 +18,7 @@ if (!(Test-Path -LiteralPath (Join-Path $CatalogDir "index.json") -PathType Leaf
 $python = (Get-Command python -ErrorAction Stop).Source
 $venv = Join-Path $root ".devtools\venv\Scripts\python.exe"
 if (!(Test-Path -LiteralPath $venv)) { throw "Lua 5.1 venv missing. See README.md: python -m venv .devtools\venv; .devtools\venv\Scripts\python.exe -m pip install lupa" }
-if (!$OutputDir) { $OutputDir = Join-Path $root "dist\ultimate-0.4.4-recette" }
+if (!$OutputDir) { $OutputDir = Join-Path $root "dist\ultimate-0.4.5-recette" }
 $outFull = [IO.Path]::GetFullPath($OutputDir)
 $rootFull = [IO.Path]::GetFullPath($root)
 if (!$outFull.StartsWith($rootFull + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
