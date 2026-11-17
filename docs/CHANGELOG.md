@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1-alpha (Lot 3.3) — refonte visuelle et nouvelle organisation
+* **Droite = navigateur permanent** Sorts / Anneaux / Bijoux / Amulettes (recherche, liste défilante, état « Voulu / Évité / En place / Placé »). **Bas du centre = détails** (icône, type, rareté/classe, texte natif ou « Effet détaillé indisponible », source, statut dans le build, actions Ajouter / Retirer / Éviter / Placer ici / Vider / Déjà placé). Double-clic = action principale.
+* **Cliquer un emplacement** filtre le navigateur sur le bon type et cible l'emplacement ; **sélectionner** une pièce n'en place aucune : le placement se fait par le bouton ou le double-clic.
+* **Plus de pagination** dans la bibliothèque ni le navigateur : molette + barre de défilement, décalage géré par le contrôleur.
+* **Style** : boutons plats à rôles (or / neutre / rouge réservé à la suppression), panneaux encre, filets laiton, titres de section dorés, bandes de lignes, emplacements cadrés en doré quand ils sont choisis, ligne sélectionnée surlignée.
+* Fenêtre 1240×704 ; composants `LibraryPane` / `EditorPane` / `DetailPane` / `BrowserPane` dans `UI.lua`.
+* Tests Lua 5.1 : 193 cas, 9 020 assertions.
+
 ## 0.4.0-alpha (Lot 3.2) — refonte UX complète
 * Fenêtre unique 1120×704 en trois zones : bibliothèque (gauche), éditeur complet sur une page (centre), inspecteur (droite) ; mise à l'échelle automatique pour tenir à l'écran (jusqu'à 800×600).
 * Bibliothèque : recherche (nom, classe EN/FR, noms de sorts et de pièces), filtres Tous / Favoris / Récents + classe, tri nom / dernière utilisation / dernière modification, favoris en premier, dates réelles issues de `db.meta`, 10 builds par page (200 supportés), sélection = ouverture avec invite Enregistrer / Abandonner / Continuer.

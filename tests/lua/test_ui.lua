@@ -168,10 +168,12 @@ return function(H)
 		eq(e.c.state.classFilter, nil);
 		for _ = 1, 20 do e.c:Create("many", "paladin"); end
 		e.c:SetView("library");
-		ok(e.c:PageCount() >= 3);
-		e.world.click(e.ui.lib.pager.next);
-		eq(e.c.state.page, 2);
-		no(e.ui.lib.pager.next:IsEnabled() and e.c.state.page == e.c:PageCount());
+		local _, off, max = e.c:LibView();
+		ok(max > 0, "more builds than rows: the list scrolls instead of paging");
+		e.c:ScrollLib(3);
+		eq(e.c.state.libOffset, 3);
+		e.c:ScrollLib(1000);
+		eq(e.c.state.libOffset, max, "clamped");
 		e.world.click(e.ui.lib.rows[1]);
 		eq(e.c.state.selectedId, e.ui.lib.rows[1].rowId);
 	end);
@@ -252,6 +254,8 @@ return function(H)
 	end);
 
 	-- ------------------------------------------------------------------ 3C / 3D: editor, draft, save
+	-- selecting a row of the browser, then the detail panel's primary action (what a player does in two clicks)
+	local function pick(e, i) e.world.click(e.ui.bs.rows[i]); e.world.click(e.ui.det.act1); end
 	local function openNew(e, class)
 		e.open();
 		local id = e.c:Create("Plan", class or "warrior");
@@ -266,7 +270,7 @@ return function(H)
 		ok(e.world.hasText("Single stage"));
 		local keys = e.ns.catalog:SpellsOfClass("warrior");
 		-- the first five come from the catalogue page by one click each, the sixth from page 2
-		for i = 1, 5 do e.world.click(ed.cat.rows[i].a); end
+		for i = 1, 5 do pick(e, i); end
 		local ph = e.c:Editor().draft.phases[1];
 		eq(#ph.spells, 5);
 		eq(ph.spells[1].key, keys[1]);
@@ -317,15 +321,15 @@ return function(H)
 	test("3C: catalogue is filtered by class and by search; names localised, identifiers are catalogue keys", function()
 		local e = boot({ locale = "frFR" }); local id, ed = openNew(e, "warrior");
 		for _, entry in ipairs(e.c:CatalogEntries()) do eq(e.ns.catalog:Get("spell", entry.key).class, "warrior"); end
-		e.world.type(ed.catSearch, "tourb");
+		e.world.type(e.ui.bs.search, "tourb");
 		eq(#e.c:CatalogEntries(), 1);
 		eq(e.c:CatalogEntries()[1].key, "whirlwind", "found by its French name, stored by key");
-		e.world.type(ed.catSearch, "whirl");
+		e.world.type(e.ui.bs.search, "whirl");
 		eq(#e.c:CatalogEntries(), 1, "English name works too");
-		e.world.type(ed.catSearch, "zzzz");
+		e.world.type(e.ui.bs.search, "zzzz");
 		eq(#e.c:CatalogEntries(), 0);
-		e.world.type(ed.catSearch, "");
-		e.world.click(ed.cat.rows[1].a);
+		e.world.type(e.ui.bs.search, "");
+		pick(e, 1);
 		eq(e.c:Editor().draft.phases[1].spells[1].key, e.ns.catalog:SpellsOfClass("warrior")[1]);
 		for _, g in ipairs(e.c:Editor().draft.phases[1].spells) do no(g.key:find(" "), "key is not a display name"); end
 		eq(e.c:Editor().draft.phases[1].label, "", "default stage label stays empty");
@@ -342,21 +346,22 @@ return function(H)
 		e.world.click(ed.groups.rings.cells[3]);
 		eq(e.c:Editor().cat, "rings");
 		ok(e.world.hasText("Target: Rings - Alternative 1 (empty)"), e.texts());
-		e.world.click(ed.cat.rows[1].a);                               -- Place
+		pick(e, 1);                               -- Place
 		local rings = e.c:Editor().draft.phases[1].rings;
 		eq(rings[1], ""); eq(rings[2], ""); ok(rings[3] ~= ""); eq(rings[4], "");
 		local first = rings[3];
 		-- the same piece cannot be placed twice; the catalogue says so
 		e.world.click(ed.groups.rings.cells[1]);
-		no(ed.cat.rows[1].a:IsEnabled(), "a piece already placed cannot be placed twice");
+		e.world.click(e.ui.bs.rows[1]);
+		no(e.ui.det.act1:IsEnabled(), "a piece already placed cannot be placed twice");
 		-- placing in the chosen slot only
-		e.world.click(ed.cat.rows[2].a);
+		pick(e, 2);
 		eq(e.c:Editor().draft.phases[1].rings[1], e.c:CatalogEntries()[2].key);
 		eq(e.c:Editor().draft.phases[1].rings[3], first, "other slots untouched");
 		-- direct replacement: select a filled slot, place another piece, no manual emptying
 		e.world.click(ed.groups.rings.cells[1]);
 		local before = e.c:Editor().draft.phases[1].rings[1];
-		e.world.click(ed.cat.rows[3].a);
+		pick(e, 3);
 		local after = e.c:Editor().draft.phases[1].rings[1];
 		ok(after ~= before and after ~= "", "slot replaced in one click");
 		-- clear
@@ -364,16 +369,16 @@ return function(H)
 		eq(e.c:Editor().draft.phases[1].rings[3], "");
 		ok(e.c:Editor().draft.phases[1].rings[1] ~= "");
 		-- trinkets and amulets: the filter button picks the first empty main slot
-		e.world.click(ed.catKinds.amulets);
+		e.world.click(e.ui.bs.kinds.amulets);
 		eq(e.c:Editor().slot, 1);
 		for _, en in ipairs(e.c:CatalogEntries()) do
 			local a = e.ns.catalog:Get("amulet", en.key);
 			ok(a.class == "warrior" or (a.classes ~= nil and (#a.classes == 0 or U.IndexOf(a.classes, "warrior"))), "class-filtered amulets and legends");
 		end
-		e.world.click(ed.cat.rows[1].a);
+		pick(e, 1);
 		ok(e.c:Editor().draft.phases[1].amulets[1] ~= "");
-		e.world.click(ed.catKinds.trinkets);
-		e.world.click(ed.cat.rows[1].a);
+		e.world.click(e.ui.bs.kinds.trinkets);
+		pick(e, 1);
 		ok(e.c:Editor().draft.phases[1].trinkets[1] ~= "");
 		ok(e.c:EditorReport().clean);
 	end);
@@ -417,18 +422,18 @@ return function(H)
 		local e = boot(); local id, ed = openNew(e);
 		ok(e.world.hasText("Saved"), e.texts());
 		no(ed.save:IsEnabled(), "nothing to save yet");
-		e.world.click(ed.cat.rows[1].a);
+		pick(e, 1);
 		ok(e.world.hasText("Unsaved changes"), e.texts());
 		eq(e.h():Get(id).phases[1].spells[1], nil, "storage untouched until Save");
 		e.world.click(ed.revert);
 		eq(#e.c:Editor().draft.phases[1].spells, 0);
 		ok(e.world.hasText("Saved"));
-		e.world.click(ed.cat.rows[1].a);
+		pick(e, 1);
 		e.world.click(ed.save);
 		eq(#e.h():Get(id).phases[1].spells, 1);
 		eq(e.h():Get(id).revision, 2);
 		eq(e.h():GetActive("warrior"), nil, "saving does not follow");
-		e.world.click(ed.cat.rows[2].a);
+		pick(e, 2);
 		e.world.click(ed.follow);
 		eq(e.h():GetActive("warrior"), id);
 		eq(#e.h():Get(id).phases[1].spells, 2);
@@ -439,7 +444,7 @@ return function(H)
 		e.c.state.editor = nil;
 		e.ui:OpenEditor(rid);
 		ok(e.world.hasText("Needs repair"), e.texts());
-		e.world.click(ed.cat.rows[3].a);              -- an unrelated change
+		pick(e, 3);              -- an unrelated change
 		ok(e.world.hasText("Unsaved changes | Needs repair"), e.texts());
 		e.world.click(ed.follow);
 		eq(e.h():GetActive("warrior"), id, "the previous active build stays");
@@ -453,7 +458,7 @@ return function(H)
 	test("3D: switching build / closing with unsaved changes asks; Escape never discards; no implicit save", function()
 		local e = boot(); local id, ed = openNew(e);
 		local other = e.c:Create("Other", "warrior");
-		e.world.click(ed.cat.rows[1].a);
+		pick(e, 1);
 		ok(U.IndexOf(e.G.UISpecialFrames, "RebornBuildPlannerFrame") == nil, "dirty editor: Escape must not close the window");
 		eq(e.world.escape(), false);
 		ok(e.root:IsShown());
@@ -478,14 +483,14 @@ return function(H)
 		eq(#e.h():Get(id).phases[1].spells, 0, "discarded");
 		-- save from the prompt
 		e.ui:OpenEditor(id);
-		e.world.click(ed.cat.rows[1].a);
+		pick(e, 1);
 		e.world.click(rowOf(other));
 		modalButton(e, T(e, "Save"));
 		eq(e.c:Editor().id, other);
 		eq(#e.h():Get(id).phases[1].spells, 1);
 		-- closing the WINDOW with changes asks as well
 		e.ui:OpenEditor(id);
-		e.world.click(ed.cat.rows[2].a);
+		pick(e, 2);
 		e.G.SlashCmdList.REBORNPLANNER("");
 		ok(e.root:IsShown() and e.G.RebornBuildPlannerModal:IsShown(), "/rbp on a dirty editor asks first");
 		modalButton(e, T(e, "Keep editing"));
@@ -504,7 +509,7 @@ return function(H)
 
 	test("3D: a draft survives hiding the window and is lost only on /reload (never auto-saved)", function()
 		local e = boot(); local id, ed = openNew(e);
-		e.world.click(ed.cat.rows[1].a);
+		pick(e, 1);
 		e.root:Hide();
 		e.G.SlashCmdList.REBORNPLANNER("");
 		ok(e.c:EditorDirty());
@@ -669,7 +674,7 @@ return function(H)
 
 	test("3E: exporting the draft reflects unsaved edits and says so", function()
 		local e = boot(); local id, ed = openNew(e, "mage");
-		e.world.click(ed.cat.rows[1].a);
+		pick(e, 1);
 		e.world.click(e.ui.nav.export);
 		ok(e.world.hasText("draft"), e.texts());
 		ok(e.c.state.export.code ~= nil);
@@ -681,18 +686,18 @@ return function(H)
 		local e = boot(); e.open();
 		local id = e.c:Create("Persist", "warrior");
 		e.ui:OpenEditor(id);
-		e.world.click(e.ui.ed.cat.rows[1].a);
+		pick(e, 1);
 		e.world.click(e.ui.ed.follow);
 		analyze(e, GOOD);
 		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
-		e.world.drag(e.root, 100, -20);
+		e.world.drag(e.root, 40, -20);
 		local again = reload(e);
 		eq(again.h():Counts().builds, 2);
 		eq(again.h():GetActive("warrior"), id);
 		eq(again.h():Get(id).phases[1].spells[1].key, e.ns.catalog:SpellsOfClass("warrior")[1]);
 		again.open();
 		local p = again.root.points[1];
-		eq(p.x, 100); eq(p.y, -20);
+		eq(p.x, 40); eq(p.y, -20);
 		ok(again.world.hasText("Persist"));
 	end);
 
@@ -733,9 +738,8 @@ return function(H)
 		local id = e.c:Create("A", "warrior");
 		for i = 1, 12 do e.c:Create("B" .. i, "warrior"); end
 		e.c:SetView("library");
-		e.world.click(e.ui.lib.pager.next);
-		e.ui:OpenEditor(id);
-		for i = 1, 5 do e.world.click(e.ui.ed.cat.rows[i].a); end
+				e.ui:OpenEditor(id);
+		for i = 1, 5 do pick(e, i); end
 		e.c:SetCatalog("trinkets"); e.c:SelectSlot("rings", 2); e.c:ToggleAdvanced(); e.c:ToggleAdvanced();
 		e.world.click(e.ui.ed.save);
 		analyze(e, GOOD);
@@ -743,7 +747,7 @@ return function(H)
 		e.c:PrepareExport(id, "saved"); e.c:SetView("export");
 		e.world.click(e.ui.ex.back);
 		eq(#e.world.all, n0, "frames/regions created after the first open");
-		ok(n0 < 700, "widget budget (all created once): " .. n0);
+		ok(n0 < 900, "widget budget (all created once): " .. n0);
 	end);
 
 	-- ------------------------------------------------------------------ layout lint at several sizes
@@ -849,7 +853,7 @@ return function(H)
 		local e = boot({ locale = "frFR" }); e.open();
 		local id = e.c:Create("Plan", "warrior");
 		e.ui:OpenEditor(id);
-		e.world.click(e.ui.ed.cat.rows[2].a);
+		pick(e, 2);
 		e.world.click(e.ui.ed.save);
 		local b = e.h():Get(id);
 		eq(b.phases[1].label, "");

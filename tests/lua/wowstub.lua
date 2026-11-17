@@ -76,6 +76,15 @@ function Stub.new(opts)
 	function F:SetJustifyV(j) self.justifyV = j; end
 	function F:SetFontObject(o) self.fontObject = o; end
 	function F:SetHighlightTexture() end
+	function F:GetHighlightTexture() return { SetVertexColor = function() end, SetAllPoints = function() end }; end
+	-- sliders (scroll bars)
+	function F:SetOrientation() end
+	function F:SetMinMaxValues(a, b) self.minv, self.maxv = a, b; end
+	function F:SetValueStep() end
+	function F:SetValue(v) self.value = v; end
+	function F:GetValue() return self.value or 0; end
+	function F:SetThumbTexture() end
+	function F:GetThumbTexture() return { SetSize = function() end, SetHeight = function() end, SetWidth = function() end, SetVertexColor = function() end }; end
 	function F:SetNormalTexture() end
 	function F:SetTexCoord() end
 	function F:SetHitRectInsets() end

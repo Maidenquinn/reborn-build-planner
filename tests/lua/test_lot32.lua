@@ -20,6 +20,8 @@ return function(H)
 		function env.at(t) world.opts.now = t; end
 		return env;
 	end
+	-- selecting a row of the browser, then the detail panel's primary action (what a player does in two clicks)
+	local function pick(e, i) e.world.click(e.ui.bs.rows[i]); e.world.click(e.ui.det.act1); end
 	local function reload(e, o)
 		o = o or {};
 		local text = H.serialize("RebornBuildPlannerDB", e.G.RebornBuildPlannerDB);
@@ -38,21 +40,22 @@ return function(H)
 	test("3.2B library: 0, 1, 20 and 200 builds", function()
 		local e = boot();
 		ok(e.world.hasText("No build yet"), e.texts());
-		eq(e.c:PageCount(), 1);
+		eq(select(3, e.c:LibView()), 0);
 		many(e, 1);
 		eq(#e.c:Rows(), 1);
 		no(e.world.hasText("No build yet"));
 		many(e, 19);
 		eq(#e.c:Rows(), 20);
-		eq(e.c:PageCount(), 2);
+		eq(select(3, e.c:LibView()), 10, "20 builds, 10 rows: scrolls by 10");
 		local e2 = boot();
 		many(e2, 200);
 		eq(#e2.c:Rows(), 200);
-		eq(e2.c:PageCount(), 20);
-		eq(#e2.c:PageRows(), 10);
-		e2.world.click(e2.ui.lib.pager.next);
-		eq(e2.c.state.page, 2);
+		eq(select(3, e2.c:LibView()), 190);
+		e2.c:ScrollLib(10);
+		eq(e2.c.state.libOffset, 10);
 		ok(e2.world.hasText("Build 011"), e2.texts());
+		e2.c:SetLibOffset(190);
+		ok(e2.world.hasText("Build 200"), e2.texts());
 		eq(e2.world.lint(e2.root), {}, "200 builds, library lint");
 		local id, why = e2.h():Create({ name = "201", class = "warrior" });
 		eq(id, nil, "the library holds 200 builds");
@@ -259,8 +262,8 @@ return function(H)
 		local e = boot({ gameSpells = { [845] = { "Cleave", "Hits two enemies.", "Rank 3" } } });
 		local id = e.c:Create("I", "warrior"); e.ui:OpenEditor(id);
 		ok(e.world.hasText("Select a spell or a piece"), e.texts());
-		e.world.click(e.ui.ed.cat.rows[1].hit);                 -- cleave
-		local ins = e.ui.ins;
+		e.world.click(e.ui.bs.rows[1]);                 -- cleave
+		local ins = e.ui.det;
 		eq(ins.title.text, "Cleave");
 		ok(ins.body.text:find("Hits two enemies.", 1, true) and ins.body.text:find("Rank 3", 1, true), ins.body.text);
 		ok(ins.source.text:find("game's own spell text", 1, true), ins.source.text);
@@ -269,7 +272,7 @@ return function(H)
 		local calls = e.world.tooltip.calls;
 		e.c:Notify(); e.c:Notify();
 		eq(e.world.tooltip.calls, calls, "read once per spell, then cached");
-		e.world.click(e.ui.ed.cat.rows[2].hit);                 -- whirlwind: the game knows nothing
+		e.world.click(e.ui.bs.rows[2]);                 -- whirlwind: the game knows nothing
 		ok(ins.body.text:find("Detailed effect unavailable", 1, true), ins.body.text);
 		ok(ins.source.text:find("Reborn catalogue", 1, true));
 		no(ins.body.text:find("%d+%%"), "nothing invented");
@@ -281,7 +284,7 @@ return function(H)
 		e.c:SetCatalog("rings");
 		e.c:SetSlot("rings", 1, "accuria");
 		e.world.click(e.ui.ed.groups.rings.cells[1]);
-		local ins = e.ui.ins;
+		local ins = e.ui.det;
 		eq(ins.title.text, "Band of Accuria");
 		ok(ins.body.text:find("Type: Ring", 1, true) and ins.body.text:find("Detailed effect unavailable", 1, true), ins.body.text);
 		ok(ins.body.text:find("Placed: main 1", 1, true));
@@ -310,11 +313,11 @@ return function(H)
 		local e = boot({ gameSpells = { [845] = lines } });
 		local id = e.c:Create("I", "warrior"); e.ui:OpenEditor(id);
 		local n0 = #e.world.all;
-		e.world.click(e.ui.ed.cat.rows[1].hit);
-		ok(e.ui.ins.body.text:find("Line 40", 1, true), "all lines kept");
+		e.world.click(e.ui.bs.rows[1]);
+		ok(e.ui.det.body.text:find("Line 40", 1, true), "all lines kept");
 		eq(e.world.lint(e.root), {});
 		eq(#e.world.all, n0);
-		ok(e.ui.ins.body.h >= 400, "the body box is tall and wraps");
+		ok(e.ui.det.body.h >= 100, "the body box wraps in a fixed area");
 	end);
 
 	-- ------------------------------------------------------------------ storage and migrations
@@ -454,7 +457,7 @@ return function(H)
 		eq(#e.world.all, n0, "100 refreshes with 200 builds create no widget");
 		-- opening/closing the window and switching builds create nothing either
 		e.world.type(e.ui.lib.search, "");
-		for i = 1, 10 do e.ui:OpenEditor(e.c:PageRows()[i].id); end
+		for i = 1, 10 do e.ui:OpenEditor(e.c:Rows()[i].id); end
 		eq(#e.world.all, n0);
 	end);
 

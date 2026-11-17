@@ -171,6 +171,8 @@ return function(H)
 		function env.texts() return table.concat(world.texts(), " | "); end
 		return env;
 	end
+	-- selecting a row of the browser, then the detail panel's primary action (what a player does in two clicks)
+	local function pick(e, i) e.world.click(e.ui.bs.rows[i]); e.world.click(e.ui.det.act1); end
 	local function newEditor(e, class)
 		local id = e.c:Create("Plan", class or "warrior");
 		e.ui:OpenEditor(id);
@@ -279,17 +281,17 @@ return function(H)
 	test("3.1C tooltips: spell hover shows the game's own text, then the plan state; leaving hides it", function()
 		local e = boot({ gameSpells = { [845] = { "Cleave", "Hits two enemies." } } });
 		local id, ed = newEditor(e);
-		e.world.click(ed.cat.rows[1].a);
+		pick(e, 1);
 		e.world.click(ed.spells[1].tog);
-		local tt = e.world.hover(ed.cat.rows[1].hit);
+		local tt = e.world.hover(e.ui.bs.rows[1]);
 		ok(tt:IsShown());
-		eq(tt.owner, ed.cat.rows[1].hit);
+		eq(tt.owner, e.ui.bs.rows[1]);
 		local text = tt:Text();
 		ok(text:find("Hits two enemies.", 1, true), text);
 		ok(text:find("Wanted: priority 1", 1, true), text);
 		ok(text:find("banish after acquisition", 1, true), text);
 		ok(text:find("nothing is banished automatically", 1, true), text);
-		e.world.unhover(ed.cat.rows[1].hit);
+		e.world.unhover(e.ui.bs.rows[1]);
 		no(tt:IsShown());
 		tt = e.world.hover(ed.spells[1].hit);
 		ok(tt:Text():find("Hits two enemies.", 1, true));
@@ -299,13 +301,13 @@ return function(H)
 	test("3.1C tooltips: no game text -> honest 'Detailed effect unavailable'; no invented numbers", function()
 		local e = boot();
 		local id, ed = newEditor(e);
-		local tt = e.world.hover(ed.cat.rows[2].hit);
+		local tt = e.world.hover(e.ui.bs.rows[2]);
 		local text = tt:Text();
 		ok(text:find("Whirlwind", 1, true), text);
 		ok(text:find("Detailed effect unavailable", 1, true), text);
 		ok(text:find("Class: Warrior", 1, true), text);
 		no(text:find("%d+%%"), "no percentage appears out of nowhere");
-		e.world.unhover(ed.cat.rows[2].hit);
+		e.world.unhover(e.ui.bs.rows[2]);
 	end);
 
 	test("3.1C tooltips: rings, trinkets and amulets (common and legendary) say what the catalogue holds and no more", function()
@@ -326,15 +328,15 @@ return function(H)
 		e.world.unhover(cells[3]);
 		ok(e.world.hover(cells[2]):Text():find("fallbacks", 1, true), "an empty slot explains main vs alternative");
 		e.world.unhover(cells[2]);
-		local tt = e.world.hover(ed.cat.rows[1].hit);
+		local tt = e.world.hover(e.ui.bs.rows[1]);
 		ok(tt:Text():find("Type: Ring", 1, true), tt:Text());
-		e.world.unhover(ed.cat.rows[1].hit);
+		e.world.unhover(e.ui.bs.rows[1]);
 		e.c:SetCatalog("amulets");
 		local sawLegend, sawCommon = false, false;
-		for i = 1, 5 do
-			local row = ed.cat.rows[i];
-			if row.frame:IsShown() then
-				local x = e.world.hover(row.hit):Text();
+		for i = 1, 14 do
+			local row = e.ui.bs.rows[i];
+			if row:IsShown() then
+				local x = e.world.hover(row):Text();
 				if x:find("Legendary amulet", 1, true) then
 					sawLegend = true;
 					ok(x:find("Linked spell:", 1, true) and x:find("Class: Warrior", 1, true), x);
@@ -342,7 +344,7 @@ return function(H)
 					sawCommon = true;
 				end
 				ok(x:find("Detailed effect unavailable", 1, true), x);
-				e.world.unhover(row.hit);
+				e.world.unhover(row);
 			end
 		end
 		ok(sawLegend or sawCommon, "amulet tooltips shown");
@@ -351,37 +353,37 @@ return function(H)
 	test("3.1C tooltips: French names and texts; English fallback for what is untranslated", function()
 		local e = boot({ locale = "frFR" });
 		local id, ed = newEditor(e);
-		local t = e.world.hover(ed.cat.rows[2].hit):Text();
+		local t = e.world.hover(e.ui.bs.rows[2]):Text();
 		ok(t:find("Tourbillon", 1, true), t);
 		ok(t:find("Classe : Guerrier", 1, true), t);
 		ok(t:find("Effet détaillé indisponible", 1, true), t);
-		e.world.unhover(ed.cat.rows[2].hit);
+		e.world.unhover(e.ui.bs.rows[2]);
 	end);
 
 	test("3.1C tooltips: hidden on page change, view change, window close; no widget is created by hovering", function()
 		local e = boot({ gameSpells = { [845] = { "Cleave", "x" } } });
 		local id, ed = newEditor(e);
 		local n0 = #e.world.all;
-		local tt = e.world.hover(ed.cat.rows[1].hit);
+		local tt = e.world.hover(e.ui.bs.rows[1]);
 		ok(tt:IsShown());
-		e.c:SetEditorPage(2);
+		e.c:SetCatalogOffset(3);
 		no(tt:IsShown(), "page change hides it");
-		e.world.hover(ed.cat.rows[1].hit);
+		e.world.hover(e.ui.bs.rows[1]);
 		e.c:SetCatalog("rings");
 		no(tt:IsShown(), "catalogue change hides it");
-		e.world.hover(ed.cat.rows[1].hit);
+		e.world.hover(e.ui.bs.rows[1]);
 		e.ui:Hide();
 		no(tt:IsShown(), "closing the window hides it");
 		e.ui:Show();
 		for i = 1, 30 do
-			e.world.hover(ed.cat.rows[1].hit);
-			e.world.unhover(ed.cat.rows[1].hit);
+			e.world.hover(e.ui.bs.rows[1]);
+			e.world.unhover(e.ui.bs.rows[1]);
 		end
 		eq(#e.world.all, n0, "no widgets created by hovering");
 		local calls = tt.calls;
-		e.world.hover(ed.cat.rows[1].hit);
+		e.world.hover(e.ui.bs.rows[1]);
 		eq(tt.calls, calls, "jewels do not query spell tooltips");
-		e.world.unhover(ed.cat.rows[1].hit);
+		e.world.unhover(e.ui.bs.rows[1]);
 	end);
 
 	-- ------------------------------------------------------------------ look
@@ -403,9 +405,9 @@ return function(H)
 
 	test("3.1B look: the main action is coloured, secondary ones are quiet, a disabled button loses its colour; labels stay readable", function()
 		local e = boot(); local id, ed = newEditor(e);
-		e.world.click(ed.cat.rows[1].a);
-		ok(ed.save:GetText():find("|cff8cff8c", 1, true), "Save is the accent colour while enabled");
-		ok(ed.revert:GetText():find("|cffb4b4b4", 1, true), "Discard is quiet");
+		pick(e, 1);
+		ok(ed.save:GetText():find("|cffffe6a0", 1, true), "Save is the accent colour while enabled");
+		ok(ed.revert:GetText():find("|cffc9ccd6", 1, true), "Discard is quiet");
 		e.world.click(ed.save);
 		no(ed.save:IsEnabled());
 		no(ed.save:GetText():find("|cff", 1, true), "disabled: plain text, greyed by the client");
@@ -432,7 +434,7 @@ return function(H)
 				local id, ed = newEditor(e);
 				fillEditor(e, ed);
 				eq(e.world.lint(e.root), {}, "editor " .. size[1] .. " " .. loc);
-				e.world.hover(ed.cat.rows[1].hit); e.world.unhover(ed.cat.rows[1].hit);
+				e.world.hover(e.ui.bs.rows[1]); e.world.unhover(e.ui.bs.rows[1]);
 				e.c:ToggleAdvanced();
 				eq(e.world.lint(e.root), {}, "advanced " .. size[1] .. " " .. loc);
 			end
@@ -456,7 +458,7 @@ return function(H)
 		ok(cells[3].role.text:find("^> "), cells[3].role.text);
 		no(cells[1].role.text:find("^> "));
 		ok(e.world.hasText("Target: Rings - Alternative 1 (empty)"), e.texts());
-		ok(cells[3].sel.shown, "band under the chosen slot too");
+		ok(cells[3].edge.shown, "band under the chosen slot too");
 		e.c:SelectSlot("rings", 1);
 		ok(e.world.hasText("Target: Rings - Main 1 (empty)"), e.texts());
 		ok(e.world.button("Rings *") ~= nil, "the catalogue kind in use is marked");
