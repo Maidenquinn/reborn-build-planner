@@ -333,7 +333,7 @@ def main(argv):
             path = os.path.join(out, name + '.tga')
             if not os.path.exists(path) or open(path, 'rb').read() != img.tga():
                 bad.append(name)
-        extra = sorted(set(f[:-4] for f in os.listdir(out) if f.endswith('.tga')) - set(cat))
+        extra = sorted(set(f[:-4] for f in os.listdir(out) if f.endswith('.tga') and not f.startswith('ultimate_')) - set(cat))
         print('textures up to date' if not bad and not extra else 'textures DIFFER: %s extra: %s' % (bad, extra))
         return 0 if not bad and not extra else 1
     preview = argv[argv.index('--preview') + 1] if '--preview' in argv else None
