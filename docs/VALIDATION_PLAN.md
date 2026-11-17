@@ -59,7 +59,7 @@ Séquences :
 | P-S1 | `AZSZONE` après chaque entrée en monde | S-A/S-C | toujours reçu | Message « en attente » conservé |
 | P-S2 | Lignes vides envoyées à la synchro (`AZSGEAR`/`AZSCARDS`/`AZSSPELLS`) | S-C avec 0 bijou et 0 main | ligne vide reçue ou non, **sans** attendre | Si non : `UNKNOWN` ne devient jamais `EMPTY` ; afficher « non communiqué » |
 | P-U1 | Panneau au-dessus des cartes | S-F | lisible, ne bloque ni cartes ni Échap | Ancrer ailleurs / désactiver pendant les cartes |
-| P-W1 | Aller-retour avec le planner du site | navigateur : coller un `azsb1:` généré par le futur addon dans le planner, et inversement avec 3 vecteurs de `golden.json` | égalité sémantique | Lot 2 non livrable tant que non démontré |
+| P-W1 | Aller-retour avec le planner du site | **Partiellement exécuté le 2026-11-17** (`tests/fixtures/codec/browser_recette_2026-11-17.md`) : `?p=` Lua → site identique, site → Lua → même code. **Reste à faire par Kevin** : (1) coller un code `azsb1:` dans la boîte d'import du site (pas l'URL) ; (2) bouton « Copy code » puis coller dans `PlannerCodec.Decode` ; (3) un build avec un conflit (code de `tests/fixtures/codec/golden.json` cas `other_class_spell_dropped`) ouvert sur le site : constater que le site écarte l'entrée alors que le planner la garde ; (4) un autre navigateur | égalité sémantique ; pas de crash | `VALIDATION NAVIGATEUR REQUISE` pour (1)-(4) ; le chemin `?p=` est déjà démontré |
 
 ## 4. Critères d'acceptation du Lot 0 (rappel)
 
