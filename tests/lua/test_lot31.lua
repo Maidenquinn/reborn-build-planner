@@ -294,7 +294,8 @@ return function(H)
 
 	test("3.1B look: the main action is coloured, secondary ones are quiet, a disabled button loses its colour; labels stay readable", function()
 		local e = boot(); local id, ed = newEditor(e);
-		pick(e, 1);
+		e.c:AddSpell("whirlwind"); -- a real draft change, unlike merely selecting an item
+		ok(e.c:EditorDirty(), "editing made Save available");
 		ok(ed.save.nine and ed.save.nine.file == "button_primary_nine", "Save has the visible primary theme");
 		ok(ed.revert.nine and ed.revert.nine.file == "button_secondary_nine", "Discard uses a quiet secondary theme");
 		e.world.click(ed.save);
