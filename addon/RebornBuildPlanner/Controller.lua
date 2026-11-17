@@ -965,6 +965,11 @@ function Controller:TooltipData(kind, key)
 		else
 			line(L("Detailed effect unavailable"), "dim");
 			line(L("The Reborn catalogue gives no statistics for this piece."), "dim");
+			local count = ns.JewelryEffects and ns.JewelryEffects.MetadataStatus() or 0;
+			if count == 0 then
+				line(lang == "frFR" and "Cette recette n'inclut pas les mécaniques locales. Consultez /rbp diag." or
+					"This recipe has no local jewelry mechanics. See /rbp diag.", "warn");
+			end
 		end
 	else
 		local isLegend = entry.spell ~= nil;
