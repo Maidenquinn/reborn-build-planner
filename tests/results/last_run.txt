@@ -1,12 +1,14 @@
 == catalogue up to date: PASS
    catalogue up to date
+== textures up to date: PASS
+   textures up to date
 == generator tests: PASS
    generator tests: 84 assertions passed, 0 failed
 == Lot 0 suite: PASS
    273 assertions passed, 0 failed
 == Lua 5.1 suites: PASS
-     775 assertions passed so far in this suite
+     2282 assertions passed so far in this suite
      396 assertions passed so far in this suite
-   Lua tests: 216 test cases, 12586 assertions passed, 0 failed (Lua 5.1)
+   Lua tests: 220 test cases, 14196 assertions passed, 0 failed (Lua 5.1)
 == JS <-> Lua cross-check (official decoder): PASS
    verified 63 codes with the official decoder (JS->Lua->JS: 60, Lua->JS: 3)

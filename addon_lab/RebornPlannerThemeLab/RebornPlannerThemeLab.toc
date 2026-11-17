@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: Reborn Planner Theme Lab (prototype visuel)
-## Notes: Visual lab for Reborn Build Planner 0.4.3: shows the new design components next to the 0.4.2 look. Writes nothing but its own flag.
-## Version: 0.4.3-proto1
+## Notes: Visual lab v2: original textures (Media folder) next to the 0.4.2 look. Writes nothing but its own flag.
+## Version: 0.4.3-proto2
 ## SavedVariables: RebornPlannerThemeLabDB
 # Theme.lua is a copy of RebornBuildPlanner/Theme.lua (the same file the planner will load).
 Theme.lua

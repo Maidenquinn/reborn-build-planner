@@ -58,6 +58,7 @@ function Stub.new(opts)
 	function F:SetFrameStrata(s) self.strata = s; end
 	function F:GetFrameStrata() return self.strata; end
 	function F:SetFrameLevel(l) self.level = l; end
+	function F:GetFrameLevel() return self.level or ((self.parent and self.parent.GetFrameLevel and self.parent ~= self and self.parent:GetFrameLevel() or 0) + 1); end
 	function F:Raise() end
 	function F:SetClampedToScreen(v) self.clamped = v; end
 	function F:SetMovable(v) self.movable = v; end
@@ -77,7 +78,7 @@ function Stub.new(opts)
 	function F:SetFontObject(o) self.fontObject = o; end
 	function F:SetHighlightTexture(p) self.hlPath = p; end
 	function F:SetPushedTexture(p) self.pushedPath = p; end
-	function F:GetPushedTexture() return { SetVertexColor = function() end }; end
+	function F:GetPushedTexture() return { SetVertexColor = function() end, SetAllPoints = function() end, SetAlpha = function() end }; end
 	function F:SetGradientAlpha(...) self.gradient = { ... }; end
 	function F:GetStringHeight()
 		local w = self.w > 0 and self.w or 200;
@@ -86,7 +87,7 @@ function Stub.new(opts)
 		for l in string.gmatch((self.text or "") .. "\n", "([^\n]*)\n") do lines = lines + math.max(1, math.ceil(Stub.textWidth(l, size) / w)); end
 		return lines * (size + 2);
 	end
-	function F:GetHighlightTexture() return { SetVertexColor = function() end, SetAllPoints = function() end }; end
+	function F:GetHighlightTexture() return { SetVertexColor = function() end, SetAllPoints = function() end, SetAlpha = function() end }; end
 	-- sliders (scroll bars)
 	function F:SetOrientation() end
 	function F:SetMinMaxValues(a, b) self.minv, self.maxv = a, b; end
@@ -96,7 +97,9 @@ function Stub.new(opts)
 	function F:SetThumbTexture() end
 	function F:GetThumbTexture() return { SetSize = function() end, SetHeight = function() end, SetWidth = function() end, SetVertexColor = function() end }; end
 	function F:SetNormalTexture() end
-	function F:SetTexCoord() end
+	function F:SetTexCoord(l, r, tp, b) self.coords = { l, r, tp, b }; end
+	function F:SetToplevel(v) self.toplevel = v; end
+	function F:SetVertexColor(r, g, b, al) self.vertex = { r, g, b, al }; end
 	function F:SetHitRectInsets() end
 	if not opts.noWordWrap then function F:SetWordWrap(v) self.wordWrap = v; end end
 
@@ -293,6 +296,18 @@ function Stub.new(opts)
 		G.GameTooltip = tt;
 		world.tooltip = tt;
 	end
+
+	-- EnumerateFrames(prev): every frame in creation order (the client's own enumeration is the same in spirit)
+	G.EnumerateFrames = function(prev)
+		local start = 1;
+		if prev then for i, f in ipairs(world.all) do if f == prev then start = i + 1; break; end end end
+		for i = start, #world.all do
+			local f = world.all[i];
+			if f.kind ~= "FontString" and f.kind ~= "Texture" and f ~= UIParent then return f; end
+		end
+		return nil;
+	end;
+	function F:GetObjectType() return self.kind; end
 
 	G.CreateFrame = function(kind, name, parent, template)
 		local f = new(kind, name, parent or UIParent);

@@ -1,5 +1,8 @@
 # Changelog
 
+## Lab 0.4.3-proto2 (Lot 3.5b)
+* Lab v2 : textures TGA originales (19), neuf segments, boutons en relief, états visibles, strata `FULLSCREEN_DIALOG`, bande de contrôle des fichiers, `/rbplab diag` étendu. Planner inchangé.
+
 ## 0.4.3-proto1 (Lot 3.5, étape 1)
 * Titres FR de légendaires (glossaire communautaire, non officiel) ; listes : sort puis « tête | classe ».
 * `Theme.lua` (design system) livré mais non appliqué ; addon séparé `RebornPlannerThemeLab` pour valider le rendu réel.

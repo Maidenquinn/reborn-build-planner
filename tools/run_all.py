@@ -20,6 +20,7 @@ extra = ["--native-root", sys.argv[sys.argv.index("--native-root") + 1]] if "--n
 
 steps = [
     ("catalogue up to date", [PY, "-I", "tools/generate_catalog.py", "--check"]),
+    ("textures up to date", [PY, "-I", "tools/make_textures.py", "addon_lab/RebornPlannerThemeLab/Media", "--check"]),
     ("generator tests", [PY, "-I", "tests/py/test_generator.py"]),
     ("Lot 0 suite", [PY, "-I", "tools/run_tests.py"] + extra),
 ]

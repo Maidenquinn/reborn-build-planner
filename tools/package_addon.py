@@ -21,7 +21,7 @@ SRC = os.path.join(ROOT, "addon", "RebornBuildPlanner")
 
 
 def main(argv):
-    out = argv[argv.index("--out") + 1] if "--out" in argv else os.path.join(ROOT, "..", "reborn-build-planner-recette-lot3-5")
+    out = argv[argv.index("--out") + 1] if "--out" in argv else os.path.join(ROOT, "..", "reborn-build-planner-recette-lot3-5b")
     out = os.path.normpath(out)
     toc_path = os.path.join(SRC, "RebornBuildPlanner.toc")
     toc = open(toc_path, encoding="utf-8").read()
@@ -39,7 +39,7 @@ def main(argv):
     os.makedirs(dest)
     for f in files + ["RebornBuildPlanner.toc"]:
         shutil.copyfile(os.path.join(SRC, f), os.path.join(dest, f))
-    for doc in ("RECETTE_LAB_LOT3_5.md", "UPDATE_FROM_0.4.2.md", "DIAGNOSTIC_RENDU.md", "GLOSSARY_FR.md", "RECETTE_CLIENT_LOT3_4.md", "UPDATE_FROM_0.4.1.md", "API_PROPOSAL_JEWELRY.md", "RECETTE_CLIENT_LOT3_3.md", "UPDATE_FROM_0.4.0.md", "RECETTE_CLIENT_LOT3_2.md", "UPDATE_FROM_0.3.1.md", "INSTALL.md", "CHANGELOG.md", "DESCRIPTION_SOURCES.md", "RECETTE_CLIENT_LOT3_1.md", "UPDATE_FROM_0.3.0.md", "RECETTE_CLIENT_LOT3.md"):
+    for doc in ("RECETTE_LAB_V2_LOT3_5B.md", "TEXTURES_INVENTORY.md", "COMPAT_CLIENT_LOT3_5B.md", "RECETTE_LAB_LOT3_5.md", "UPDATE_FROM_0.4.2.md", "DIAGNOSTIC_RENDU.md", "GLOSSARY_FR.md", "RECETTE_CLIENT_LOT3_4.md", "UPDATE_FROM_0.4.1.md", "API_PROPOSAL_JEWELRY.md", "RECETTE_CLIENT_LOT3_3.md", "UPDATE_FROM_0.4.0.md", "RECETTE_CLIENT_LOT3_2.md", "UPDATE_FROM_0.3.1.md", "INSTALL.md", "CHANGELOG.md", "DESCRIPTION_SOURCES.md", "RECETTE_CLIENT_LOT3_1.md", "UPDATE_FROM_0.3.0.md", "RECETTE_CLIENT_LOT3.md"):
         shutil.copyfile(os.path.join(ROOT, "docs", doc), os.path.join(out, doc))
     # visual lab (separate addon; Theme.lua is the planner's own file)
     lab_src = os.path.join(ROOT, "addon_lab", "RebornPlannerThemeLab")
@@ -49,9 +49,16 @@ def main(argv):
         for f in ("RebornPlannerThemeLab.toc", "Lab.lua"):
             shutil.copyfile(os.path.join(lab_src, f), os.path.join(lab_dest, f))
         shutil.copyfile(os.path.join(SRC, "Theme.lua"), os.path.join(lab_dest, "Theme.lua"))
-        with zipfile.ZipFile(os.path.join(out, "RebornPlannerThemeLab-0.4.3-proto1.zip"), "w", zipfile.ZIP_DEFLATED) as z:
+        media_src, media_dest = os.path.join(lab_src, "Media"), os.path.join(lab_dest, "Media")
+        os.makedirs(media_dest)
+        tgas = sorted(f for f in os.listdir(media_src) if f.endswith(".tga"))
+        for f in tgas:
+            shutil.copyfile(os.path.join(media_src, f), os.path.join(media_dest, f))
+        with zipfile.ZipFile(os.path.join(out, "RebornPlannerThemeLab-0.4.3-proto2.zip"), "w", zipfile.ZIP_DEFLATED) as z:
             for f in ("RebornPlannerThemeLab.toc", "Theme.lua", "Lab.lua"):
                 z.write(os.path.join(lab_dest, f), "RebornPlannerThemeLab/" + f)
+            for f in tgas:
+                z.write(os.path.join(media_dest, f), "RebornPlannerThemeLab/Media/" + f)
     zpath = os.path.join(out, "RebornBuildPlanner-%s-recette.zip" % version)
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         for f in sorted(files + ["RebornBuildPlanner.toc"]):

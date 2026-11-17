@@ -1,63 +1,51 @@
--- Theme: ONE small component library for the planner's look (Lot 3.5). Every visible element is built here, from the same
--- palette, with the same margins, so that no widget carries a hand-made style of its own.
---
--- Rendering technique ("regions", default): every surface is a stack of plain Texture regions on a Frame -- a vertical
--- gradient (Texture:SetGradientAlpha), a 1 px bronze border made of four textures, an inner highlight line -- and every
--- Button gets its states from the client's own button textures (highlight, pushed) tinted by us, plus our colouring of
--- the "rest" and "disabled" states. No Blizzard template is ever used, so no native red/grey button texture can show
--- through. Nothing here uses OnUpdate, a timer or a script hook (a later SetScript on the same frame cannot remove it).
--- Fallback technique ("backdrop"): the 0.4.x look (flat SetBackdrop), kept only so the visual lab can show both.
---
--- Everything is created once by the caller; the functions never create anything on their own after construction.
+-- Theme v2 (Lot 3.5b): the planner's look, built from ORIGINAL texture files (tools/make_textures.py draws them; no asset of
+-- any game or addon is used). The 0.4.3-proto1 lab (gradients + 1 px borders) was judged identical to the flat theme in the real
+-- client, so v2 does not rely on gradients or hairlines any more:
+--   * panels, windows, buttons, fields, cells, tooltips are NINE-SLICE textures (4 fixed corners, 4 stretched edges, 1 centre)
+--     with chiselled corners, gold studs, bronze double rules, embossed bevels;
+--   * button states are visible veils: warm light on hover, dark on pressed (the client's own highlight / pushed textures
+--     carry them, no script), and a distinct texture per role (primary, secondary, danger, selected, disabled);
+--   * everything is opaque (alpha 255) and sits on its own high strata / level so game text cannot show through.
+-- Two techniques are kept: mode "textures" (default) and mode "backdrop" (the flat 0.4.x look, for side-by-side comparison).
+-- If a texture file fails to load (wrong path, bad file), the client draws a plain green/white square: the lab prints the
+-- Media path and lists every file so that this is obvious on a screenshot. No OnUpdate, no timer, no HookScript.
 local ADDON, ns = ...;
 ns = ns or {};
-local T = { mode = "regions" };
+local T = { mode = "textures" };
 ns.Theme = T;
 
 local WHITE = "Interface\\Buttons\\WHITE8X8";
 T.WHITE = WHITE;
+T.media = "Interface\\AddOns\\" .. tostring(ADDON or "RebornBuildPlanner") .. "\\Media\\";
+local function M(name) return T.media .. name .. ".tga"; end
+T.Media = M;
 
 -- ------------------------------------------------------------------ palette
 T.C = {
-	ink = { 0.030, 0.036, 0.056 },        -- window: deep blue-black
-	slate = { 0.075, 0.084, 0.120 },      -- secondary panels: dark slate
-	slate2 = { 0.100, 0.112, 0.158 },     -- raised rows / cells
-	field = { 0.045, 0.052, 0.078 },      -- text fields, empty slots
-	ivory = { 0.95, 0.92, 0.82 },         -- primary text
-	mute = { 0.72, 0.74, 0.80 },          -- secondary text
-	dim = { 0.50, 0.52, 0.58 },           -- disabled text
-	gold = { 0.93, 0.78, 0.40 },          -- accent
-	bronze = { 0.56, 0.43, 0.23 },        -- borders
-	bronzeDim = { 0.34, 0.27, 0.16 },
-	blue = { 0.13, 0.22, 0.42 },          -- selection fill
-	green = { 0.45, 0.80, 0.52 },         -- success
-	red = { 0.80, 0.30, 0.26 },           -- destructive
+	ink = { 0.035, 0.043, 0.075 }, slate = { 0.090, 0.106, 0.160 }, slate2 = { 0.125, 0.145, 0.215 }, field = { 0.035, 0.043, 0.070 },
+	ivory = { 0.95, 0.92, 0.82 }, mute = { 0.74, 0.76, 0.82 }, dim = { 0.52, 0.54, 0.60 },
+	gold = { 0.93, 0.78, 0.40 }, bronze = { 0.59, 0.45, 0.24 }, bronzeDim = { 0.35, 0.26, 0.14 },
+	blue = { 0.18, 0.34, 0.66 }, green = { 0.45, 0.80, 0.52 }, red = { 0.80, 0.30, 0.26 },
 	rarity = { common = { 0.88, 0.88, 0.92 }, uncommon = { 0.30, 0.90, 0.35 }, rare = { 0.35, 0.62, 1 },
 		epic = { 0.70, 0.40, 0.95 }, legendary = { 1, 0.58, 0.14 } },
 };
 local C = T.C;
 
--- Typography: game font objects only (they exist in every 3.3.5a client). Sizes are the game's: 16 / 12 / 10.
 T.FONT = { window = "GameFontNormalLarge", section = "GameFontNormal", name = "GameFontNormal", body = "GameFontHighlight",
 	small = "GameFontNormalSmall", tiny = "GameFontHighlightSmall" };
 
--- Button looks: top / bottom gradient colours, border, label colour. States are derived (hover/pressed come from the
--- client's highlight / pushed textures; disabled has its own look).
+-- label colour per role; the texture of each role is button_<role>_nine
 T.ROLES = {
-	primary = { top = { 0.46, 0.35, 0.13 }, bottom = { 0.25, 0.18, 0.07 }, border = { 0.86, 0.70, 0.34 }, text = { 1, 0.93, 0.68 } },
-	secondary = { top = { 0.17, 0.19, 0.27 }, bottom = { 0.10, 0.11, 0.17 }, border = { 0.40, 0.34, 0.22 }, text = { 0.88, 0.88, 0.92 } },
-	danger = { top = { 0.36, 0.13, 0.12 }, bottom = { 0.20, 0.07, 0.07 }, border = { 0.62, 0.26, 0.22 }, text = { 1, 0.78, 0.74 } },
-	selected = { top = { 0.18, 0.30, 0.56 }, bottom = { 0.10, 0.18, 0.38 }, border = { 0.93, 0.78, 0.40 }, text = { 1, 0.95, 0.80 } },
-	disabled = { top = { 0.10, 0.11, 0.15 }, bottom = { 0.07, 0.08, 0.11 }, border = { 0.20, 0.20, 0.25 }, text = { 0.50, 0.52, 0.58 } },
+	primary = { text = { 1, 0.93, 0.68 }, flat = { 0.40, 0.30, 0.12 }, border = { 0.87, 0.71, 0.34 } },
+	secondary = { text = { 0.90, 0.90, 0.95 }, flat = { 0.17, 0.19, 0.27 }, border = { 0.49, 0.39, 0.23 } },
+	danger = { text = { 1, 0.80, 0.76 }, flat = { 0.34, 0.12, 0.11 }, border = { 0.69, 0.29, 0.24 } },
+	selected = { text = { 1, 0.96, 0.82 }, flat = { 0.15, 0.27, 0.50 }, border = { 0.93, 0.78, 0.40 } },
+	disabled = { text = { 0.55, 0.57, 0.63 }, flat = { 0.11, 0.12, 0.16 }, border = { 0.21, 0.22, 0.27 } },
 };
 
--- ------------------------------------------------------------------ colour maths (used by the contrast tests)
-local function lin(c)
-	if c <= 0.03928 then return c / 12.92; end
-	return ((c + 0.055) / 1.055) ^ 2.4;
-end
+-- ------------------------------------------------------------------ colour maths (contrast tests)
+local function lin(c) if c <= 0.03928 then return c / 12.92; end return ((c + 0.055) / 1.055) ^ 2.4; end
 function T.Luminance(rgb) return 0.2126 * lin(rgb[1]) + 0.7152 * lin(rgb[2]) + 0.0722 * lin(rgb[3]); end
--- WCAG contrast ratio of two colours
 function T.Contrast(a, b)
 	local la, lb = T.Luminance(a), T.Luminance(b);
 	if la < lb then la, lb = lb, la; end
@@ -66,112 +54,94 @@ end
 local function mid(a, b) return { (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, (a[3] + b[3]) / 2 }; end
 T.Mid = mid;
 
--- ------------------------------------------------------------------ what this client can do (printed by /rbplab diag)
--- Probes methods on a real frame the caller passes in (so the answer is about THIS client, not about a guess).
-function T.Capabilities(frame)
-	local tex = frame:CreateTexture(nil, "BACKGROUND");
-	local btn = CreateFrame("Button", nil, frame);
-	local eb = CreateFrame("EditBox", nil, frame);
-	local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-	local cap = {
-		SetGradientAlpha = type(tex.SetGradientAlpha) == "function",
-		SetBackdrop = type(frame.SetBackdrop) == "function",
-		SetHighlightTexture = type(btn.SetHighlightTexture) == "function",
-		SetPushedTexture = type(btn.SetPushedTexture) == "function",
-		GetHighlightTexture = type(btn.GetHighlightTexture) == "function",
-		SetFontString = type(btn.SetFontString) == "function",
-		SetTextInsets = type(eb.SetTextInsets) == "function",
-		GetStringHeight = type(fs.GetStringHeight) == "function",
-		SetVertexColor = type(tex.SetVertexColor) == "function",
-		SetTexCoord = type(tex.SetTexCoord) == "function",
-	};
-	tex:Hide(); btn:Hide(); eb:Hide(); fs:Hide();      -- probes only
-	return cap;
+-- texture files of the theme: name -> { pixel size, corner (nine-slice only) }; mirrored by the generator and the tests
+T.FILES = {
+	panel_nine = { 64, 16 }, window_nine = { 128, 28 }, inset_nine = { 32, 6 }, titlebar_nine = { 64, 12, 32 }, tooltip_nine = { 64, 14 },
+	slot_normal_nine = { 32, 8 }, slot_selected_nine = { 32, 8 }, slot_empty_nine = { 32, 8 },
+	button_primary_nine = { 32, 8 }, button_secondary_nine = { 32, 8 }, button_danger_nine = { 32, 8 }, button_selected_nine = { 32, 8 },
+	button_disabled_nine = { 32, 8 },
+	veil_hover = { 32 }, veil_pressed = { 32 }, separator = { 128 }, icon_frame = { 64 }, row_sel = { 16 }, thumb = { 16 },
+};
+
+-- surface kind -> texture file
+local SURFACE = { window = "window_nine", panel = "panel_nine", inset = "inset_nine", card = "slot_normal_nine", tooltip = "tooltip_nine",
+	titlebar = "titlebar_nine" };
+T.SURFACE = {
+	window = { top = { 0.07, 0.085, 0.14 }, bottom = { 0.035, 0.043, 0.075 } },
+	panel = { top = { 0.105, 0.125, 0.19 }, bottom = { 0.062, 0.074, 0.12 } },
+	inset = { top = { 0.045, 0.055, 0.085 }, bottom = { 0.035, 0.043, 0.07 } },
+	card = { top = { 0.14, 0.16, 0.24 }, bottom = { 0.09, 0.105, 0.16 } },
+};
+
+-- ------------------------------------------------------------------ nine-slice
+-- Builds 9 textures on `frame` from one file (square `size` px, `corner` px): corners keep their size, edges and centre
+-- stretch. Returns an object whose :SetFile(name) swaps the picture (states) and :SetColor tints it.
+function T.Nine(frame, file, layer)
+	local def = T.FILES[file];
+	local size, c = def[1], def[2];
+	local sizeH = def[3] or size;                       -- most files are square; the title bar is 64 x 32
+	local n = { tex = {}, file = file };
+	local u1, u2 = c / size, 1 - c / size;
+	local v1, v2 = c / sizeH, 1 - c / sizeH;
+	local function mk(l, r, t, b)
+		local tex = frame:CreateTexture(nil, layer or "BACKGROUND");
+		tex:SetTexture(M(file));
+		tex:SetTexCoord(l, r, t, b);
+		n.tex[#n.tex + 1] = tex;
+		return tex;
+	end
+	local tl = mk(0, u1, 0, v1);   tl:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0);         tl:SetWidth(c); tl:SetHeight(c);
+	local tr = mk(u2, 1, 0, v1);   tr:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0);       tr:SetWidth(c); tr:SetHeight(c);
+	local bl = mk(0, u1, v2, 1);   bl:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0);   bl:SetWidth(c); bl:SetHeight(c);
+	local br = mk(u2, 1, v2, 1);   br:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0); br:SetWidth(c); br:SetHeight(c);
+	local top = mk(u1, u2, 0, v1); top:SetPoint("TOPLEFT", frame, "TOPLEFT", c, 0);        top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -c, 0); top:SetHeight(c);
+	local bot = mk(u1, u2, v2, 1); bot:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", c, 0);  bot:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -c, 0); bot:SetHeight(c);
+	local lf = mk(0, u1, v1, v2);  lf:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -c);        lf:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, c); lf:SetWidth(c);
+	local rt = mk(u2, 1, v1, v2);  rt:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -c);      rt:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, c); rt:SetWidth(c);
+	local ce = mk(u1, u2, v1, v2); ce:SetPoint("TOPLEFT", frame, "TOPLEFT", c, -c);        ce:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -c, c);
+	function n:SetFile(f2)
+		if f2 == self.file then return; end
+		self.file = f2;
+		for _, tex in ipairs(self.tex) do tex:SetTexture(M(f2)); end
+	end
+	function n:SetColor(r, g, b, a) for _, tex in ipairs(self.tex) do tex:SetVertexColor(r, g, b, a or 1); end end
+	return n;
+end
+
+-- text cut to a pixel budget with an ellipsis (UTF-8 aware; 0.62 x font size per glyph, a little pessimistic)
+function T.Fit(str, px, size)
+	local max = math.floor(px / ((size or 12) * 0.62));
+	local n, i, len = 0, 1, #str;
+	while i <= len do
+		local b = string.byte(str, i);
+		i = i + ((b < 0x80) and 1 or (b < 0xE0 and 2 or (b < 0xF0 and 3 or 4)));
+		n = n + 1;
+		if n > max then
+			local k, c = 1, 0;
+			while c < max - 3 and k <= len do
+				local bb = string.byte(str, k);
+				k = k + ((bb < 0x80) and 1 or (bb < 0xE0 and 2 or (bb < 0xF0 and 3 or 4)));
+				c = c + 1;
+			end
+			return string.sub(str, 1, k - 1) .. "...";
+		end
+	end
+	return str;
 end
 
 -- ------------------------------------------------------------------ surfaces
-local function hasGradient(tex) return type(tex.SetGradientAlpha) == "function"; end
-
--- vertical gradient on a texture region; `top` and `bottom` are {r,g,b[,a]}. gradientFlip exists because the direction
--- convention of SetGradientAlpha is checked by eye in the visual lab, not assumed.
-T.gradientFlip = false;
-function T.Gradient(tex, top, bottom)
-	if hasGradient(tex) then
-		tex:SetTexture(WHITE);
-		local a, b = top, bottom;
-		if T.gradientFlip then a, b = bottom, top; end
-		-- WoW's VERTICAL gradient runs from its first colour (bottom) to its second (top)
-		tex:SetGradientAlpha("VERTICAL", b[1], b[2], b[3], b[4] or 1, a[1], a[2], a[3], a[4] or 1);
-	else
-		local m = mid(top, bottom);
-		tex:SetTexture(m[1], m[2], m[3], 1);
-	end
-end
-
-local function line(frame, layer, color, alpha)
-	local t = frame:CreateTexture(nil, layer);
-	t:SetTexture(color[1], color[2], color[3], alpha or 1);
-	return t;
-end
-
--- four border textures hugging the frame (two anchors each: the client sizes them from the frame, no width needed)
-local function border(frame, color, thickness, inset)
-	inset = inset or 0;
-	local e = {};
-	e.top = line(frame, "BORDER", color);
-	e.top:SetPoint("TOPLEFT", frame, "TOPLEFT", inset, -inset);
-	e.top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -inset, -inset);
-	e.top:SetHeight(thickness);
-	e.bottom = line(frame, "BORDER", color);
-	e.bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", inset, inset);
-	e.bottom:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -inset, inset);
-	e.bottom:SetHeight(thickness);
-	e.left = line(frame, "BORDER", color);
-	e.left:SetPoint("TOPLEFT", frame, "TOPLEFT", inset, -inset);
-	e.left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", inset, inset);
-	e.left:SetWidth(thickness);
-	e.right = line(frame, "BORDER", color);
-	e.right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -inset, -inset);
-	e.right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -inset, inset);
-	e.right:SetWidth(thickness);
-	return e;
-end
-
-local function setBorder(e, color, alpha)
-	for _, t in pairs(e) do t:SetTexture(color[1], color[2], color[3], alpha or 1); end
-end
-T.SetBorderColor = function(frame, color) if frame.edges then setBorder(frame.edges, color); elseif frame.SetBackdropBorderColor then frame:SetBackdropBorderColor(color[1], color[2], color[3], 1); end end
-
--- Surface kinds: window (deep), panel (slate), inset (darker, for lists and fields), card (raised)
-local SURFACE = {
-	window = { top = { 0.050, 0.058, 0.090 }, bottom = { 0.026, 0.030, 0.050 }, border = C.bronze, inner = C.bronzeDim },
-	panel = { top = { 0.098, 0.108, 0.150 }, bottom = { 0.062, 0.070, 0.102 }, border = C.bronzeDim, inner = nil },
-	inset = { top = { 0.052, 0.060, 0.088 }, bottom = { 0.040, 0.046, 0.070 }, border = { 0.22, 0.19, 0.13 }, inner = nil },
-	card = { top = { 0.135, 0.150, 0.205 }, bottom = { 0.095, 0.106, 0.150 }, border = { 0.30, 0.26, 0.17 }, inner = nil },
-};
-T.SURFACE = SURFACE;
-
--- A framed surface: gradient + 1 px border (+ an inner second line for windows: the "double bronze rule").
+-- A framed surface. In "textures" mode: a nine-slice file; in "backdrop" mode: the flat 0.4.x look.
 function T.Surface(frame, kind)
-	local s = SURFACE[kind] or SURFACE.panel;
 	frame.surfaceKind = kind;
 	if T.mode == "backdrop" then
-		frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, tile = false, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } });
+		local s = T.SURFACE[kind] or T.SURFACE.panel;
 		local m = mid(s.top, s.bottom);
+		frame:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, tile = false, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } });
 		frame:SetBackdropColor(m[1], m[2], m[3], 1);
-		frame:SetBackdropBorderColor(s.border[1], s.border[2], s.border[3], 1);
+		frame:SetBackdropBorderColor(0.35, 0.28, 0.17, 1);
 		return frame;
 	end
-	frame.bg = frame:CreateTexture(nil, "BACKGROUND");
-	frame.bg:SetAllPoints(frame);
-	T.Gradient(frame.bg, s.top, s.bottom);
-	frame.edges = border(frame, s.border, 1, 0);
-	if s.inner then frame.inner = border(frame, s.inner, 1, 3); end
-	-- a faint light line under the top border gives the panel its "lit from above" edge
-	frame.sheen = line(frame, "ARTWORK", { 1, 1, 1 }, 0.05);
-	frame.sheen:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -1);
-	frame.sheen:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -1, -1);
-	frame.sheen:SetHeight(1);
+	frame.nine = T.Nine(frame, SURFACE[kind] or "panel_nine", "BACKGROUND");
 	return frame;
 end
 
@@ -180,6 +150,16 @@ function T.Frame(parent, w, h, kind, name)
 	f:SetWidth(w);
 	f:SetHeight(h);
 	return T.Surface(f, kind);
+end
+
+-- the main window: top strata and level (above the game's own HUD texts), mouse-opaque, nothing transparent behind it
+function T.Window(parent, w, h, name)
+	local f = T.Frame(parent or UIParent, w, h, "window", name);
+	f:SetFrameStrata("FULLSCREEN_DIALOG");
+	f:SetFrameLevel(100);
+	if f.SetToplevel then f:SetToplevel(true); end
+	f:EnableMouse(true);
+	return f;
 end
 
 -- ------------------------------------------------------------------ text
@@ -195,36 +175,47 @@ function T.Text(parent, font, color, x, y, w, h, justify)
 	return fs;
 end
 
--- a section title: gold text, then a bronze rule with an ornament square at its left end
+-- section title: gold text, then the ornamented separator texture under it (not a 1 px line)
 function T.SectionTitle(parent, label, x, y, w)
 	local fs = T.Text(parent, T.FONT.section, C.gold, x, y, w, 16);
 	fs:SetText(label);
-	local rule = line(parent, "ARTWORK", C.bronze, 0.75);
-	rule:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -(y + 20));
-	rule:SetWidth(w);
-	rule:SetHeight(1);
-	local dot = line(parent, "ARTWORK", C.gold, 1);
-	dot:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -(y + 19));
-	dot:SetWidth(3);
-	dot:SetHeight(3);
-	fs.rule, fs.dot = rule, dot;
+	local sep = parent:CreateTexture(nil, "ARTWORK");
+	sep:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -(y + 17));
+	sep:SetWidth(w);
+	sep:SetHeight(8);
+	if T.mode == "backdrop" then sep:SetTexture(0.35, 0.28, 0.17, 1); sep:SetHeight(1); else sep:SetTexture(M("separator")); end
+	fs.rule = sep;
 	return fs;
 end
 
+-- a title bar: nine-slice band with the title centred
+function T.TitleBar(parent, label, x, y, w, h)
+	local bar = CreateFrame("Frame", nil, parent);
+	bar:SetWidth(w);
+	bar:SetHeight(h or 34);
+	bar:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -y);
+	if T.mode == "backdrop" then
+		bar:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, tile = false, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } });
+		bar:SetBackdropColor(0.10, 0.11, 0.16, 1);
+		bar:SetBackdropBorderColor(0.35, 0.28, 0.17, 1);
+	else
+		bar.nine = T.Nine(bar, "titlebar_nine", "BACKGROUND");
+	end
+	bar.title = T.Text(bar, T.FONT.window, C.ivory, 0, math.floor(((h or 34) - 16) / 2), w, 18, "CENTER");
+	bar.title:SetText(label or "");
+	return bar;
+end
+
 -- ------------------------------------------------------------------ buttons
--- A Button owns: bg gradient, border, label. Hover and pressed come from the client's highlight / pushed textures
--- (no script involved); rest / disabled / role colours are ours. No template.
 local function skin(b)
 	local role = b.enabled == false and "disabled" or (b.role or "secondary");
 	local r = T.ROLES[role] or T.ROLES.secondary;
 	b.skinRole = role;
-	if T.mode == "backdrop" then
-		local m = mid(r.top, r.bottom);
-		b:SetBackdropColor(m[1], m[2], m[3], 1);
+	if b.mode == "backdrop" then
+		b:SetBackdropColor(r.flat[1], r.flat[2], r.flat[3], 1);
 		b:SetBackdropBorderColor(r.border[1], r.border[2], r.border[3], 1);
 	else
-		T.Gradient(b.bg, r.top, r.bottom);
-		setBorder(b.edges, r.border);
+		b.nine:SetFile("button_" .. role .. "_nine");
 	end
 	b.label:SetTextColor(r.text[1], r.text[2], r.text[3]);
 end
@@ -232,38 +223,46 @@ end
 function T.Button(parent, label, w, h, role, onClick, name)
 	local b = CreateFrame("Button", name, parent);
 	b:SetWidth(w);
-	b:SetHeight(h or 26);
-	b.role, b.enabled = role or "secondary", true;
+	b:SetHeight(h or 28);
+	b.role, b.enabled, b.mode = role or "secondary", true, T.mode;
 	if T.mode == "backdrop" then
 		b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, tile = false, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } });
 	else
-		b.bg = b:CreateTexture(nil, "BACKGROUND");
-		b.bg:SetAllPoints(b);
-		b.edges = border(b, C.bronze, 1, 0);
-		b.sheen = line(b, "ARTWORK", { 1, 1, 1 }, 0.10);
-		b.sheen:SetPoint("TOPLEFT", b, "TOPLEFT", 1, -1);
-		b.sheen:SetPoint("TOPRIGHT", b, "TOPRIGHT", -1, -1);
-		b.sheen:SetHeight(1);
+		b.nine = T.Nine(b, "button_secondary_nine", "BACKGROUND");
 	end
 	local fs = b.GetFontString and b:GetFontString();
 	if not fs then
 		fs = b:CreateFontString(nil, "OVERLAY", T.FONT.name);
-		fs:SetPoint("CENTER", b, "CENTER", 0, 0);
 		if b.SetFontString then b:SetFontString(fs); end
 	end
+	fs:ClearAllPoints();
+	fs:SetPoint("CENTER", b, "CENTER", 0, 0);
+	fs:SetJustifyH("CENTER");
 	if fs.SetWordWrap then fs:SetWordWrap(false); end
 	b.label = fs;
-	-- the client's own button states, tinted: hover = light veil, pressed = dark veil
+	-- visible states: the client's highlight (hover) and pushed (click) textures carry OUR veil files, no script involved
+	local hoverFile, pressFile = (T.mode == "backdrop") and WHITE or M("veil_hover"), (T.mode == "backdrop") and WHITE or M("veil_pressed");
 	if b.SetHighlightTexture then
-		b:SetHighlightTexture(WHITE);
+		b:SetHighlightTexture(hoverFile);
 		local hl = b.GetHighlightTexture and b:GetHighlightTexture();
-		if hl and hl.SetVertexColor then hl:SetVertexColor(1, 0.95, 0.75, 0.16); end
+		if hl then hl:SetAllPoints(b); if T.mode == "backdrop" and hl.SetVertexColor then hl:SetVertexColor(1, 1, 1, 0.10); end end
 	end
 	if b.SetPushedTexture then
-		b:SetPushedTexture(WHITE);
+		b:SetPushedTexture(pressFile);
 		local pt = b.GetPushedTexture and b:GetPushedTexture();
-		if pt and pt.SetVertexColor then pt:SetVertexColor(0, 0, 0, 0.30); end
+		if pt then pt:SetAllPoints(b); if T.mode == "backdrop" and pt.SetVertexColor then pt:SetVertexColor(0, 0, 0, 0.30); end end
 	end
+	-- forced-state overlays (for the lab and for "selected" feedback on demand): normally hidden
+	b.veilHover = b:CreateTexture(nil, "OVERLAY");
+	b.veilHover:SetAllPoints(b);
+	b.veilHover:SetTexture(T.mode == "backdrop" and WHITE or hoverFile);
+	if T.mode == "backdrop" then b.veilHover:SetVertexColor(1, 1, 1, 0.10); end
+	b.veilHover:Hide();
+	b.veilPressed = b:CreateTexture(nil, "OVERLAY");
+	b.veilPressed:SetAllPoints(b);
+	b.veilPressed:SetTexture(T.mode == "backdrop" and WHITE or pressFile);
+	if T.mode == "backdrop" then b.veilPressed:SetVertexColor(0, 0, 0, 0.30); end
+	b.veilPressed:Hide();
 	b:SetText(label or "");
 	b:SetScript("OnClick", function(self, ...) if onClick and self.enabled ~= false then onClick(self, ...); end end);
 	skin(b);
@@ -277,8 +276,13 @@ function T.SetEnabled(b, on)
 	if on then b:Enable(); else b:Disable(); end
 	skin(b);
 end
+-- show a state without the mouse ("hover" | "pressed" | nil)
+function T.ForceState(b, state)
+	if state == "hover" then b.veilHover:Show(); b.veilPressed:Hide();
+	elseif state == "pressed" then b.veilPressed:Show(); b.veilHover:Hide();
+	else b.veilHover:Hide(); b.veilPressed:Hide(); end
+end
 
--- a segmented pair (e.g. up / down) sharing one frame: two Buttons side by side with a divider
 function T.Segment(parent, labels, w, h, onClick)
 	local f = CreateFrame("Frame", nil, parent);
 	f:SetWidth(w);
@@ -297,18 +301,24 @@ end
 function T.Search(parent, w, h, placeholder, onChange, name)
 	local f = T.Frame(parent, w, h, "inset");
 	local e = CreateFrame("EditBox", name, f);
-	e:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -2);
-	e:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 2);
+	e:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -3);
+	e:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 3);
 	e:SetAutoFocus(false);
 	e:SetFontObject(T.FONT.body);
 	e:SetTextColor(C.ivory[1], C.ivory[2], C.ivory[3]);
 	if e.SetTextInsets then e:SetTextInsets(0, 0, 0, 0); end
-	local ph = T.Text(f, T.FONT.body, C.dim, 8, math.floor((h - 14) / 2), w - 16, 14);
+	local ph = T.Text(f, T.FONT.body, C.dim, 10, math.floor((h - 14) / 2), w - 20, 14);
 	ph:SetText(placeholder or "");
 	f.edit, f.placeholder = e, ph;
+	-- focus ring: a gold nine-slice frame shown only while typing
+	f.focus = f:CreateTexture(nil, "OVERLAY");
+	f.focus:SetAllPoints(f);
+	f.focus:SetTexture(T.mode == "backdrop" and WHITE or M("slot_selected_nine"));
+	if T.mode ~= "backdrop" then f.focus:SetAlpha(0.55); else f.focus:SetVertexColor(0.93, 0.78, 0.40, 0.25); end
+	f.focus:Hide();
 	local function sync() if e:GetText() == "" and not e:HasFocus() then ph:Show(); else ph:Hide(); end end
-	e:SetScript("OnEditFocusGained", function() T.SetBorderColor(f, C.gold); sync(); end);
-	e:SetScript("OnEditFocusLost", function() T.SetBorderColor(f, SURFACE.inset.border); sync(); end);
+	e:SetScript("OnEditFocusGained", function() f.focus:Show(); sync(); end);
+	e:SetScript("OnEditFocusLost", function() f.focus:Hide(); sync(); end);
 	e:SetScript("OnEscapePressed", function(self) self:ClearFocus(); end);
 	e:SetScript("OnEnterPressed", function(self) self:ClearFocus(); end);
 	e:SetScript("OnTextChanged", function(self, user) sync(); if user and onChange then onChange(self:GetText()); end end);
@@ -317,57 +327,62 @@ function T.Search(parent, w, h, placeholder, onChange, name)
 	return f;
 end
 
--- ------------------------------------------------------------------ rows, icons, cells
--- icon in a bordered square; the border colour is the item's rarity (the label always says the rarity too)
+-- ------------------------------------------------------------------ icons, rows, cells
+-- the icon, then an opaque bronze frame texture on top tinted by the item's rarity (the label always says the rarity too)
 function T.Icon(parent, size, x, y)
 	local f = CreateFrame("Frame", nil, parent);
 	f:SetWidth(size);
 	f:SetHeight(size);
 	f:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -y);
-	f.frameTex = f:CreateTexture(nil, "BACKGROUND");
-	f.frameTex:SetAllPoints(f);
-	f.frameTex:SetTexture(C.bronzeDim[1], C.bronzeDim[2], C.bronzeDim[3], 1);
+	f.back = f:CreateTexture(nil, "BACKGROUND");
+	f.back:SetAllPoints(f);
+	f.back:SetTexture(C.field[1], C.field[2], C.field[3], 1);
 	f.tex = f:CreateTexture(nil, "ARTWORK");
-	f.tex:SetPoint("TOPLEFT", f, "TOPLEFT", 2, -2);
-	f.tex:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2);
-	if f.tex.SetTexCoord then f.tex:SetTexCoord(0.07, 0.93, 0.07, 0.93); end    -- crop the icon's own dark edge
+	f.tex:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3);
+	f.tex:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 3);
+	if f.tex.SetTexCoord then f.tex:SetTexCoord(0.07, 0.93, 0.07, 0.93); end
+	f.frameTex = f:CreateTexture(nil, "OVERLAY");
+	f.frameTex:SetAllPoints(f);
+	f.frameTex:SetTexture(T.mode == "backdrop" and WHITE or M("icon_frame"));
+	if T.mode == "backdrop" then f.frameTex:SetTexture(C.bronzeDim[1], C.bronzeDim[2], C.bronzeDim[3], 0); end
 	return f;
 end
 
 function T.SetIcon(icon, path, rarity)
 	if path and path ~= "" then
 		icon.tex:SetTexture("Interface\\Icons\\" .. path);
-		icon:Show();
+		icon.tex:Show();
 	else
-		icon.tex:SetTexture(C.field[1], C.field[2], C.field[3], 1);
+		icon.tex:Hide();
 	end
-	local col = rarity and C.rarity[rarity] or C.bronzeDim;
-	icon.frameTex:SetTexture(col[1], col[2], col[3], 1);
+	local col = rarity and C.rarity[rarity] or C.bronze;
+	if T.mode ~= "backdrop" then icon.frameTex:SetVertexColor(col[1], col[2], col[3], 1); end
 end
 
--- list row: alternating band, hover veil from the client's highlight, selection = deep blue + gold bar on the left
+-- list row: alternating opaque bands, hover = warm veil (client highlight), selected = blue-gold texture
 function T.Row(parent, w, h, index, name)
 	local r = CreateFrame("Button", name, parent);
 	r:SetWidth(w);
 	r:SetHeight(h);
 	r.band = r:CreateTexture(nil, "BACKGROUND");
 	r.band:SetAllPoints(r);
-	local band = (index or 1) % 2 == 0 and { 0.070, 0.078, 0.112 } or { 0.088, 0.098, 0.138 };
+	local band = (index or 1) % 2 == 0 and { 0.075, 0.088, 0.135 } or { 0.098, 0.115, 0.175 };
 	r.band:SetTexture(band[1], band[2], band[3], 1);
 	r.sel = r:CreateTexture(nil, "BORDER");
 	r.sel:SetAllPoints(r);
-	r.sel:SetTexture(C.blue[1], C.blue[2], C.blue[3], 0.85);
+	r.sel:SetTexture(T.mode == "backdrop" and WHITE or M("row_sel"));
+	if T.mode == "backdrop" then r.sel:SetVertexColor(C.blue[1], C.blue[2], C.blue[3], 0.85); end
 	r.sel:Hide();
-	r.bar = r:CreateTexture(nil, "ARTWORK");
+	r.bar = r:CreateTexture(nil, "ARTWORK");       -- a solid gold bar (not part of row_sel.tga: stretching a texture would fatten it)
 	r.bar:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0);
 	r.bar:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0);
 	r.bar:SetWidth(3);
 	r.bar:SetTexture(C.gold[1], C.gold[2], C.gold[3], 1);
 	r.bar:Hide();
 	if r.SetHighlightTexture then
-		r:SetHighlightTexture(WHITE);
+		r:SetHighlightTexture(T.mode == "backdrop" and WHITE or M("veil_hover"));
 		local hl = r.GetHighlightTexture and r:GetHighlightTexture();
-		if hl and hl.SetVertexColor then hl:SetVertexColor(1, 0.95, 0.75, 0.08); end
+		if hl then hl:SetAllPoints(r); if hl.SetAlpha then hl:SetAlpha(T.mode == "backdrop" and 0.10 or 0.35); end end
 	end
 	return r;
 end
@@ -376,58 +391,86 @@ function T.SetSelected(r, on)
 	if on then r.sel:Show(); r.bar:Show(); else r.sel:Hide(); r.bar:Hide(); end
 end
 
--- equipment cell: framed, with RESERVED zones (header strip: role + remove button; below: icon + two-line name)
+-- equipment cell: nine-slice background (normal / selected / empty), reserved zones: header strip (role + remove), icon, name
 function T.Cell(parent, w, h, name)
 	local c = CreateFrame("Button", name, parent);
 	c:SetWidth(w);
 	c:SetHeight(h);
-	T.Surface(c, "card");
-	c.role = T.Text(c, T.FONT.small, C.mute, 7, 4, w - 40, 12);
-	c.icon = T.Icon(c, h - 22, 6, 18);
-	c.name = T.Text(c, T.FONT.small, C.ivory, h - 12, 20, w - (h - 12) - 6, h - 24);
+	c.mode = T.mode;
+	if T.mode == "backdrop" then
+		T.Surface(c, "card");
+	else
+		c.nine = T.Nine(c, "slot_normal_nine", "BACKGROUND");
+	end
+	c.role = T.Text(c, T.FONT.small, C.mute, 9, 6, w - 44, 12);
+	c.icon = T.Icon(c, h - 24, 8, 20);
+	c.name = T.Text(c, T.FONT.small, C.ivory, h - 12, 22, w - (h - 12) - 8, h - 28);
 	if c.name.SetWordWrap then c.name:SetWordWrap(true); end
 	c.name:SetJustifyV("TOP");
-	c.remove = T.Button(c, "x", 22, 16, "danger", nil);
-	c.remove:SetPoint("TOPRIGHT", c, "TOPRIGHT", -3, -3);
+	c.remove = T.Button(c, "x", 22, 18, "danger", nil);
+	c.remove:SetPoint("TOPRIGHT", c, "TOPRIGHT", -5, -5);
 	if c.SetHighlightTexture then
-		c:SetHighlightTexture(WHITE);
+		c:SetHighlightTexture(T.mode == "backdrop" and WHITE or M("veil_hover"));
 		local hl = c.GetHighlightTexture and c:GetHighlightTexture();
-		if hl and hl.SetVertexColor then hl:SetVertexColor(1, 0.95, 0.75, 0.07); end
+		if hl then hl:SetAllPoints(c); if hl.SetAlpha then hl:SetAlpha(T.mode == "backdrop" and 0.07 or 0.25); end end
 	end
 	return c;
 end
 
 function T.SetCellState(c, state)       -- "empty" | "filled" | "selected"
-	if state == "selected" then
-		T.SetBorderColor(c, C.gold);
-	elseif state == "empty" then
-		T.SetBorderColor(c, C.bronzeDim);
-	else
-		T.SetBorderColor(c, SURFACE.card.border);
+	if c.mode == "backdrop" then
+		local col = state == "selected" and C.gold or C.bronzeDim;
+		c:SetBackdropBorderColor(col[1], col[2], col[3], 1);
+		return;
 	end
+	c.nine:SetFile(state == "selected" and "slot_selected_nine" or (state == "empty" and "slot_empty_nine" or "slot_normal_nine"));
 end
 
--- ------------------------------------------------------------------ tooltip (own frame: sized by its content, kept on screen)
-function T.Tooltip(parent)
-	local f = T.Frame(parent, 300, 60, "window");
+-- ------------------------------------------------------------------ scroll bar (a Slider with our thumb and a sunken track)
+function T.ScrollBar(parent, h, onChange)
+	local track = T.Frame(parent, 14, h, "inset");
+	local s = CreateFrame("Slider", nil, track);
+	s:SetPoint("TOPLEFT", track, "TOPLEFT", 1, -2);
+	s:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", -1, 2);
+	s:SetOrientation("VERTICAL");
+	s:SetMinMaxValues(0, 1);
+	s:SetValueStep(1);
+	s:SetThumbTexture(T.mode == "backdrop" and WHITE or M("thumb"));
+	local th = s.GetThumbTexture and s:GetThumbTexture();
+	if th then th:SetWidth(12); th:SetHeight(30); if T.mode == "backdrop" and th.SetVertexColor then th:SetVertexColor(0.93, 0.78, 0.40, 0.8); end end
+	s:SetScript("OnValueChanged", function(self, v) if not self.syncing and onChange then onChange(math.floor(v + 0.5)); end end);
+	track.slider = s;
+	function track.Sync(offset, max)
+		s.syncing = true;
+		s:SetMinMaxValues(0, math.max(1, max));
+		s:SetValue(offset);
+		s.syncing = nil;
+		if max > 0 then s:Show(); else s:Hide(); end
+	end
+	return track;
+end
+
+-- ------------------------------------------------------------------ tooltip frame: opaque nine-slice, sized by content, kept on screen
+function T.Tooltip(parent, width)
+	width = width or 300;
+	local f = T.Frame(parent, width, 60, "tooltip");
+	f.inner = width - 28;
 	f:SetFrameStrata("TOOLTIP");
-	f.title = T.Text(f, T.FONT.name, C.gold, 10, 8, 280, 16);
-	f.body = T.Text(f, T.FONT.small, C.ivory, 10, 28, 280, 14);
+	f.title = T.Text(f, T.FONT.name, C.gold, 14, 12, width - 28, 16);
+	f.body = T.Text(f, T.FONT.small, C.ivory, 14, 32, width - 28, 14);
 	if f.body.SetWordWrap then f.body:SetWordWrap(true); end
 	f.body:SetJustifyV("TOP");
 	f:Hide();
 	return f;
 end
 
--- shows `title` and `lines` (array of strings) next to `owner`; opens on the side with more room
 function T.ShowTooltip(tip, owner, title, lines)
-	tip.title:SetText(title or "");
-	local text = table.concat(lines or {}, "\n");
-	tip.body:SetText(text);
+	tip.title:SetText(T.Fit(title or "", tip.inner or 272, 12));
+	tip.body:SetText(table.concat(lines or {}, "\n"));
 	local bodyH = tip.body.GetStringHeight and tip.body:GetStringHeight() or (#(lines or {}) * 13);
 	if not bodyH or bodyH < 13 then bodyH = 13; end
 	tip.body:SetHeight(bodyH);
-	tip:SetHeight(math.min(34 + bodyH + 10, 240));       -- sized by content, with a sensible maximum
+	tip:SetHeight(math.min(32 + bodyH + 16, 240));
 	tip:ClearAllPoints();
 	local left, right = owner:GetLeft(), owner:GetRight();
 	local sw = UIParent:GetWidth() * UIParent:GetEffectiveScale();
@@ -438,4 +481,27 @@ function T.ShowTooltip(tip, owner, title, lines)
 		tip:SetPoint("TOPLEFT", owner, "TOPRIGHT", 6, 0);
 	end
 	tip:Show();
+end
+
+-- ------------------------------------------------------------------ what this client can do (printed by /rbplab diag)
+function T.Capabilities(frame)
+	local tex = frame:CreateTexture(nil, "BACKGROUND");
+	local btn = CreateFrame("Button", nil, frame);
+	local eb = CreateFrame("EditBox", nil, frame);
+	local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+	local cap = {
+		SetGradientAlpha = type(tex.SetGradientAlpha) == "function",
+		SetBackdrop = type(frame.SetBackdrop) == "function",
+		SetHighlightTexture = type(btn.SetHighlightTexture) == "function",
+		SetPushedTexture = type(btn.SetPushedTexture) == "function",
+		GetHighlightTexture = type(btn.GetHighlightTexture) == "function",
+		SetFontString = type(btn.SetFontString) == "function",
+		SetTextInsets = type(eb.SetTextInsets) == "function",
+		GetStringHeight = type(fs.GetStringHeight) == "function",
+		SetVertexColor = type(tex.SetVertexColor) == "function",
+		SetTexCoord = type(tex.SetTexCoord) == "function",
+		SetToplevel = type(frame.SetToplevel) == "function",
+	};
+	tex:Hide(); btn:Hide(); eb:Hide(); fs:Hide();
+	return cap;
 end

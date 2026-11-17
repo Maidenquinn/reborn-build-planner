@@ -1,6 +1,6 @@
 # PROJECT_STATE — Reborn Build Planner
 
-Mis à jour : 2026-11-17 · Lots 0-2 validés · Lots 3 à 3.4 PASS CONDITIONNEL · **Lot 3.5 étape 1 : prototype graphique + glossaire livrés (0.4.3-proto1), thème NON approuvé** · Lot 4 non commencé.
+Mis à jour : 2026-11-17 · Lots 0-2 validés · Lots 3 à 3.4 PASS CONDITIONNEL · **Lot 3.5b : lab v2 à textures originales livré, NON validé visuellement** · Lot 4 non commencé.
 
 ## Décisions acquises
 * Addon natif `RebornBuildPlanner`, `## Interface: 30300`, dépendances `AzerothSurvivors, AzerothSurvivorsAPI`, SavedVariables **`RebornBuildPlannerDB`** (seule globale propre) ; namespace global `RebornBuildPlanner`. Commandes `/rbp`, `/rebornplanner` à valider (collision non vérifiée).
@@ -75,3 +75,9 @@ Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOA
 * **Localisation** : `Glossary.lua` / `GLOSSARY_FR.md` (21 têtes, communautaire, non officiel, clé stable inchangée).
 * **Tests** : Lua 5.1 216 cas / 12 586 assertions / 0 échec.
 * **Bloquant** : validation visuelle de Kevin (L1-L10). Éditeur complet, 0.4.3-alpha, recette éditeur : après approbation.
+
+## Lot 3.5b (lab v2)
+* Lab v1 REJETÉ par Kevin (gauche = droite). Technique « régions colorées » abandonnée.
+* **19 textures originales** (`tools/make_textures.py`, déterministe, octets vérifiés par `run_all.py`) ; `Theme.lua` v2 (neuf segments, états visibles, strata `FULLSCREEN_DIALOG`) ; lab v2 `RebornPlannerThemeLab` avec dossier `Media\`. Docs : `TEXTURES_INVENTORY.md`, `COMPAT_CLIENT_LOT3_5B.md`, `RECETTE_LAB_V2_LOT3_5B.md`, `REPORT_LOT3_5B.md`.
+* **Tests** : Lua 5.1 220 cas / 14 196 assertions / 0 échec (simulation).
+* **Bloquant** : verdict de Kevin (M1-M10) : fichiers chargés ? différence évidente ? texte du jeu encore visible ? Le planner complet reste inchangé (0.4.3-proto1).
