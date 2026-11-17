@@ -27,7 +27,7 @@ return function(H)
 		local b, rep = BM.New({ id = "b1", name = "WW", class = "warrior", talents = "10203-000-0110" }, cat);
 		ok(rep.clean);
 		eq(b.revision, 1);
-		eq(b.catalog, "384db000d5ac311d");
+		eq(b.catalog, cat:Content(), "build records the current official catalogue revision");
 		eq(b.model, 1);
 		eq(#b.phases, 4);
 		eq(b.phases[1].rings, { "", "", "", "" });
