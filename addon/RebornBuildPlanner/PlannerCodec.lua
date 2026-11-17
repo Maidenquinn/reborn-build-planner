@@ -62,6 +62,9 @@ local MESSAGES = {
 	PARTIAL = "A missing part was filled with an empty value",
 	GOAL_MODE_NOT_REPRESENTABLE = "Rank / unlimited targets do not exist in the official format",
 	EXT_NOT_REPRESENTABLE = "Extra data of this build has no place in the official format",
+	BANISH_AFTER_NOT_WANTED = "Banish-after mark on a spell that is not wanted (kept, build needs repair)",
+	BANISH_TOTAL_UNVERIFIED = "More than 3 banish entries in total: the game limit is not verified",
+	BANISH_AFTER_NOT_REPRESENTABLE = "\"Banish after acquisition\" does not exist in the official format: this mark is not exported",
 	SITE_DROPS_KEY = "The official planner will drop this entry",
 	SITE_DROPS_DUPLICATE = "The official planner will drop this duplicate",
 	SITE_DROPS_BANISH_OVERLAP = "The official planner will drop this banish (it is also a wanted spell)",
@@ -82,6 +85,9 @@ Locale.Register({
 	["The code is not valid base64url"] = "Le code n'est pas du base64url valide",
 	["The build data is malformed"] = "Les données du build sont mal formées",
 	["Unsupported planner format version"] = "Version du format non prise en charge",
+	["Banish-after mark on a spell that is not wanted (kept, build needs repair)"] = "Marque « bannir après acquisition » sur un sort non souhaité (conservée, build à réparer)",
+	["More than 3 banish entries in total: the game limit is not verified"] = "Plus de 3 bannissements au total : la limite du jeu n'est pas vérifiée",
+	["\"Banish after acquisition\" does not exist in the official format: this mark is not exported"] = "« Bannir après acquisition » n'existe pas dans le format officiel : cette marque n'est pas exportée",
 	["Unknown catalogue key (kept)"] = "Clé de catalogue inconnue (conservée)",
 	["This entry belongs to another class (kept, build needs repair)"] = "Cette entrée appartient à une autre classe (conservée, build à réparer)",
 	["Duplicate entry (kept, build needs repair)"] = "Entrée en double (conservée, build à réparer)",
@@ -633,6 +639,11 @@ function C.PlanExport(build, catalog)
 			end
 			bseen[k] = true;
 			banish[#banish + 1] = k;
+		end
+		-- "banish after acquisition" has no place in azsb1. It is NOT written into the banish list (the site
+		-- drops banish entries that are also wanted, and that would silently change the meaning).
+		for i, k in ipairs(ph.banishAfter or {}) do
+			loss(losses, "intent", "BANISH_AFTER_NOT_REPRESENTABLE", base .. ".banishAfter[" .. i .. "]", k);
 		end
 		local function slots(listName)
 			local out, sseen = {}, {};

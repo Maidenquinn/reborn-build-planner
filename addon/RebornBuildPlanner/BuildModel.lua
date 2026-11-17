@@ -2,7 +2,9 @@
 --
 -- build = { model=1, id, name, class, revision, catalog, talents, phases={4 x phase}, ext={} }
 -- phase = { label, spells={ {key, mode="acquire"|"rank"|"unlimited", rank?} ... },   -- ordered, wanted
---           banish={key...},                                                           -- separate list
+--           banish={key...},                                                           -- separate list: "avoid / banish if offered"
+--           banishAfter={key...},   -- SUBSET of spells: "keep wanting it until acquired, then banish it" (Lot 3.1;
+--                                      absent in older builds = empty; max L.banishAfter)
 --           rings={4}, trinkets={4}, amulets={4},   -- positions kept, "" = empty; main first, then alternatives
 --           stats={statkey=number}, notes, link, ext={} }
 --
@@ -20,7 +22,7 @@ local type, pairs, ipairs, tostring, tonumber, string, table = type, pairs, ipai
 -- Limits: spells/banish/slot counts mirror the official planner (Z = {spells 6, banish 3, rings 2+2,
 -- trinkets 2+2, amulets 1+3}); text limits are BYTES here (link 900 = 300 UTF-16 units of up to 3 bytes) (the site counts UTF-16 units: the codec of
 -- Lot 2 enforces those on exchange). All are tunable data, none is assumed universal.
-M.LIMITS = { phases = 4, spells = 6, banish = 3, rings = 4, trinkets = 4, amulets = 4, name = 240, label = 96,
+M.LIMITS = { phases = 4, spells = 6, banish = 3, banishAfter = 3, rings = 4, trinkets = 4, amulets = 4, name = 240, label = 96,
 	notes = 8000, link = 900, talents = 400, stats = 32, statValue = 999, maxRank = 99, extNodes = 2000, extDepth = 8 };
 M.MAIN_SLOTS = { rings = 2, trinkets = 2, amulets = 1 };
 M.LIST_NAMES = { "spells", "banish", "rings", "trinkets", "amulets" };
@@ -50,8 +52,10 @@ local function finish(rep)
 	return rep;
 end
 
+-- identity of a conflict for "did this edit add one?": code + key, counted (paths shift when an earlier entry of
+-- the same list is removed, which must not look like a new conflict)
 local function idOf(it)
-	return it.code .. "|" .. tostring(it.path) .. "|" .. tostring(it.key);
+	return it.code .. "|" .. tostring(it.key);
 end
 
 -- ------------------------------------------------------------------ constructors
@@ -64,7 +68,7 @@ local function emptyList(n)
 end
 
 function M.NewPhase(label)
-	return { label = label or "", spells = {}, banish = {}, rings = emptyList(L.rings), trinkets = emptyList(L.trinkets),
+	return { label = label or "", spells = {}, banish = {}, banishAfter = {}, rings = emptyList(L.rings), trinkets = emptyList(L.trinkets),
 		amulets = emptyList(L.amulets), stats = {}, notes = "", link = "", ext = {} };
 end
 
@@ -199,6 +203,36 @@ local function validatePhase(rep, ph, p, catalog, class)
 			end
 		end
 	end
+	-- banishAfter: optional (older builds), subset of the wanted spells; a spell may be wanted AND banish-after
+	if ph.banishAfter ~= nil then
+		if type(ph.banishAfter) ~= "table" or not Util.IsArray(ph.banishAfter) then
+			add(rep, "error", "INVALID_VALUE", base .. ".banishAfter", nil, "array expected");
+		else
+			if #ph.banishAfter > L.banishAfter then
+				add(rep, "error", "TOO_MANY", base .. ".banishAfter", nil, #ph.banishAfter .. ">" .. L.banishAfter);
+			end
+			local wanted, seenA = {}, {};
+			if type(ph.spells) == "table" then
+				for _, g in ipairs(ph.spells) do
+					if type(g) == "table" and isStr(g.key) then wanted[g.key] = true; end
+				end
+			end
+			for i = 1, #ph.banishAfter do
+				local k, path = ph.banishAfter[i], base .. ".banishAfter[" .. i .. "]";
+				if not isStr(k) or k == "" then
+					add(rep, "error", "INVALID_VALUE", path, nil, "key expected");
+				else
+					if seenA[k] then add(rep, "conflict", "DUPLICATE_ENTRY", path, k); end
+					seenA[k] = true;
+					if not wanted[k] then add(rep, "conflict", "BANISH_AFTER_NOT_WANTED", path, k); end
+				end
+			end
+			if type(ph.banish) == "table" and #ph.banish + #ph.banishAfter > L.banish then
+				add(rep, "warning", "BANISH_TOTAL_UNVERIFIED", base .. ".banishAfter", nil,
+					(#ph.banish + #ph.banishAfter) .. ">" .. L.banish);
+			end
+		end
+	end
 	-- slot lists: fixed length, positions kept
 	for _, name in ipairs(M.SLOT_LISTS) do
 		local list, path = ph[name], base .. "." .. name;
@@ -300,12 +334,15 @@ local function edit(build, catalog, fn)
 	local after = M.Validate(c, catalog);
 	local had = {};
 	for _, it in ipairs(before.conflicts) do
-		had[idOf(it)] = true;
+		had[idOf(it)] = (had[idOf(it)] or 0) + 1;
 	end
 	local refused = not after.ok;
 	for _, it in ipairs(after.conflicts) do
-		if not had[idOf(it)] then
+		local id = idOf(it);
+		if (had[id] or 0) <= 0 then
 			refused = true;
+		else
+			had[id] = had[id] - 1;
 		end
 	end
 	if refused then
@@ -378,6 +415,11 @@ function M.RemoveSpell(build, p, key, catalog)
 		for i = 1, #ph.spells do
 			if ph.spells[i].key == key then
 				table.remove(ph.spells, i);
+				-- controlled cleanup: a banish-after mark cannot outlive its spell
+				if ph.banishAfter then
+					local j = Util.IndexOf(ph.banishAfter, key);
+					if j then table.remove(ph.banishAfter, j); end
+				end
 				return true;
 			end
 		end
@@ -420,6 +462,51 @@ function M.SetSpellTarget(build, p, key, mode, rank, catalog)
 		end
 		add(rep, "error", "NOT_FOUND", "phases[" .. p .. "].spells", key);
 		return false;
+	end);
+end
+
+-- Marks / unmarks a wanted spell "banish after acquisition". Never banishes anything by itself.
+function M.SetBanishAfter(build, p, key, on, catalog)
+	return edit(build, catalog, function(c, rep)
+		local ph = phaseOf(c, rep, p);
+		if not ph then return false; end
+		ph.banishAfter = ph.banishAfter or {};
+		local i = Util.IndexOf(ph.banishAfter, key);
+		if on then
+			local wanted = false;
+			for _, g in ipairs(ph.spells) do if g.key == key then wanted = true; end end
+			if not wanted then add(rep, "error", "NOT_FOUND", "phases[" .. p .. "].spells", key); return false; end
+			if i then return true; end
+			if #ph.banishAfter >= L.banishAfter then
+				add(rep, "error", "TOO_MANY", "phases[" .. p .. "].banishAfter", key, "max " .. L.banishAfter);
+				return false;
+			end
+			ph.banishAfter[#ph.banishAfter + 1] = key;
+		else
+			if not i then add(rep, "error", "NOT_FOUND", "phases[" .. p .. "].banishAfter", key); return false; end
+			table.remove(ph.banishAfter, i);
+		end
+	end);
+end
+
+-- Explicit user action for an old/imported overlap (spell in both lists): the entry leaves the "banish if
+-- offered" list and becomes a banish-after mark. Never done automatically (the intent is ambiguous).
+function M.ConvertBanishToAfter(build, p, key, catalog)
+	return edit(build, catalog, function(c, rep)
+		local ph = phaseOf(c, rep, p);
+		if not ph then return false; end
+		local i = Util.IndexOf(ph.banish, key);
+		if not i then add(rep, "error", "NOT_FOUND", "phases[" .. p .. "].banish", key); return false; end
+		local wanted = false;
+		for _, g in ipairs(ph.spells) do if g.key == key then wanted = true; end end
+		if not wanted then add(rep, "error", "NOT_FOUND", "phases[" .. p .. "].spells", key); return false; end
+		ph.banishAfter = ph.banishAfter or {};
+		if #ph.banishAfter >= L.banishAfter and not Util.IndexOf(ph.banishAfter, key) then
+			add(rep, "error", "TOO_MANY", "phases[" .. p .. "].banishAfter", key, "max " .. L.banishAfter);
+			return false;
+		end
+		table.remove(ph.banish, i);
+		if not Util.IndexOf(ph.banishAfter, key) then ph.banishAfter[#ph.banishAfter + 1] = key; end
 	end);
 end
 
@@ -490,7 +577,7 @@ end
 local KNOWN_TOP = { model = true, id = true, name = true, class = true, revision = true, catalog = true, talents = true,
 	phases = true, ext = true };
 local KNOWN_PHASE = { label = true, spells = true, banish = true, rings = true, trinkets = true, amulets = true,
-	stats = true, notes = true, link = true, ext = true };
+	stats = true, notes = true, link = true, ext = true, banishAfter = true };
 
 -- Copies plain data out of a raw record; anything that is not plain data (function, cycle...) is an error
 -- issue, never an exception: Normalize must be safe on arbitrary input.
@@ -588,6 +675,10 @@ local function normPhase(raw, p, rep)
 		add(rep, "warning", "PARTIAL", base .. ".banish", nil, "missing");
 	else
 		ph.banish = type(raw.banish) == "table" and (safeCopy(raw.banish, rep, base .. ".banish") or {}) or raw.banish;
+	end
+	-- banishAfter is optional: absent in builds saved before 0.3.1 (read as empty, no warning)
+	if raw.banishAfter ~= nil then
+		ph.banishAfter = type(raw.banishAfter) == "table" and (safeCopy(raw.banishAfter, rep, base .. ".banishAfter") or {}) or raw.banishAfter;
 	end
 	for _, name in ipairs(M.SLOT_LISTS) do
 		ph[name] = normList(raw[name], L[name], rep, base .. "." .. name, ph);
