@@ -20,12 +20,14 @@ local type, pairs, ipairs, pcall, tostring, tonumber, string, table = type, pair
 
 -- Documented, tested, tunable: not universal. 200 builds is the official planner's own library size.
 S.LIMITS = { builds = 200, trash = 20, quarantine = 50, dbNodes = 400000, dbDepth = 12 };
-S.SETTING_DEFAULTS = { lang = "auto", advancedPhases = false, scale = 1, lastClass = "" };
+S.SETTING_DEFAULTS = { lang = "auto", advancedPhases = false, scale = 1, lastClass = "", libSort = "name", libFilter = "all" };
 local SETTING_CHECK = {
 	lang = function(v) return v == "auto" or v == "enUS" or v == "frFR"; end,
 	advancedPhases = function(v) return type(v) == "boolean"; end,
 	scale = function(v) return type(v) == "number" and v >= 0.6 and v <= 1.5; end,
 	lastClass = function(v) return type(v) == "string" and #v <= 64; end,
+	libSort = function(v) return v == "name" or v == "used" or v == "modified"; end,
+	libFilter = function(v) return v == "all" or v == "favorites" or v == "recent"; end,
 	-- window position: anchor point, offsets from that point of UIParent (persistent, validated on use)
 	window = function(v)
 		return type(v) == "table" and type(v.point) == "string" and #v.point <= 16 and type(v.x) == "number" and type(v.y) == "number"
@@ -456,6 +458,7 @@ function H:Create(opts)
 	end
 	self.db.builds[id] = b;
 	libAdd(self.db, b);
+	self:stamp(id, "created");
 	return id, Util.DeepCopy(b);
 end
 
@@ -478,6 +481,7 @@ function H:Add(build)
 	end
 	self.db.builds[b.id] = b;
 	libAdd(self.db, b);
+	self:stamp(b.id, "created");
 	return b.id, Util.DeepCopy(b), rep;
 end
 
@@ -543,6 +547,7 @@ function H:Update(id, candidate)
 	else
 		self.db.builds[id] = copy;
 	end
+	self:stamp(id, "modified");
 	return true, rep;
 end
 
@@ -573,6 +578,7 @@ function H:Delete(id)
 	while #self.db.trash > S.LIMITS.trash do
 		local old = table.remove(self.db.trash, 1);
 		evicted = { id = old.build.id, name = old.build.name, class = old.build.class };   -- reported, never silent
+		if type(self.db.meta) == "table" then self.db.meta[old.build.id] = nil; end
 	end
 	self.db.builds[id] = nil;
 	libRemove(self.db, b.class, id);
@@ -672,6 +678,59 @@ function H:ImportBuilds(list)
 		ids[i] = staged[i].id;
 	end
 	return ids;
+end
+
+-- ------------------------------------------------------------------ library metadata (Lot 3.2)
+-- db.meta[id] = { fav = bool, used = unix time, modified = unix time, created = unix time }. Kept OUTSIDE the build
+-- record on purpose: favourites and dates never bump a build's revision, never reach an export, and an older
+-- addon that does not know db.meta leaves it alone. Absent = unknown (never an invented date). No schema change.
+local function metaTable(self, create)
+	local m = self.db.meta;
+	if m == nil then
+		if not create then return EMPTY; end
+		m = {};
+		self.db.meta = m;
+	end
+	if type(m) ~= "table" then return nil; end
+	return m;
+end
+
+-- internal: called by the mutators; silent on a read-only handle or unreadable meta (metadata is never worth an error)
+function H:stamp(id, what)
+	if self.readOnly then return; end
+	local m = metaTable(self, true);
+	if not m or not self.db.builds[id] then return; end
+	local e = m[id];
+	if type(e) ~= "table" then e = {}; m[id] = e; end
+	e[what] = math.floor(self.now());
+	if what == "created" then e.modified = e.created; end      -- a new build counts as modified when it is made
+end
+
+function H:Meta(id)
+	local m = metaTable(self, false);
+	local e = m and m[id];
+	if type(e) ~= "table" then return { fav = false }; end
+	return { fav = e.fav == true, used = type(e.used) == "number" and e.used or nil,
+		modified = type(e.modified) == "number" and e.modified or nil, created = type(e.created) == "number" and e.created or nil };
+end
+
+function H:SetFavorite(id, on)
+	local ok, err = guard(self);
+	if not ok then return nil, err; end
+	if not self.db.builds[id] then return nil, issue("NOT_FOUND", "no build " .. tostring(id)); end
+	local m = metaTable(self, true);
+	if not m then return nil, issue("INVALID_DB", "meta is not a table; left untouched"); end
+	local e = m[id];
+	if type(e) ~= "table" then e = {}; m[id] = e; end
+	e.fav = on and true or nil;
+	return true;
+end
+
+-- "used" = opened in the editor or followed by the player
+function H:Touch(id)
+	if self.readOnly or not self.db.builds[id] then return nil; end
+	self:stamp(id, "used");
+	return true;
 end
 
 -- ------------------------------------------------------------------ settings, quarantine, backups

@@ -88,28 +88,28 @@
   "file": "AzerothSurvivors/Run.lua",
   "pattern": "Send\\(\"sync\"\\);",
   "claim": "sync sent once per PLAYER_ENTERING_WORLD",
-  "line": 351
+  "line": 356
  },
  {
   "id": "R05",
   "file": "AzerothSurvivors/Run.lua",
   "pattern": "events:RegisterEvent\\(\"PLAYER_ENTERING_WORLD\"\\)",
   "claim": "world entry event of the native run frame",
-  "line": 336
+  "line": 341
  },
  {
   "id": "R06",
   "file": "AzerothSurvivors/Run.lua",
   "pattern": "AZS_RUN = AZS_Fields\\(msg\\);",
   "claim": "AZSRUN replaces the whole table",
-  "line": 423
+  "line": 428
  },
  {
   "id": "R07",
   "file": "AzerothSurvivors/Run.lua",
   "pattern": "AZS_ZONE = AZS_Fields\\(msg\\);",
   "claim": "AZSZONE replaces the whole table",
-  "line": 432
+  "line": 437
  },
  {
   "id": "R08",
@@ -145,14 +145,14 @@
   "file": "AzerothSurvivors/Run.lua",
   "pattern": "Send\\(\"talents \"",
   "claim": "talents CVar is sent at world entry",
-  "line": 414
+  "line": 419
  },
  {
   "id": "U01",
   "file": "AzerothSurvivors/Units.lua",
   "pattern": "AZS_GEAR = AZS_List\\(msg, \\{ \"slot\", \"rarity\", \"bonus\", \"amount\", \"icon\", \"name\", \"text\" \\}\\)",
   "claim": "AZSGEAR row = slot, rarity, bonus, amount, icon, name, text; no catalogue key field",
-  "line": 53
+  "line": 73
  },
  {
   "id": "S01",
@@ -173,35 +173,35 @@
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "AZS\\.On\\(\"AZSCARDS\", function\\(msg\\)",
   "claim": "AZSCARDS handler",
-  "line": 1455
+  "line": 1457
  },
  {
   "id": "C02",
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "local names = \\{ \"mode\", \"rarity\", \"icon\", \"name\", \"effect\", \"detail\", \"note\", \"slot\" \\};",
   "claim": "jewel card fields; no key",
-  "line": 1461
+  "line": 1463
  },
  {
   "id": "C03",
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "\\{ \"key\", \"spell\", \"rank\", \"rarity\", \"new\", \"lines\" \\}",
   "claim": "spell card fields",
-  "line": 1473
+  "line": 1475
  },
  {
   "id": "C04",
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "^\\tAZS_CARDS = f;",
   "claim": "AZSCARDS replaces AZS_CARDS with a new table (identity changes per line)",
-  "line": 1487
+  "line": 1489
  },
  {
   "id": "C05",
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "AZS_CARDS\\.rerolled = true;",
   "claim": "reroll flag is set on the OLD table before sending 'reroll'; the replacement table lacks it",
-  "line": 1334
+  "line": 1336
  },
  {
   "id": "C06",
@@ -215,20 +215,20 @@
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "AZS\\.On\\(\"AZSEND\", function\\(\\)",
   "claim": "AZSEND hides the cards but does not clear AZS_CARDS",
-  "line": 1505
+  "line": 1507
  },
  {
   "id": "C08",
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "c\\.new == 1 and L\\[\"New spell\"\\]",
   "claim": "new==1 means a spell not yet known; otherwise card.rank is the rank after the pick",
-  "line": 1151
+  "line": 1153
  },
  {
   "id": "C09",
   "file": "AzerothSurvivors/Cards.lua",
-  "pattern": "local banishing = AZS_CARDS\\.kind == \"spell\" and \\(AZS_CARDS\\.bn or 0\\) > 0",
-  "claim": "banishes exist on spell hands; bn nil on jewel hands",
+  "pattern": "local banishing = \\(AZS_CARDS\\.kind == \"spell\" or AZS_CARDS\\.kind == \"jewel\"\\) and \\(AZS_CARDS\\.bn or 0\\) > 0",
+  "claim": "banishes (bn = banishes left) exist on spell hands AND jewel hands (CHANGED since Lot 0, which read: spell only)",
   "line": 415
  },
  {
@@ -236,14 +236,14 @@
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "AZS_CARDS\\.tips\\[i\\] = ",
   "claim": "AZSCARDTIP attaches to the current hand table",
-  "line": 1496
+  "line": 1498
  },
  {
   "id": "C11",
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "or c\\.mode == \"grow\" and L\\[\"Upgrade\"\\] or c\\.mode == \"gold\"",
   "claim": "jewel modes: amulet, empower, grow, gold, else new piece",
-  "line": 1109
+  "line": 1111
  },
  {
   "id": "C12",
@@ -257,7 +257,7 @@
   "file": "AzerothSurvivors/Cards.lua",
   "pattern": "Send\\(\"reroll\"\\)",
   "claim": "reroll is a command to the server; the next AZSCARDS is the new hand",
-  "line": 1335
+  "line": 1337
  },
  {
   "id": "G01",
