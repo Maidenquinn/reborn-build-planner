@@ -13,10 +13,10 @@ Depuis `reborn-build-planner/` sur Windows :
 
 ```powershell
 python -m pip install Pillow
-powershell -ExecutionPolicy Bypass -File tools\recette_ultimate_windows.ps1 -GameExe "CHEMIN\VERS\AzerothSurvivorsGame.exe" -CatalogDir "CHEMIN\VERS\data\v1"
+powershell -ExecutionPolicy Bypass -File tools\recette_ultimate_windows.ps1 -GameExe "CHEMIN\VERS\AzerothSurvivorsGame.exe" -CatalogDir "CHEMIN\VERS\data\v1" -NativeRoot "CHEMIN\VERS\Interface\AddOns"
 ```
 
-Le script refuse les tests obligatoires échoués/sautés, une extraction incomplète et un ZIP sans fichiers attendus. L'éventuel test JS du codec officiel non fourni est le seul saut accepté et annoncé dans `RECETTE_RESULT.md`.
+Le paramètre `-NativeRoot` désigne le répertoire `Interface\\AddOns` contenant les addons officiels du client installé ; aucun fichier n'y est modifié. Le script refuse les tests obligatoires échoués/sautés, une extraction incomplète et un ZIP sans fichiers attendus. L'éventuel test JS du codec officiel non fourni est le seul saut accepté et annoncé dans `RECETTE_RESULT.md`.
 
 Le dossier `dist/ultimate-0.4.5-recette/` contient le ZIP à vérifier. Les métadonnées de bijoux extraites sont conservées dans `.local/generated/` et ajoutées au ZIP **uniquement** lors du packaging. L'exécutable reste inchangé. N'ajoute pas de données locales à Git.
 
