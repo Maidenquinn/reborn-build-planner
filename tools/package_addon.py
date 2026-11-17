@@ -34,6 +34,20 @@ def main(argv):
     if missing or extra:
         sys.stderr.write("REFUSED: toc lists missing %r, folder holds unlisted %r\n" % (missing, extra))
         return 2
+    # Optional read-only extraction of jewelry effect metadata from the user's own installation.
+    # The generated file stays local; no third-party tables are committed or fetched.
+    exe = os.environ.get("RBP_GAME_EXE")
+    catalogue = os.environ.get("RBP_CATALOG_DIR")
+    if exe:
+        if not catalogue:
+            sys.stderr.write("REFUSED: RBP_GAME_EXE needs RBP_CATALOG_DIR (local data/v1 folder)\\n")
+            return 2
+        args = [sys.executable, os.path.join(ROOT, "tools", "extract_jewelry_local.py"),
+                "--exe", exe, "--catalog", os.path.join(catalogue, "jewelry.json"),
+                "--out", os.path.join(SRC, "GeneratedJewelryMechanics.lua")]
+        if subprocess.run(args, cwd=ROOT).returncode != 0:
+            sys.stderr.write("REFUSED: local jewelry extraction failed; package not produced\\n")
+            return 2
     if os.path.exists(out):
         shutil.rmtree(out)
     dest = os.path.join(out, "RebornBuildPlanner")
