@@ -1,0 +1,13 @@
+-- Entry point (Lua 5.1). Expects global ROOT (project root, forward slashes) set by tools/run_lua_tests.py.
+local H = dofile(ROOT .. "/tests/lua/harness.lua");
+H.root = ROOT;
+local suites = { "test_catalog", "test_model", "test_storage", "test_sandbox" };
+if ONLY then suites = { ONLY }; end
+for _, name in ipairs(suites) do
+	print("[" .. name .. "]");
+	local before = H.passed;
+	dofile(ROOT .. "/tests/lua/" .. name .. ".lua")(H);
+	print("  " .. (H.passed - before) .. " assertions passed so far in this suite");
+end
+print(string.format("\nLua tests: %d test cases, %d assertions passed, %d failed (%s)", H.tests, H.passed, H.failed, _VERSION));
+return H.failed;
