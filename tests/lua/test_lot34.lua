@@ -111,6 +111,7 @@ return function(H)
 		};
 		local ns = H.loadAddon({ extra = snapshots });
 		local c = ns.Catalog.New(ns.GeneratedCatalog);
+		snapshots.AZS_GEAR[1].name = c:Name("jewel", "accuria");
 		local live = ns.JewelryEffects.LiveSections(c, "accuria", "ring", false);
 		ok(live and live[1] and live[1].lines[1].text:find("Damage +17%%"), "trusted equipped item text");
 		eq(ns.JewelryEffects.LiveSections(c, "blackhand", "trinket", false), nil, "different key");
