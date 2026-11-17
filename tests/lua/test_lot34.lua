@@ -85,6 +85,23 @@ return function(H)
 		eq(D.Amulet(cat, cat:Get("jewel", "accuria"), nil), nil);
 	end);
 
+
+	test("jewelry metadata: only exact key and slot get a sourced effect; fallback remains honest", function()
+		local e = boot();
+		local source = e.ns.GeneratedJewelryMechanics;
+		eq(e.c:TooltipData("jewel", "accuria").sections, nil);
+		source.items.accuria = { slot = "ring", behavior = "damage", base = 0.17 };
+		local report = e.c:TooltipData("jewel", "accuria");
+		ok(report.sections and #report.sections == 3, "local metadata shown");
+		local joined = plain(report.sections);
+		ok(joined:find("Damage bonus", 1, true), joined);
+		ok(joined:find("0.17", 1, true), joined);
+		ok(joined:find("not the actual bonus", 1, true), joined);
+		source.items.accuria.slot = "trinket";
+		eq(e.c:TooltipData("jewel", "accuria").sections, nil, "wrong slot rejected");
+		source.items.accuria = nil;
+	end);
+
 	-- ------------------------------------------------------------------ official rules
 	test("3.4 rules: multiplier = 3 - 2 x (1 - growth/2)^(rank-1); fixed pieces grow linearly and stop at rank 11", function()
 		eq(D.Multiplier(0.2, 1), 1);
