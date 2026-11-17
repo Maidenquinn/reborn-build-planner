@@ -85,3 +85,14 @@ Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOA
 ## Transfert vers GPT
 * Le pilotage du code, de la direction artistique et de l'UI passe à GPT. Point d'entrée : `docs/HANDOFF_TO_GPT.md`. Branche de travail : `dev/ultimate-ui` ; `main` = état stable.
 * Kevin a explicitement refusé le rendu du prototype v2 (lab) : thème NON validé, non appliqué au planner.
+
+
+## 2026-11-18 — Jewellery effects research and implementation (GPT)
+
+- User validation: Ultimate UI v3 textures now render and are visually distinct in Reborn, but remain unpolished; `main` unchanged. Panel noise/corner rivets softened in `tools/make_ultimate_art.py` (not yet reviewed in client).
+- Compared public Reborn data/addon API docs and AlexEnotov/ASRAdvisor. Official `jewelry.json` does not contain bonus data; ASRAdvisor extracts behavior/base metadata from the locally installed game and combines it with `AZS_GEN` and runtime tables.
+- Added independent `tools/extract_jewelry_local.py`: read-only executable scan, strict key/slot reconciliation with local official jewelry.json, fail-closed output. Neither third-party code nor raw executable/game data is committed.
+- Added `GeneratedJewelryMechanics.lua` empty placeholder, `JewelryEffects.lua` display adapter, controller inspector integration, optional `RBP_GAME_EXE` packaging, and synthetic extraction/Lua tests.
+- New descriptions display confirmed effect categories and raw game base values when locally generated metadata exists, clearly labeled NOT live/run values. Without metadata, existing unavailable fallback remains.
+- **Not yet executed:** local binary extraction against user's game; Lua 5.1 full-suite, actual 0.4.4 post-change packaging, new UI effects in client. No new release and no autopick/autobanish.
+- **Next:** test against the installed Reborn executable and its matching public snapshot, then inspect special/conditional effect formulas for accurate FR presentation. Validate visually after regenerating softer fantasy textures.
