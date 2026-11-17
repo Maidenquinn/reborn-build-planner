@@ -5,7 +5,9 @@
 -- Lua 5.1 syntax only.
 local ADDON, ns = ...;
 ns = ns or {};
-ns.VERSION = "0.4.3-proto1";
+-- Prefer the installed .toc metadata so diagnostics cannot drift behind release packaging.
+local metaVersion = type(GetAddOnMetadata) == "function" and GetAddOnMetadata(ADDON, "Version") or nil;
+ns.VERSION = (type(metaVersion) == "string" and metaVersion ~= "") and metaVersion or "0.4.5-alpha-recette";
 RebornBuildPlanner = ns;
 
 -- existingDb: the loaded SavedVariables table (nil on first run); now: clock function.
