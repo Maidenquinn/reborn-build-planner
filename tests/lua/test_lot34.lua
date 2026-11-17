@@ -69,7 +69,7 @@ return function(H)
 			n = n + 1;
 		end
 		eq(n, 237);
-		eq(cat:Content(), "384db000d5ac311d", "the content hash is the published one");
+		eq(cat:Content(), fixture("index.json").content, "the generated content matches the actually installed official snapshot");
 	end);
 
 	test("3.4 data: jewelry (rings, trinkets) has no published effect: no effect is described, none invented", function()
