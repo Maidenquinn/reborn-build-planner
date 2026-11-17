@@ -1,0 +1,64 @@
+name: Ultimate UI private preview package
+on:
+  push:
+    branches: [dev/ultimate-ui]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-recipe:
+    name: Generate personal test ZIP from public official data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install visual build dependencies only
+        run: python -m pip install pillow
+      - name: Fetch coherent public Reborn catalogue
+        run: python -I tools/fetch_catalog_public.py --out .local/catalog/public-preview
+      - name: Generate Lua catalogue (not committed)
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tools/generate_catalog.py
+      - name: Create original fantasy texture assets
+        run: |
+          python -I tools/make_textures.py addon_lab/RebornPlannerThemeLab/Media
+          python -I tools/make_ultimate_art.py addon_lab/RebornPlannerThemeLab/Media
+      - name: Assemble separate installable preview (no user executable)
+        run: python -I tools/package_addon.py --out dist/private-preview
+      - name: Verify addon ZIP paths
+        run: |
+          python - <<'PY'
+          import pathlib,zipfile
+          zips=list(pathlib.Path("dist/private-preview").glob("RebornBuildPlanner-*-recette.zip"))
+          assert len(zips)==1, zips
+          with zipfile.ZipFile(zips[0]) as z:
+              assert z.testzip() is None
+              names=set(z.namelist())
+              required={
+                  "RebornBuildPlanner/RebornBuildPlanner.toc",
+                  "RebornBuildPlanner/GeneratedCatalog.lua",
+                  "RebornBuildPlanner/JewelryEffects.lua",
+                  "RebornBuildPlanner/GeneratedJewelryMechanics.lua",
+                  "RebornBuildPlanner/Media/ultimate_panel.tga",
+                  "RebornBuildPlanner/Media/ultimate_crest.tga",
+                  "RebornBuildPlanner/Media/ultimate_corner.tga",
+                  "RebornBuildPlanner/Media/ultimate_titlebar.tga",
+              }
+              assert required <= names, required-names
+          print("Private preview ZIP verified:",zips[0])
+          PY
+      - name: Publish private 7-day recette artifact (NOT a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: RebornBuildPlanner-0.4.5-alpha-private-recette
+          path: |
+            dist/private-preview/RebornBuildPlanner-*-recette.zip
+            dist/private-preview/SHA256SUMS.txt
+            dist/private-preview/INSTALL.md
+          retention-days: 7
+          if-no-files-found: error
