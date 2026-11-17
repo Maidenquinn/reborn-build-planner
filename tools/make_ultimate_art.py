@@ -55,13 +55,13 @@ def panel():
     w=h=256;im=Image.new("RGBA",(w,h));p=im.load();rng=random.Random(42)
     for y in range(h):
         for x in range(w):
-            n=rng.randint(-8,8);v=4*math.sin(x*.11+y*.05)+3*math.cos(y*.08)
+            n=rng.randint(-3,3);v=2*math.sin(x*.045+y*.025)+2*math.cos(y*.035)
             p[x,y]=(max(0,int(18+v+n)),max(0,int(29+v+n)),max(0,int(46+v+n)),255)
     d=ImageDraw.Draw(im)
-    d.rectangle((0,0,w-1,h-1),outline=B,width=5)
-    d.rectangle((5,5,w-6,h-6),outline=G,width=2)
+    d.rectangle((0,0,w-1,h-1),outline=B,width=3)
+    d.rectangle((5,5,w-6,h-6),outline=G,width=1)
     for x,y in [(12,12),(244,12),(12,244),(244,244)]:
-        d.ellipse((x-5,y-5,x+5,y+5),fill=G,outline=L)
+        d.ellipse((x-2,y-2,x+2,y+2),fill=G,outline=L)
     return im
 
 def tga_bytes(im):
