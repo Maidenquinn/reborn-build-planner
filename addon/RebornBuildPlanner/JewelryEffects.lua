@@ -33,6 +33,17 @@ local function field(g, key)
     if type(row) == "table" and row.key == key then return row end
   end
 end
+function E.MetadataStatus()
+  local records = ns.GeneratedJewelryMechanics and ns.GeneratedJewelryMechanics.items or {}
+  local n = 0
+  if type(records) == "table" then
+    for _, item in pairs(records) do
+      if type(item) == "table" and type(item.base) == "number" then n = n + 1 end
+    end
+  end
+  local runtime = type(AZS_GEN) == "table" and type(AZS_GEN.jewels) == "table" or false
+  return n, runtime
+end
 function E.Lookup(key, slot)
   if type(key) ~= "string" or type(slot) ~= "string" then return nil end
   local generated = ns.GeneratedJewelryMechanics
