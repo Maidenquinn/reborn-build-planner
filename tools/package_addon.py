@@ -5,7 +5,7 @@
 Output (default: ../reborn-build-planner-recette-lot3):
   RebornBuildPlanner/                         the addon folder, exactly the files the .toc lists plus the .toc
   RebornBuildPlanner-<version>-recette.zip    the same folder zipped (extract into Interface\\AddOns)
-  RECETTE_CLIENT_LOT3.md                      the client recette procedure
+  RECETTE_CLIENT_LOT3_1.md, UPDATE_FROM_0.3.0.md, RECETTE_CLIENT_LOT3.md   recette + update guide
   SHA256SUMS.txt                              checksums of every packaged file
 Refuses to run if the .toc lists a missing file or the addon folder holds a file the .toc does not list.
 """
@@ -21,7 +21,7 @@ SRC = os.path.join(ROOT, "addon", "RebornBuildPlanner")
 
 
 def main(argv):
-    out = argv[argv.index("--out") + 1] if "--out" in argv else os.path.join(ROOT, "..", "reborn-build-planner-recette-lot3")
+    out = argv[argv.index("--out") + 1] if "--out" in argv else os.path.join(ROOT, "..", "reborn-build-planner-recette-lot3-1")
     out = os.path.normpath(out)
     toc_path = os.path.join(SRC, "RebornBuildPlanner.toc")
     toc = open(toc_path, encoding="utf-8").read()
@@ -39,7 +39,8 @@ def main(argv):
     os.makedirs(dest)
     for f in files + ["RebornBuildPlanner.toc"]:
         shutil.copyfile(os.path.join(SRC, f), os.path.join(dest, f))
-    shutil.copyfile(os.path.join(ROOT, "docs", "RECETTE_CLIENT_LOT3.md"), os.path.join(out, "RECETTE_CLIENT_LOT3.md"))
+    for doc in ("RECETTE_CLIENT_LOT3_1.md", "UPDATE_FROM_0.3.0.md", "RECETTE_CLIENT_LOT3.md"):
+        shutil.copyfile(os.path.join(ROOT, "docs", doc), os.path.join(out, doc))
     zpath = os.path.join(out, "RebornBuildPlanner-%s-recette.zip" % version)
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         for f in sorted(files + ["RebornBuildPlanner.toc"]):

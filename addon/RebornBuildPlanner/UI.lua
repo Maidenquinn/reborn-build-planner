@@ -17,6 +17,10 @@ local L = function(s) return Locale.T(s); end
 UI.WIDTH, UI.HEIGHT = 780, 540;
 local CW, CH = 748, 420;                -- content area of a view
 local COLOR = { info = { 0.4, 1, 0.5 }, warn = { 1, 0.82, 0.2 }, error = { 1, 0.35, 0.3 } };
+-- button label colours by role: the main action stands out, secondary ones are quieter (the text always says what it is)
+local ROLE = { primary = "8cff8c", quiet = "b4b4b4", warn = "ffd24d", danger = "ff8a80" };
+local BG = { r = 0.05, g = 0.05, b = 0.08 };       -- window: opaque dark
+local PANEL = { 0.10, 0.10, 0.14, 1 };             -- content panel, slightly lighter than the window
 
 -- ------------------------------------------------------------------ widget helpers
 local function fitText(s, px, size)
@@ -62,8 +66,26 @@ local function button(parent, label, w, h, x, y, onClick, name)
 	return b;
 end
 
+-- label with the role colour when enabled; the plain label is kept in b.baseLabel
+local function paint(b)
+	local label = b.baseLabel or "";
+	local shown = label;
+	if b.role and label ~= "" and b.enabledFlag ~= false then shown = "|cff" .. ROLE[b.role] .. label .. "|r"; end
+	if b.painted ~= shown then b.painted = shown; b:SetText(shown); end
+end
+
 local function setLabel(b, label)
-	if b.label ~= label then b.label = label; b:SetText(label); end
+	b.baseLabel = label;
+	paint(b);
+end
+
+-- invisible button over the icon + name of a row: carries the hover tooltip without capturing the row's real buttons
+local function hitArea(parent, x, y, w, h)
+	local b = CreateFrame("Button", nil, parent);
+	b:SetWidth(w);
+	b:SetHeight(h);
+	b:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -y);
+	return b;
 end
 
 local function edit(parent, w, x, y, onChange, name, maxLetters)
@@ -133,6 +155,8 @@ end
 
 local function enable(b, on)
 	if on then b:Enable(); else b:Disable(); end
+	b.enabledFlag = on and true or false;
+	paint(b);
 end
 
 -- ------------------------------------------------------------------ construction
@@ -153,16 +177,19 @@ function UI:Build()
 	self.root = root;
 	root:SetWidth(UI.WIDTH);
 	root:SetHeight(UI.HEIGHT);
-	root:SetFrameStrata("HIGH");
 	root:SetClampedToScreen(true);
 	root:SetMovable(true);
 	root:EnableMouse(true);
 	root:RegisterForDrag("LeftButton");
-	root:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		tile = true, tileSize = 32, edgeSize = 32, insets = { left = 11, right = 12, top = 12, bottom = 11 } });
+	root:SetFrameStrata("DIALOG");        -- above the game's HUD texts, below the modal
+	root:SetFrameLevel(20);
+	root:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		tile = false, edgeSize = 14, insets = { left = 3, right = 3, top = 3, bottom = 3 } });
+	root:SetBackdropColor(BG.r, BG.g, BG.b, 1);
+	root:SetBackdropBorderColor(0.7, 0.6, 0.3, 1);
 	root:SetScript("OnDragStart", function(f) f:StartMoving(); end);
 	root:SetScript("OnDragStop", function(f) f:StopMovingOrSizing(); self:SavePosition(); end);
-	root:SetScript("OnHide", function() self:SyncEscape(); end);
+	root:SetScript("OnHide", function() self:HideTip(); self:SyncEscape(); end);
 	root:Hide();
 
 	self.title = text(root, 20, 14, 400, "GameFontNormalLarge", "LEFT", 18);
@@ -175,18 +202,26 @@ function UI:Build()
 		import = button(root, "", 120, 24, 268, 40, function() c:SetView("import"); end),
 		export = button(root, "", 120, 24, 392, 40, function() if c.state.export then c:SetView("export"); end end),
 	};
+	for _, b in pairs(self.nav) do b.role = "quiet"; end
 	self.sizeMinus = button(root, "", 84, 24, 556, 40, function() self:Rescale(-0.1); end);
 	self.sizePlus = button(root, "", 84, 24, 644, 40, function() self:Rescale(0.1); end);
 	self.banner = text(root, 20, 68, 740, "GameFontNormal", "LEFT");
 	self.banner:SetTextColor(1, 0.35, 0.3);
 	self.msg = text(root, 20, 504, 520, "GameFontNormal", "LEFT");
 	self.undoBtn = button(root, "", 200, 24, 560, 498, function() c:UndoDelete(); end);
+	self.sizeMinus.role, self.sizePlus.role = "quiet", "quiet";
+	self.undoBtn.role = "warn";
 
 	local function view(name)
 		local f = CreateFrame("Frame", "RebornBuildPlanner" .. name, root);
 		f:SetWidth(CW);
 		f:SetHeight(CH);
 		f:SetPoint("TOPLEFT", root, "TOPLEFT", 20, -80);
+		f.panel = f:CreateTexture(nil, "BACKGROUND");      -- separates the content from the window frame
+		f.panel:SetWidth(CW + 8);
+		f.panel:SetHeight(CH + 8);
+		f.panel:SetPoint("TOPLEFT", f, "TOPLEFT", -4, 4);
+		f.panel:SetTexture(PANEL[1], PANEL[2], PANEL[3], PANEL[4]);
 		f:Hide();
 		return f;
 	end
@@ -196,6 +231,49 @@ function UI:Build()
 	self:BuildImport(self.views.import);
 	self:BuildExport(self.views.export);
 	self:BuildModal();
+end
+
+-- ------------------------------------------------------------------ tooltips (hover only, one shared GameTooltip)
+local TONE = { ok = { 0.5, 1, 0.5 }, warn = { 1, 0.82, 0.2 }, dim = { 0.7, 0.7, 0.7 } };
+
+-- Draws tooltip data { title, icon, spellId, lines } over `owner`. For a spell with a game id the game's own spell
+-- tooltip comes first (read once, on hover, never kept); our lines follow. No value is invented here.
+function UI:ShowTip(owner, d)
+	local tt = GameTooltip;
+	if not d or not tt then return; end
+	tt:SetOwner(owner, "ANCHOR_RIGHT");
+	if tt.ClearLines then tt:ClearLines(); end
+	local fromGame = false;
+	if d.spellId and tt.SetHyperlink then
+		pcall(tt.SetHyperlink, tt, "spell:" .. d.spellId);
+		fromGame = tt.NumLines ~= nil and tt:NumLines() > 0;
+		if fromGame then tt:AddLine(" "); end
+	end
+	if not fromGame then
+		local head = (d.icon and d.icon ~= "") and ("|TInterface\\Icons\\" .. d.icon .. ":16|t ") or "";
+		tt:AddLine(head .. d.title, 1, 0.82, 0, true);
+		if d.spellId then tt:AddLine(L("Detailed effect unavailable"), 0.7, 0.7, 0.7, true); end
+	end
+	for _, ln in ipairs(d.lines or {}) do
+		local col = TONE[ln.tone] or { 1, 1, 1 };
+		tt:AddLine(ln.text, col[1], col[2], col[3], true);
+	end
+	tt:Show();
+	self.tipOwner = owner;
+end
+
+function UI:HideTip(owner)
+	if self.tipOwner and (owner == nil or owner == self.tipOwner) then
+		if GameTooltip and GameTooltip.GetOwner and GameTooltip:GetOwner() == self.tipOwner then GameTooltip:Hide(); end
+		self.tipOwner = nil;
+	end
+end
+
+-- getData(frame) -> tooltip data or nil. Hover only: no polling, no OnUpdate.
+function UI:Hover(frame, getData)
+	frame:SetScript("OnEnter", function(f) local d = getData(f); if d then self:ShowTip(f, d); end end);
+	frame:SetScript("OnLeave", function(f) self:HideTip(f); end);
+	frame:SetScript("OnHide", function(f) self:HideTip(f); end);
 end
 
 -- ------------------------------------------------------------------ library view
@@ -213,9 +291,12 @@ function UI:BuildLibrary(v)
 		r:SetWidth(CW - 10);
 		r:SetHeight(28);
 		r:SetPoint("TOPLEFT", v, "TOPLEFT", 0, -(52 + (i - 1) * 30));
-		r.bg = r:CreateTexture(nil, "BACKGROUND");
+		r.base = r:CreateTexture(nil, "BACKGROUND");
+		r.base:SetAllPoints(r);
+		r.base:SetTexture(i % 2 == 0 and 0.13 or 0.15, i % 2 == 0 and 0.13 or 0.15, i % 2 == 0 and 0.18 or 0.2, 1);
+		r.bg = r:CreateTexture(nil, "BORDER");
 		r.bg:SetAllPoints(r);
-		r.bg:SetTexture(0.2, 0.4, 0.8, 0.35);
+		r.bg:SetTexture(0.2, 0.4, 0.8, 0.45);
 		r.bg:Hide();
 		r.name = text(r, 8, 7, 340, "GameFontHighlight");
 		r.class = text(r, 370, 7, 160, "GameFontNormal");
@@ -240,6 +321,9 @@ function UI:BuildLibrary(v)
 	lib.create = button(v, "", 200, 28, 0, 380, function() self:AskCreate(); end);
 	lib.importBtn = button(v, "", 200, 28, 210, 380, function() c:SetView("import"); end);
 	lib.note = text(v, 430, 384, 300, "GameFontNormalSmall", "LEFT");
+	lib.open.role, lib.activate.role, lib.create.role, lib.restore.role = "primary", "primary", "primary", "primary";
+	lib.dup.role, lib.rename.role, lib.export.role, lib.importBtn.role, lib.trashBtn.role = "quiet", "quiet", "quiet", "quiet", "quiet";
+	lib.delete.role = "danger";
 end
 
 function UI:RefreshLibrary()
@@ -318,6 +402,28 @@ function UI:RefreshLibrary()
 end
 
 -- ------------------------------------------------------------------ editor view
+local LW = 448;                  -- left column: plan / slots
+local CX = 460;                  -- catalogue column (288 wide)
+
+-- static help shown on hover (title + lines, English keys)
+local HELP = {
+	toggle = { "Keep or banish after acquisition",
+		{ "Keep: you want this spell and will keep building on it.",
+			"Banish after acquisition: once you own it, you plan to banish it to concentrate on the others.",
+			"Planning only: the addon never banishes anything and does not know when the game allows it.",
+			"Up to 3 spells can be marked." } },
+	avoid = { "Avoid list",
+		{ "Spells you would banish whenever the game offers them (the official planner's banish list).",
+			"Different from banishing a spell you are still acquiring: use the button on the left for that." } },
+	convert = { "Wanted and avoided at once",
+		{ "This spell is in both lists, which an older version treated as a conflict.",
+			"If you meant \"banish after acquisition\", press this button. Nothing changes until you do." } },
+	slots = { "Main and alternative slots",
+		{ "Main slots: the pieces you want to use first.",
+			"Alternatives: fallbacks if a main piece is not offered.",
+			"Empty positions are kept as they are." } },
+};
+
 function UI:BuildEditor(v)
 	local c = self.c;
 	local ed = {};
@@ -332,8 +438,11 @@ function UI:BuildEditor(v)
 	ed.revert = button(v, "", 200, 24, 294, 30, function() c:Revert(); end);
 	ed.export = button(v, "", 100, 24, 500, 30, function() local e = c:Editor(); c:PrepareExport(e.id, "draft"); c:SetView("export"); end);
 	ed.close = button(v, "", 100, 24, 606, 30, function() self:CloseEditor(); end);
+	ed.save.role, ed.follow.role = "primary", "primary";
+	ed.revert.role, ed.export.role, ed.close.role = "quiet", "quiet", "quiet";
 	ed.phaseInfo = text(v, 0, 64, 420, "GameFontNormal");
 	ed.addPhases = button(v, "", 180, 22, 430, 60, function() c:RevealPhases(); end);
+	ed.addPhases.role = "quiet";
 	ed.phaseTabs = {};
 	for p = 1, 4 do
 		ed.phaseTabs[p] = button(v, "", 140, 22, (p - 1) * 146, 60, function() c:SetPhase(p); end);
@@ -343,58 +452,82 @@ function UI:BuildEditor(v)
 		jewels = button(v, "", 140, 24, 146, 90, function() c:SetTab("jewels"); end),
 		notes = button(v, "", 240, 24, 292, 90, function() c:SetTab("notes"); end),
 	};
-	ed.msg = text(v, 0, 400, 740, "GameFontNormal", "LEFT");
-	-- shared catalogue (right side of spells / jewels tabs)
+	ed.msg = text(v, 0, 404, 740, "GameFontNormal", "LEFT");
+	-- shared catalogue (right side of the spells / jewels tabs)
 	local cat = {};
 	ed.cat = cat;
-	cat.search = edit(v, 230, 396, 122, function(t) c:SetSearch(t); end, "RebornBuildPlannerSearch");
-	cat.searchLabel = text(v, 396, 124, 120, "GameFontNormalSmall");
+	cat.search = edit(v, 230, CX + 4, 122, function(t) c:SetSearch(t); end, "RebornBuildPlannerSearch");
+	cat.searchLabel = text(v, CX + 4, 124, 120, "GameFontNormalSmall");
 	cat.rows = {};
 	for i = 1, ns.Controller.CATALOG_PAGE do
 		local y = 150 + (i - 1) * 24;
 		local r = { frame = CreateFrame("Frame", nil, v) };
-		r.frame:SetWidth(352);
+		r.frame:SetWidth(288);
 		r.frame:SetHeight(22);
-		r.frame:SetPoint("TOPLEFT", v, "TOPLEFT", 396, -y);
+		r.frame:SetPoint("TOPLEFT", v, "TOPLEFT", CX, -y);
+		r.bg = r.frame:CreateTexture(nil, "BACKGROUND");
+		r.bg:SetAllPoints(r.frame);
+		r.bg:SetTexture(0.12, 0.12, 0.17, 1);
 		r.icon = r.frame:CreateTexture(nil, "ARTWORK");
 		r.icon:SetWidth(18);
 		r.icon:SetHeight(18);
-		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 0, -2);
-		r.name = text(r.frame, 22, 4, 170, "GameFontHighlight");
-		r.a = button(r.frame, "", 84, 22, 196, 0, nil);
-		r.b = button(r.frame, "", 70, 22, 282, 0, nil);
+		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 2, -2);
+		r.name = text(r.frame, 24, 4, 126, "GameFontHighlight");
+		r.hit = hitArea(r.frame, 0, 0, 150, 22);
+		r.a = button(r.frame, "", 68, 22, 152, 0, nil);
+		r.b = button(r.frame, "", 64, 22, 224, 0, nil);
+		r.a.role, r.b.role = "primary", "quiet";
+		self:Hover(r.hit, function() return r.tipKey and c:TooltipData(r.tipKind, r.tipKey) or nil; end);
+		self:Hover(r.b, function(f) return f.help and { title = L(HELP.avoid[1]), lines = self:HelpLines(HELP.avoid[2]) } or nil; end);
 		cat.rows[i] = r;
 	end
-	cat.pager = pager(v, 396, 372, function() c:SetEditorPage(c:Editor().page - 1); end, function() c:SetEditorPage(c:Editor().page + 1); end);
+	cat.pager = pager(v, CX, 372, function() c:SetEditorPage(c:Editor().page - 1); end, function() c:SetEditorPage(c:Editor().page + 1); end);
 	-- plan (left side)
 	local plan = {};
 	ed.plan = plan;
-	plan.spellHead = text(v, 0, 126, 380, "GameFontNormal");
+	plan.spellHead = text(v, 0, 126, LW, "GameFontNormal");
 	plan.spells = {};
 	for i = 1, 6 do
 		local y = 146 + (i - 1) * 25;
 		local r = { frame = CreateFrame("Frame", nil, v) };
-		r.frame:SetWidth(380);
+		r.frame:SetWidth(LW);
 		r.frame:SetHeight(24);
 		r.frame:SetPoint("TOPLEFT", v, "TOPLEFT", 0, -y);
-		r.num = text(r.frame, 0, 5, 22, "GameFontNormal");
-		r.name = text(r.frame, 24, 5, 170, "GameFontHighlight");
-		r.up = button(r.frame, "", 52, 22, 200, 1, function() c:MoveSpell(i, -1); end);
-		r.down = button(r.frame, "", 52, 22, 254, 1, function() c:MoveSpell(i, 1); end);
-		r.del = button(r.frame, "", 70, 22, 308, 1, function() local k = r.key; if k then c:RemoveSpell(k); end end);
+		r.bg = r.frame:CreateTexture(nil, "BACKGROUND");
+		r.bg:SetAllPoints(r.frame);
+		r.bg:SetTexture(0.13, 0.13, 0.19, 1);
+		r.num = text(r.frame, 4, 5, 20, "GameFontNormal");
+		r.name = text(r.frame, 26, 5, 146, "GameFontHighlight");
+		r.hit = hitArea(r.frame, 24, 0, 150, 24);
+		r.tog = button(r.frame, "", 112, 22, 176, 1, function() local k = r.key; if k then c:ToggleBanishAfter(k); end end);
+		r.up = button(r.frame, "", 42, 22, 292, 1, function() c:MoveSpell(i, -1); end);
+		r.down = button(r.frame, "", 46, 22, 336, 1, function() c:MoveSpell(i, 1); end);
+		r.del = button(r.frame, "", 64, 22, 384, 1, function() local k = r.key; if k then c:RemoveSpell(k); end end);
+		r.up.role, r.down.role, r.del.role = "quiet", "quiet", "quiet";
+		self:Hover(r.hit, function() return r.key and c:TooltipData("spell", r.key) or nil; end);
+		self:Hover(r.tog, function() return r.key and { title = L(HELP.toggle[1]), lines = self:HelpLines(HELP.toggle[2]) } or nil; end);
 		plan.spells[i] = r;
 	end
-	plan.banHead = text(v, 0, 302, 380, "GameFontNormal");
+	plan.summary = text(v, 0, 299, LW, "GameFontNormal");
+	plan.banHead = text(v, 0, 319, LW, "GameFontNormalSmall");
 	plan.banish = {};
 	for i = 1, 3 do
-		local y = 322 + (i - 1) * 25;
+		local y = 336 + (i - 1) * 22;
 		local r = { frame = CreateFrame("Frame", nil, v) };
-		r.frame:SetWidth(380);
-		r.frame:SetHeight(24);
+		r.frame:SetWidth(LW);
+		r.frame:SetHeight(21);
 		r.frame:SetPoint("TOPLEFT", v, "TOPLEFT", 0, -y);
-		r.num = text(r.frame, 0, 5, 22, "GameFontNormal");
-		r.name = text(r.frame, 24, 5, 260, "GameFontHighlight");
-		r.del = button(r.frame, "", 70, 22, 308, 1, function() local k = r.key; if k then c:RemoveBanish(k); end end);
+		r.bg = r.frame:CreateTexture(nil, "BACKGROUND");
+		r.bg:SetAllPoints(r.frame);
+		r.bg:SetTexture(0.10, 0.10, 0.14, 1);
+		r.num = text(r.frame, 4, 4, 20, "GameFontNormalSmall");
+		r.name = text(r.frame, 26, 4, 170, "GameFontHighlight");
+		r.hit = hitArea(r.frame, 24, 0, 174, 21);
+		r.conv = button(r.frame, "", 112, 20, 200, 0, function() local k = r.key; if k then c:ConvertBanishToAfter(k); end end);
+		r.del = button(r.frame, "", 64, 20, 316, 0, function() local k = r.key; if k then c:RemoveBanish(k); end end);
+		r.conv.role, r.del.role = "primary", "quiet";
+		self:Hover(r.hit, function() return r.key and c:TooltipData("spell", r.key) or nil; end);
+		self:Hover(r.conv, function() return { title = L(HELP.convert[1]), lines = self:HelpLines(HELP.convert[2]) }; end);
 		plan.banish[i] = r;
 	end
 	-- jewels (left side)
@@ -405,29 +538,44 @@ function UI:BuildEditor(v)
 		trinkets = button(v, "", 150, 22, 126, 124, function() c:SetGroup("trinkets"); end),
 		amulets = button(v, "", 100, 22, 282, 124, function() c:SetGroup("amulets"); end),
 	};
-	jw.head = text(v, 0, 154, 380, "GameFontNormal");
+	jw.head = text(v, 0, 154, LW, "GameFontNormal");
 	jw.slots = {};
 	for i = 1, 4 do
 		local y = 176 + (i - 1) * 30;
 		local r = { frame = CreateFrame("Button", nil, v) };
-		r.frame:SetWidth(380);
+		r.frame:SetWidth(LW);
 		r.frame:SetHeight(28);
 		r.frame:SetPoint("TOPLEFT", v, "TOPLEFT", 0, -y);
 		r.bg = r.frame:CreateTexture(nil, "BACKGROUND");
 		r.bg:SetAllPoints(r.frame);
-		r.bg:SetTexture(0.2, 0.4, 0.8, 0.35);
-		r.bg:Hide();
-		r.role = text(r.frame, 4, 7, 100, "GameFontNormalSmall");
+		r.bg:SetTexture(0.13, 0.13, 0.19, 1);
+		r.sel = r.frame:CreateTexture(nil, "BORDER");     -- brighter band under the chosen slot (the "> " prefix says it too)
+		r.sel:SetAllPoints(r.frame);
+		r.sel:SetTexture(0.2, 0.4, 0.8, 0.45);
+		r.sel:Hide();
+		r.role = text(r.frame, 6, 7, 120, "GameFontNormalSmall");
 		r.icon = r.frame:CreateTexture(nil, "ARTWORK");
 		r.icon:SetWidth(18);
 		r.icon:SetHeight(18);
-		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 108, -5);
-		r.name = text(r.frame, 130, 7, 170, "GameFontHighlight");
-		r.clear = button(r.frame, "", 70, 22, 306, 3, function() c:ClearSlot(c:Editor().group, i); end);
+		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 132, -5);
+		r.name = text(r.frame, 156, 7, 210, "GameFontHighlight");
+		r.clear = button(r.frame, "", 70, 22, 374, 3, function() c:ClearSlot(c:Editor().group, i); end);
+		r.clear.role = "quiet";
 		r.frame:SetScript("OnClick", function() c:SetSlotTarget(i); end);
+		self:Hover(r.frame, function()
+			local e = c:Editor();
+			local kind = e.group == "amulets" and "amulet" or "jewel";
+			local d = r.key and r.key ~= "" and c:TooltipData(kind, r.key) or nil;
+			if d then
+				d.lines[#d.lines + 1] = { text = L(HELP.slots[2][1]) .. " " .. L(HELP.slots[2][2]), tone = "dim" };
+				return d;
+			end
+			return { title = L(HELP.slots[1]), lines = self:HelpLines(HELP.slots[2]) };
+		end);
 		jw.slots[i] = r;
 	end
-	jw.hint = text(v, 0, 300, 380, "GameFontNormalSmall");
+	jw.hint = text(v, 0, 300, LW, "GameFontNormal");
+	jw.hint2 = text(v, 0, 320, LW, "GameFontNormalSmall");
 	-- notes and advanced
 	local nt = {};
 	ed.nt = nt;
@@ -449,16 +597,23 @@ function UI:BuildEditor(v)
 	nt.warn:SetTextColor(1, 0.82, 0.2);
 end
 
+function UI:HelpLines(list)
+	local out = {};
+	for i, s in ipairs(list) do out[i] = { text = L(s), tone = i == 1 and nil or "dim" }; end
+	return out;
+end
+
 local function catalogRow(r, e, a, b)
-	if not e then r.frame:Hide(); return; end
+	if not e then r.frame:Hide(); r.tipKey = nil; return; end
 	r.frame:Show();
-	r.name:SetText(fitText(e.name, 170, 12));
+	r.name:SetText(fitText(e.name, 126, 12));
 	if e.icon and e.icon ~= "" then
 		r.icon:SetTexture("Interface\\Icons\\" .. e.icon);
 		r.icon:Show();
 	else
 		r.icon:Hide();
 	end
+	if e.state == "wanted" or e.state == "placed" then r.bg:SetTexture(0.16, 0.2, 0.3, 1); else r.bg:SetTexture(0.12, 0.12, 0.17, 1); end
 	a(r, e);
 	b(r, e);
 end
@@ -499,28 +654,28 @@ function UI:RefreshEditor()
 		setLabel(ed.phaseTabs[p], fitText(c:PhaseTitle(p), 124, 12) .. (p == e.phase and " *" or ""));
 	end
 	if not many then e.phase = 1; end
-	setLabel(ed.tabs.spells, L("Spells"));
-	setLabel(ed.tabs.jewels, L("Jewelry"));
-	setLabel(ed.tabs.notes, L("Notes and kept data"));
+	local tab = e.tab;
+	setLabel(ed.tabs.spells, L("Spells") .. (tab == "spells" and " *" or ""));
+	setLabel(ed.tabs.jewels, L("Jewelry") .. (tab == "jewels" and " *" or ""));
+	setLabel(ed.tabs.notes, L("Notes and kept data") .. (tab == "notes" and " *" or ""));
 	local msg = c.state.message;
 	if msg then
 		ed.msg:SetText(fitText(msg.text, 740, 12));
 		ed.msg:SetTextColor(unpack(COLOR[msg.level]));
 	else
-		ed.msg:SetText(e.tab == "spells" and L("A planned banish is not a banish already done.") or "");
+		ed.msg:SetText(tab == "spells" and L("Planning only: nothing is banished or picked for you.") or "");
 		ed.msg:SetTextColor(0.7, 0.7, 0.7);
 	end
-	local tab = e.tab;
 	local showCat = tab ~= "notes";
 	setShown(ed.cat.search, showCat);
 	setShown(ed.cat.searchLabel, showCat);
 	setShown(ed.cat.pager.prev, showCat); setShown(ed.cat.pager.label, showCat); setShown(ed.cat.pager.next, showCat);
-	for _, r in ipairs(ed.cat.rows) do if not showCat then r.frame:Hide(); end end
+	for _, r in ipairs(ed.cat.rows) do if not showCat then r.frame:Hide(); r.tipKey = nil; end end
 	for _, r in ipairs(ed.plan.spells) do if tab ~= "spells" then r.frame:Hide(); end end
 	for _, r in ipairs(ed.plan.banish) do if tab ~= "spells" then r.frame:Hide(); end end
-	setShown(ed.plan.spellHead, tab == "spells"); setShown(ed.plan.banHead, tab == "spells");
+	setShown(ed.plan.spellHead, tab == "spells"); setShown(ed.plan.banHead, tab == "spells"); setShown(ed.plan.summary, tab == "spells");
 	for _, b in pairs(ed.jw.groups) do setShown(b, tab == "jewels"); end
-	setShown(ed.jw.head, tab == "jewels"); setShown(ed.jw.hint, tab == "jewels");
+	setShown(ed.jw.head, tab == "jewels"); setShown(ed.jw.hint, tab == "jewels"); setShown(ed.jw.hint2, tab == "jewels");
 	for _, r in ipairs(ed.jw.slots) do if tab ~= "jewels" then r.frame:Hide(); end end
 	for _, w in ipairs({ ed.nt.notesLabel, ed.nt.counter, ed.nt.notes.scroll, ed.nt.linkLabel, ed.nt.link, ed.nt.talentsLabel, ed.nt.talents, ed.nt.labelLabel, ed.nt.label,
 		ed.nt.warn, ed.nt.keptHead }) do setShown(w, tab == "notes"); end
@@ -534,6 +689,11 @@ function UI:RefreshEditor()
 		enable(ed.cat.pager.next, e.page < c:CatalogPageCount());
 		for i, r in ipairs(ed.cat.rows) do
 			local entry = page[i];
+			if entry then
+				r.tipKind = tab == "spells" and "spell" or (e.group == "amulets" and "amulet" or "jewel");
+				r.tipKey = entry.key;
+				r.b.help = tab == "spells";
+			end
 			if tab == "spells" then
 				catalogRow(r, entry, function(row, en)
 					if en.state == "wanted" then
@@ -541,7 +701,7 @@ function UI:RefreshEditor()
 						row.a:SetScript("OnClick", function() c:RemoveSpell(en.key); end);
 						enable(row.a, not ro);
 					else
-						setLabel(row.a, L("Want"));
+						setLabel(row.a, L("Add"));
 						row.a:SetScript("OnClick", function() c:AddSpell(en.key); end);
 						enable(row.a, not ro and en.state == nil);
 					end
@@ -551,7 +711,7 @@ function UI:RefreshEditor()
 						row.b:SetScript("OnClick", function() c:RemoveBanish(en.key); end);
 						enable(row.b, not ro);
 					else
-						setLabel(row.b, L("Banish"));
+						setLabel(row.b, L("Avoid"));
 						row.b:SetScript("OnClick", function() c:AddBanish(en.key); end);
 						enable(row.b, not ro and en.state == nil);
 					end
@@ -559,7 +719,7 @@ function UI:RefreshEditor()
 				end);
 			else
 				catalogRow(r, entry, function(row, en)
-					setLabel(row.a, L("Place"));
+					setLabel(row.a, en.state == "placed" and L("Placed") or L("Place"));
 					row.a:SetScript("OnClick", function() c:SetSlot(e.group, e.slot, en.key); end);
 					enable(row.a, not ro and en.state == nil);
 				end, function(row) row.b:Hide(); end);
@@ -568,8 +728,10 @@ function UI:RefreshEditor()
 	end
 	if tab == "spells" then
 		local pv = c:PlanView();
-		ed.plan.spellHead:SetText(string.format(L("Wanted spells, in priority order (%d/%d)"), #pv.spells, BM.LIMITS.spells));
-		ed.plan.banHead:SetText(string.format(L("To banish if offered (%d/%d)"), #pv.banish, BM.LIMITS.banish));
+		ed.plan.spellHead:SetText(string.format(L("Spells to acquire, in priority order (%d/%d)"), #pv.spells, BM.LIMITS.spells));
+		ed.plan.summary:SetText(string.format(L("%d to keep / %d to banish after acquisition (max %d)"), pv.keepCount, pv.afterCount, BM.LIMITS.banishAfter));
+		if pv.afterCount > 0 then ed.plan.summary:SetTextColor(1, 0.82, 0.2); else ed.plan.summary:SetTextColor(0.8, 0.8, 0.8); end
+		ed.plan.banHead:SetText(string.format(L("Avoid list: banish if offered (%d/%d)"), #pv.banish, BM.LIMITS.banish));
 		for i, r in ipairs(ed.plan.spells) do
 			local it = pv.spells[i];
 			setShown(r.frame, true);
@@ -579,16 +741,21 @@ function UI:RefreshEditor()
 				local nm = it.name;
 				if it.mode == "rank" then nm = nm .. " (r" .. tostring(it.rank) .. ")"; elseif it.mode == "unlimited" then nm = nm .. " (+)"; end
 				if not it.known then nm = nm .. " ?"; end
-				r.name:SetText(fitText(nm, 170, 12));
+				r.name:SetText(fitText(nm, 146, 12));
+				r.tog.role = it.after and "warn" or "quiet";
+				setLabel(r.tog, it.after and L("Banish after") or L("Keep"));
 				setLabel(r.up, L("Up")); setLabel(r.down, L("Down")); setLabel(r.del, L("Remove"));
-				r.up:Show(); r.down:Show(); r.del:Show();
+				r.tog:Show(); r.up:Show(); r.down:Show(); r.del:Show();
+				enable(r.tog, not ro);
 				enable(r.up, not ro and i > 1);
 				enable(r.down, not ro and i < #pv.spells);
 				enable(r.del, not ro);
+				if it.after then r.bg:SetTexture(0.28, 0.16, 0.12, 1); else r.bg:SetTexture(0.13, 0.13, 0.19, 1); end
 			else
 				r.key = nil;
 				r.name:SetText("|cff888888" .. L("(empty)") .. "|r");
-				r.up:Hide(); r.down:Hide(); r.del:Hide();
+				r.tog:Hide(); r.up:Hide(); r.down:Hide(); r.del:Hide();
+				r.bg:SetTexture(0.10, 0.10, 0.14, 1);
 			end
 		end
 		for i, r in ipairs(ed.plan.banish) do
@@ -597,14 +764,18 @@ function UI:RefreshEditor()
 			r.num:SetText(i .. ".");
 			if it then
 				r.key = it.key;
-				r.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 260, 12));
+				r.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 170, 12));
 				setLabel(r.del, L("Remove"));
 				r.del:Show();
 				enable(r.del, not ro);
+				setLabel(r.conv, L("Banish after"));
+				setShown(r.conv, it.overlap);
+				enable(r.conv, not ro);
 			else
 				r.key = nil;
 				r.name:SetText("|cff888888" .. L("(empty)") .. "|r");
 				r.del:Hide();
+				r.conv:Hide();
 			end
 		end
 	elseif tab == "jewels" then
@@ -619,22 +790,27 @@ function UI:RefreshEditor()
 			local it = list[i];
 			setShown(r.frame, it ~= nil);
 			if it then
-				r.role:SetText(it.main and string.format(L("Main %d"), i) or string.format(L("Alternative %d"), i - BM.MAIN_SLOTS[group]));
+				r.key = it.key;
+				local role = it.main and string.format(L("Main %d"), i) or string.format(L("Alternative %d"), i - BM.MAIN_SLOTS[group]);
+				r.role:SetText((i == e.slot and "> " or "  ") .. role);
 				if it.key == "" then
 					r.name:SetText("|cff888888" .. L("(empty)") .. "|r");
 					r.icon:Hide();
 					r.clear:Hide();
 				else
-					r.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 170, 12));
+					r.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 210, 12));
 					if it.icon then r.icon:SetTexture("Interface\\Icons\\" .. it.icon); r.icon:Show(); else r.icon:Hide(); end
 					setLabel(r.clear, L("Empty"));
 					r.clear:Show();
 					enable(r.clear, not ro);
 				end
-				if i == e.slot then r.bg:Show(); else r.bg:Hide(); end
+				if i == e.slot then r.sel:Show(); else r.sel:Hide(); end
 			end
 		end
-		ed.jw.hint:SetText(L("Click a slot, then Place a piece from the list."));
+		local cur = list[e.slot];
+		local curRole = cur and (cur.main and string.format(L("Main %d"), e.slot) or string.format(L("Alternative %d"), e.slot - BM.MAIN_SLOTS[group])) or "";
+		ed.jw.hint:SetText(fitText(string.format(L("Chosen slot: %s"), curRole), LW, 12));
+		ed.jw.hint2:SetText(L("Click a slot, then Place a piece from the list."));
 	else
 		ed.nt.notesLabel:SetText(string.format(L("Notes (%s)"), c:PhaseTitle(e.phase)));
 		local ph = d.phases[e.phase];
@@ -832,8 +1008,11 @@ function UI:BuildModal()
 	m:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
 	m:SetClampedToScreen(true);
 	m:EnableMouse(true);
-	m:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-		tile = true, tileSize = 32, edgeSize = 32, insets = { left = 11, right = 12, top = 12, bottom = 11 } });
+	m:SetFrameLevel(100);
+	m:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		tile = false, edgeSize = 14, insets = { left = 3, right = 3, top = 3, bottom = 3 } });
+	m:SetBackdropColor(0.07, 0.07, 0.11, 1);
+	m:SetBackdropBorderColor(0.7, 0.6, 0.3, 1);
 	m:Hide();
 	m.title = text(m, 24, 20, 412, "GameFontNormalLarge", "LEFT", 18);
 	m.body = m:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
@@ -847,6 +1026,7 @@ function UI:BuildModal()
 	m.b = {};
 	for i = 1, 3 do
 		m.b[i] = button(m, "", 130, 26, 24 + (i - 1) * 140, 172, function() self:ModalChoose(i); end);
+		m.b[i].role = i == 1 and "primary" or "quiet";
 	end
 	m:SetScript("OnHide", function() self:SyncEscape(); end);
 end
@@ -1044,6 +1224,7 @@ function UI:Refresh()
 	if not self.built or not self.root then return; end
 	local c = self.c;
 	local st = c.state;
+	self:HideTip();       -- page / view / data may have changed under the pointer
 	self.title:SetText("Reborn Build Planner");
 	setLabel(self.nav.library, L("My builds"));
 	setLabel(self.nav.editor, L("Editor"));

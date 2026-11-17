@@ -51,7 +51,8 @@ local REASON = {
 	TOO_MANY = "Limit reached",
 	DUPLICATE_ENTRY = "Already in this list",
 	DUPLICATE_PIECE = "Already in this list",
-	CONFLICT_SPELL_BANISH = "A spell cannot be both wanted and banished",
+	CONFLICT_SPELL_BANISH = "A spell cannot be both wanted and in the avoid list",
+	BANISH_AFTER_NOT_WANTED = "Only a wanted spell can be banished after acquisition",
 	WRONG_CLASS = "This entry belongs to another class",
 	WRONG_SLOT = "This piece does not fit this slot",
 	TOO_LONG = "Text too long",
@@ -291,6 +292,12 @@ end
 local function strip(b)
 	local c = Util.DeepCopy(b);
 	c.revision = nil;
+	-- builds saved before 0.3.1 have no banishAfter: "absent" and "empty" are the same thing
+	if type(c.phases) == "table" then
+		for _, ph in ipairs(c.phases) do
+			if type(ph) == "table" and ph.banishAfter == nil then ph.banishAfter = {}; end
+		end
+	end
 	return c;
 end
 
@@ -433,7 +440,38 @@ function Controller:AddBanish(key)
 	return edit(self, function(b) return BM.AddBanish(b, self.state.editor.phase, key, self:Catalog()); end);
 end
 
-function Controller:RemoveSpell(key) return edit(self, function(b) return BM.RemoveSpell(b, self.state.editor.phase, key, self:Catalog()); end); end
+function Controller:RemoveSpell(key)
+	local e = self.state.editor;
+	local ph = e and e.draft.phases[e.phase];
+	local marked = ph and ph.banishAfter and Util.IndexOf(ph.banishAfter, key) ~= nil;
+	local ok, rep = edit(self, function(b) return BM.RemoveSpell(b, self.state.editor.phase, key, self:Catalog()); end);
+	if ok and marked then
+		self:Say("info", L("Spell removed, and its banish-after mark with it"));   -- controlled cleanup, stated
+	end
+	return ok, rep;
+end
+
+-- "Banish after acquisition": a mark on a WANTED spell. Planning only: nothing is ever banished by this addon.
+function Controller:SetBanishAfter(key, on)
+	return edit(self, function(b) return BM.SetBanishAfter(b, self.state.editor.phase, key, on and true or false, self:Catalog()); end);
+end
+
+function Controller:ToggleBanishAfter(key)
+	local e = self.state.editor;
+	if not e then return false; end
+	local ph = e.draft.phases[e.phase];
+	local marked = ph.banishAfter and Util.IndexOf(ph.banishAfter, key) ~= nil;
+	if not marked and ph.banishAfter and #ph.banishAfter >= BM.LIMITS.banishAfter then
+		self:Say("error", string.format(L("At most %d spells can be marked to banish after acquisition"), BM.LIMITS.banishAfter));
+		return false;
+	end
+	return self:SetBanishAfter(key, not marked);
+end
+
+-- explicit repair of an old / imported overlap: moves the entry from "avoid" to "banish after acquisition"
+function Controller:ConvertBanishToAfter(key)
+	return edit(self, function(b) return BM.ConvertBanishToAfter(b, self.state.editor.phase, key, self:Catalog()); end);
+end
 function Controller:RemoveBanish(key) return edit(self, function(b) return BM.RemoveBanish(b, self.state.editor.phase, key, self:Catalog()); end); end
 
 function Controller:MoveSpell(index, dir)
@@ -461,7 +499,7 @@ end
 
 -- Phases 2-4 stay hidden until needed: an imported/edited build that uses them shows them at once.
 local function phaseUsed(ph)
-	return #ph.spells > 0 or #ph.banish > 0 or ph.notes ~= "" or ph.link ~= "" or ph.label ~= "" or next(ph.stats) ~= nil
+	return #ph.spells > 0 or #ph.banish > 0 or #(ph.banishAfter or {}) > 0 or ph.notes ~= "" or ph.link ~= "" or ph.label ~= "" or next(ph.stats) ~= nil
 		or next(ph.ext) ~= nil or ph.rings[1] .. ph.rings[2] .. ph.rings[3] .. ph.rings[4] .. ph.trinkets[1] .. ph.trinkets[2] .. ph.trinkets[3]
 		.. ph.trinkets[4] .. ph.amulets[1] .. ph.amulets[2] .. ph.amulets[3] .. ph.amulets[4] ~= "";
 end
@@ -520,10 +558,11 @@ function Controller:CatalogEntries()
 			for _, k in ipairs(cat:LegendsOfClass(class)) do keys[#keys + 1] = k; end
 		end
 	end
-	local used = {};
+	local used, after = {}, {};
+	for _, k in ipairs(ph.banishAfter or {}) do after[k] = true; end
 	if e.tab == "spells" then
 		for _, g in ipairs(ph.spells) do used[g.key] = "wanted"; end
-		for _, k in ipairs(ph.banish) do used[k] = "banished"; end
+		for _, k in ipairs(ph.banish) do if not used[k] then used[k] = "banished"; end end
 	else
 		for _, k in ipairs(ph[e.group]) do if k ~= "" then used[k] = "placed"; end end
 	end
@@ -532,7 +571,7 @@ function Controller:CatalogEntries()
 		if entry then
 			local name = cat:Name(kind, k, lang);
 			if matches({ name, entry.name }, e.search) then
-				out[#out + 1] = { key = k, name = name, icon = entry.icon, state = used[k], rarity = entry.rarity };
+				out[#out + 1] = { key = k, name = name, icon = entry.icon, state = used[k], rarity = entry.rarity, after = after[k] or nil };
 			end
 		end
 	end
@@ -562,14 +601,19 @@ function Controller:PlanView()
 		if cat and cat:Get(kind, k) then return cat:Name(kind, k, lang), cat:Get(kind, k).icon; end
 		return k, nil;
 	end
-	local v = { spells = {}, banish = {}, rings = {}, trinkets = {}, amulets = {} };
+	local v = { spells = {}, banish = {}, rings = {}, trinkets = {}, amulets = {}, afterCount = 0, keepCount = 0 };
+	local after, wanted = {}, {};
+	for _, k in ipairs(ph.banishAfter or {}) do after[k] = true; end
 	for i, g in ipairs(ph.spells) do
 		local name, icon = nm("spell", g.key);
-		v.spells[i] = { key = g.key, name = name, icon = icon, known = cat ~= nil and cat:Get("spell", g.key) ~= nil, mode = g.mode, rank = g.rank };
+		wanted[g.key] = true;
+		v.spells[i] = { key = g.key, name = name, icon = icon, known = cat ~= nil and cat:Get("spell", g.key) ~= nil, mode = g.mode, rank = g.rank,
+			after = after[g.key] or false };
+		if after[g.key] then v.afterCount = v.afterCount + 1; else v.keepCount = v.keepCount + 1; end
 	end
 	for i, k in ipairs(ph.banish) do
 		local name, icon = nm("spell", k);
-		v.banish[i] = { key = k, name = name, icon = icon, known = cat ~= nil and cat:Get("spell", k) ~= nil };
+		v.banish[i] = { key = k, name = name, icon = icon, known = cat ~= nil and cat:Get("spell", k) ~= nil, overlap = wanted[k] or false };
 	end
 	for _, group in ipairs({ "rings", "trinkets", "amulets" }) do
 		local kind = group == "amulets" and "amulet" or "jewel";
@@ -599,6 +643,88 @@ function Controller:HiddenData()
 	if extN > 0 then add("Extra data in %d phase(s) kept", extN); end
 	if next(e.draft.ext) then add("Extra build data kept: %s", table.concat(Util.SortedKeys(e.draft.ext), ", ")); end
 	return out;
+end
+
+-- ------------------------------------------------------------------ tooltips (pure data; the UI draws them on hover)
+-- kind: "spell" | "jewel" | "amulet". Returns { title, icon, spellId, lines = { {text, tone} } } or nil.
+-- Only what the embedded catalogue really holds is stated: names, class, slot, rarity, the base game spell id.
+-- Descriptions are NOT in the catalogue: for spells the UI asks the game's own spell tooltip (by id, on hover only);
+-- anything else says "Detailed effect unavailable". No value is ever computed or guessed.
+local RARITY = { common = "Common", uncommon = "Uncommon", rare = "Rare", epic = "Epic", legendary = "Legendary" };
+function Controller:TooltipData(kind, key)
+	local cat, e = self:Catalog(), self.state.editor;
+	if not cat or type(key) ~= "string" or key == "" then return nil; end
+	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local entry = cat:Get(kind, key);
+	local ph = e and e.draft.phases[e.phase];
+	local d = { lines = {} };
+	local function line(text, tone) d.lines[#d.lines + 1] = { text = text, tone = tone }; end
+	if not entry then
+		d.title = key;
+		line(L("Unknown to this catalogue"), "warn");
+		line(L("Detailed effect unavailable"), "dim");
+		return d;
+	end
+	d.title = cat:Name(kind, key, lang);
+	d.icon = entry.icon;
+	if kind == "spell" then
+		d.spellId = type(entry.id) == "number" and entry.id or nil;
+		line(L("Class:") .. " " .. self:ClassName(entry.class));
+		if ph then
+			for i, g in ipairs(ph.spells) do
+				if g.key == key then
+					line(string.format(L("Wanted: priority %d"), i), "ok");
+					if g.mode == "rank" then
+						line(string.format(L("Target rank: %d"), g.rank or 0));
+					elseif g.mode == "unlimited" then
+						line(L("Target: no limit"));
+					end
+					if ph.banishAfter and Util.IndexOf(ph.banishAfter, key) then
+						line(L("Planned: banish after acquisition (nothing is banished automatically)"), "warn");
+					else
+						line(L("Planned: keep"), "ok");
+					end
+				end
+			end
+			if Util.IndexOf(ph.banish, key) then line(L("In the avoid list: banish if offered"), "warn"); end
+		end
+		if not d.spellId then line(L("Detailed effect unavailable"), "dim"); end
+	elseif kind == "jewel" then
+		line(L("Type:") .. " " .. (entry.slot == "ring" and L("Ring") or L("Trinket")));
+		if ph then
+			local group = entry.slot == "ring" and "rings" or "trinkets";
+			for i, k in ipairs(ph[group]) do
+				if k == key then
+					line(i <= BM.MAIN_SLOTS[group] and string.format(L("Placed: main %d"), i)
+						or string.format(L("Placed: alternative %d"), i - BM.MAIN_SLOTS[group]), "ok");
+				end
+			end
+		end
+		line(L("Detailed effect unavailable"), "dim");
+		line(L("The Reborn catalogue gives no statistics for this piece."), "dim");
+	else
+		local isLegend = entry.spell ~= nil;
+		line(isLegend and L("Legendary amulet") or (L("Rarity:") .. " " .. L(RARITY[entry.rarity or ""] or "Unknown")));
+		if isLegend then
+			if entry.head then line(L("Series:") .. " " .. entry.head); end
+			line(L("Linked spell:") .. " " .. cat:Name("spell", entry.spell, lang));
+			line(L("Class:") .. " " .. self:ClassName(entry.class));
+		elseif entry.classes and #entry.classes > 0 then
+			local names = {};
+			for _, k in ipairs(entry.classes) do names[#names + 1] = self:ClassName(k); end
+			line(L("Class:") .. " " .. table.concat(names, ", "));
+		end
+		if ph then
+			for i, k in ipairs(ph.amulets) do
+				if k == key then
+					line(i <= BM.MAIN_SLOTS.amulets and string.format(L("Placed: main %d"), i)
+						or string.format(L("Placed: alternative %d"), i - BM.MAIN_SLOTS.amulets), "ok");
+				end
+			end
+		end
+		line(L("Detailed effect unavailable"), "dim");
+	end
+	return d;
 end
 
 -- ------------------------------------------------------------------ import
