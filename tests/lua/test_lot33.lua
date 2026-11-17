@@ -47,7 +47,7 @@ return function(H)
 		eq(e.world.lint(e.root), {});
 	end);
 
-	test("3.3 style: flat buttons (no red template), brass headers, row bands, opaque panels", function()
+	test("3.3 style: original textured controls, consistent panel surfaces and distinct disabled state", function()
 		local e = boot();
 		newEditor(e);
 		local n = 0;
@@ -58,11 +58,13 @@ return function(H)
 			end
 		end
 		ok(n > 50);
-		ok(e.ui.ed.save.backdrop.bgFile:find("WHITE8X8", 1, true), "flat backdrop");
-		for _, p in ipairs({ e.ui.leftPanel, e.ui.centre, e.ui.rightPanel }) do ok(p.backdropColor[4] == 1); end
-		-- disabled buttons are visibly different from enabled ones
-		local on, off = e.ui.ed.fav, e.ui.ed.save;     -- Favourite is enabled, Save has nothing to save
-		no(on:IsEnabled() == off:IsEnabled() and on.backdropColor[1] == off.backdropColor[1] and on.backdropColor[2] == off.backdropColor[2]);
+		ok(e.ui.ed.save.nine and e.ui.ed.save.nine.file == "button_disabled_nine", "unchanged build Save is visually disabled");
+		for _, p in ipairs({ e.ui.leftPanel, e.ui.centre, e.ui.rightPanel }) do
+			ok(p.nine and p.nine.file == "ultimate_panel", "all zones use textured opaque fantasy panels");
+		end
+		local on, off = e.ui.ed.fav, e.ui.ed.save;
+		ok(on:IsEnabled() and not off:IsEnabled(), "favourite available while unchanged Save is disabled");
+		no(on.nine.file == off.nine.file, "disabled uses a distinct asset");
 	end);
 
 	test("3.3 flow: slot -> browser filters itself -> select -> details -> place / replace / empty", function()
