@@ -9,6 +9,7 @@ Source principale : **données publiées** `https://azreborn.com/data/v1/` (guid
 | Anneau / bijou (44) | `jewelry.json` | Nom, emplacement, icône | **Aucun effet publié** ; `Content.lua`, `AZSCARDS`, `AZS_GEAR` écartés (voir `API_PROPOSAL_JEWELRY.md`) |
 | Sort | texte natif du jeu (`GameTooltip:SetHyperlink("spell:<id>")`, lu une fois par sort, mis en cache, **affiché seulement dans le panneau Détails**) | Oui | fidélité à Reborn à confirmer en client ; `spells.json` ne contient pas de description (le guide le dit : « What is not in the files: spell descriptions ») |
 | Bonus de set | `set_bonuses.json` | Non | publié mais non embarqué : hors périmètre de ce lot |
-| Traductions | `i18n/frFR.json` | Noms de sorts, anneaux/bijoux, amulettes fixes (22/22), classes | **Les titres de légendaires et leurs têtes ne sont pas traduits** (0/21 têtes) |
+| Traductions officielles | `i18n/frFR.json` | Noms de sorts, anneaux/bijoux, amulettes fixes (22/22), classes | **Les titres de légendaires et leurs têtes ne sont pas traduits** (0/21 têtes) |
+| Traductions communautaires | `Glossary.lua` (voir `GLOSSARY_FR.md`) | 21 têtes de légendaires, **proposition non officielle**, indexées par tête anglaise | affichage seulement ; les clés `legendary:<sort>` restent l'identité |
 
 Règle d'affichage : une valeur numérique n'est montrée que si un enregistrement la porte ou si la règle officielle la calcule ; sinon « Effet détaillé indisponible ».

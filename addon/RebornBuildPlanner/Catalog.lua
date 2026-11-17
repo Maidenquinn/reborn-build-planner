@@ -204,13 +204,29 @@ function Catalog:Name(kind, key, lang)
 		return key;
 	end
 	local tr = lang and self.i18n[lang];
-	if tr and tr[e.name] then return tr[e.name]; end
-	-- a legendary has no official translation (the heads are English only in the published data): keep the canonical
-	-- head and localize only the spell part, when the spell name IS translated; otherwise the English title as is
-	if tr and e.head and e.spell and self.spells[e.spell] and tr[self.spells[e.spell].name] then
-		return e.head .. ": " .. tr[self.spells[e.spell].name];
+	if tr and tr[e.name] then return tr[e.name]; end                    -- an official translation of the whole title wins
+	if e.spell and e.head then
+		local p = self:LegendParts(key, lang);
+		return p.title;
 	end
 	return e.name;
+end
+
+-- The parts of a legendary's displayed title, by stable key (never by title: titles are shared between classes).
+-- { head, headOrigin = "community"|"english", spell (display name), title, official = false }.
+-- head: community glossary (Glossary.lua) when lang has an entry, else the English head. spell: i18n, else English.
+function Catalog:LegendParts(key, lang)
+	local e = self.legends[key];
+	if not e then return nil; end
+	local tr = lang and self.i18n[lang];
+	local sp = self.spells[e.spell];
+	local spellName = sp and ((tr and tr[sp.name]) or sp.name) or tostring(e.spell);
+	local head, origin = e.head, "english";
+	local G = ns.Glossary;
+	if G and lang then head, origin = G.Head(e.head, lang); end
+	local title;
+	if e.name == e.head then title = head; else title = head .. ": " .. spellName; end      -- some entries carry no spell part
+	return { head = head, headOrigin = origin, spell = spellName, title = title, official = false };
 end
 
 -- Candidates whose English or localized name equals `name` (exact). Several results = ambiguous; the

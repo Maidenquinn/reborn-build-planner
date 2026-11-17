@@ -75,7 +75,17 @@ function Stub.new(opts)
 	function F:SetJustifyH(j) self.justifyH = j; end
 	function F:SetJustifyV(j) self.justifyV = j; end
 	function F:SetFontObject(o) self.fontObject = o; end
-	function F:SetHighlightTexture() end
+	function F:SetHighlightTexture(p) self.hlPath = p; end
+	function F:SetPushedTexture(p) self.pushedPath = p; end
+	function F:GetPushedTexture() return { SetVertexColor = function() end }; end
+	function F:SetGradientAlpha(...) self.gradient = { ... }; end
+	function F:GetStringHeight()
+		local w = self.w > 0 and self.w or 200;
+		local size = self.fontSize or 12;
+		local lines = 0;
+		for l in string.gmatch((self.text or "") .. "\n", "([^\n]*)\n") do lines = lines + math.max(1, math.ceil(Stub.textWidth(l, size) / w)); end
+		return lines * (size + 2);
+	end
 	function F:GetHighlightTexture() return { SetVertexColor = function() end, SetAllPoints = function() end }; end
 	-- sliders (scroll bars)
 	function F:SetOrientation() end

@@ -769,8 +769,11 @@ function Controller:CatalogEntries()
 		local entry = cat:Get(kind, k);
 		if entry then
 			local name = cat:Name(kind, k, lang);
+			local lp = entry.spell and cat:LegendParts(k, lang) or nil;
 			if matches({ name, entry.name }, e.search) then
 				out[#out + 1] = { key = k, name = name, icon = entry.icon, state = used[k], rarity = entry.rarity, legend = entry.spell ~= nil, after = after[k] or nil,
+				spellName = lp and lp.spell or nil, head = lp and lp.head or nil, headOrigin = lp and lp.headOrigin or nil,
+				className = entry.class and self:ClassName(entry.class) or nil,
 				here = (e.cat ~= "spells" and ph[e.group] and ph[e.group][e.slot] == k) or nil };
 			end
 		end
@@ -953,6 +956,8 @@ function Controller:TooltipData(kind, key)
 		if isLegend then
 			if entry.head then line(L("Series:") .. " " .. entry.head); end
 			line(L("Linked spell:") .. " " .. cat:Name("spell", entry.spell, lang));
+			local lp = cat:LegendParts(key, lang);
+			if lp and lp.headOrigin == "community" then line(L("Title: community translation, not official"), "dim"); end
 			line(L("Class:") .. " " .. self:ClassName(entry.class));
 		elseif entry.classes and #entry.classes > 0 then
 			local names = {};

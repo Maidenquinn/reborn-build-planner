@@ -365,3 +365,8 @@ ns.Locale.Register({
 	["Equipment (main | alternatives)"] = "Équipement (principaux | alternatives)",
 	["Source: published game data (azreborn.com/data/v1), rank 1 values and the official growth rule."] = "Source : données publiées du jeu (azreborn.com/data/v1), valeurs du rang 1 et règle de croissance officielle.",
 });
+
+-- Lot 3.5
+ns.Locale.Register({
+	["Title: community translation, not official"] = "Titre : traduction communautaire, non officielle",
+});

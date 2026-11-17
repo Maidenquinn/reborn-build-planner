@@ -1,6 +1,6 @@
 # PROJECT_STATE — Reborn Build Planner
 
-Mis à jour : 2026-11-17 · Lots 0-2 validés · Lots 3 à 3.3 PASS CONDITIONNEL · **Lot 3.4 livré : 0.4.2-alpha, PASS CONDITIONNEL (simulé, rendu non vu)** · Lot 4 non commencé.
+Mis à jour : 2026-11-17 · Lots 0-2 validés · Lots 3 à 3.4 PASS CONDITIONNEL · **Lot 3.5 étape 1 : prototype graphique + glossaire livrés (0.4.3-proto1), thème NON approuvé** · Lot 4 non commencé.
 
 ## Décisions acquises
 * Addon natif `RebornBuildPlanner`, `## Interface: 30300`, dépendances `AzerothSurvivors, AzerothSurvivorsAPI`, SavedVariables **`RebornBuildPlannerDB`** (seule globale propre) ; namespace global `RebornBuildPlanner`. Commandes `/rbp`, `/rebornplanner` à valider (collision non vérifiée).
@@ -68,3 +68,10 @@ Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOA
 * **Tests** : Lua 5.1 206 cas / 11 773 assertions / 0 échec.
 * **À valider en jeu** : `RECETTE_CLIENT_LOT3_4.md` (G1-G14), dont appréciation visuelle ; comparer 2-3 effets d'amulettes au site.
 * **Prochaine action** : captures de Kevin ; envoyer la proposition API à SNX ; décider de `set_bonuses.json` ; puis Lot 4.
+
+## Lot 3.5 (étape 1, 0.4.3-proto1)
+* **Diagnostic** : `DIAGNOSTIC_RENDU.md` (observé / déduit / inconnu).
+* **Design system** : `Theme.lua` (chargé, non appliqué) + addon `RebornPlannerThemeLab` (`/rbplab`, comparaison nouveau / 0.4.2, capacités du client). Recette : `RECETTE_LAB_LOT3_5.md`.
+* **Localisation** : `Glossary.lua` / `GLOSSARY_FR.md` (21 têtes, communautaire, non officiel, clé stable inchangée).
+* **Tests** : Lua 5.1 216 cas / 12 586 assertions / 0 échec.
+* **Bloquant** : validation visuelle de Kevin (L1-L10). Éditeur complet, 0.4.3-alpha, recette éditeur : après approbation.

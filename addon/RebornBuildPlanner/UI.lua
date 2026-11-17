@@ -1229,6 +1229,10 @@ function UI:RefreshBrowser()
 				if en.after then tag = L("Banish after"); end
 			elseif kind == "amulet" then
 				sub = en.legend and L("Legendary amulet") or (L("Amulet") .. " | " .. L(RARITY_L[en.rarity or ""] or "Unknown"));
+				if en.legend and en.spellName then      -- spell name first (what tells two legends apart), head and class below
+					r.name:SetText(fitText(en.spellName, 228, 12));
+					sub = (en.head or "") .. " | " .. (en.className or "");
+				end
 				tag = en.here and L("In slot") or (en.state == "placed" and L("Placed") or "");
 			else
 				sub = e.cat == "rings" and L("Ring") or L("Trinket");

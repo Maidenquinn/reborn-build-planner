@@ -190,7 +190,7 @@ return function(H)
 
 	test("3.4 legendary names: canonical head + translated spell only when the spell IS translated", function()
 		eq(cat:Name("amulet", "legendary:cleave", nil), "Medallion of the Bladestorm: Cleave");
-		eq(cat:Name("amulet", "legendary:cleave", "frFR"), "Medallion of the Bladestorm: Enchaînement");
+		eq(cat:Name("amulet", "legendary:cleave", "frFR"), "Médaillon de la Tempête de lames: Enchaînement");
 		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: Cleave", "language not embedded: English");
 		-- search finds it by the English title and by the French spell part
 		local e = boot({ locale = "frFR" });
@@ -293,7 +293,7 @@ return function(H)
 		f.world.click(f.ui.bs.rows[1]);
 		local ft = f.ui:DetailText();
 		ok(ft:find("EFFETS (RANG 1)", 1, true) and ft:find("CROISSANCE", 1, true), ft);
-		ok(f.ui.det.title.text:find("Eye of the Splitting Sky", 1, true), f.ui.det.title.text);
+		ok(f.ui.det.title.text:find("Œil du Ciel fendu", 1, true), f.ui.det.title.text);
 	end);
 
 	test("3.4 inspector: long content scrolls inside the panel; a new selection starts at the top; no widget is created", function()

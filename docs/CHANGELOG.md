@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3-proto1 (Lot 3.5, étape 1)
+* Titres FR de légendaires (glossaire communautaire, non officiel) ; listes : sort puis « tête | classe ».
+* `Theme.lua` (design system) livré mais non appliqué ; addon séparé `RebornPlannerThemeLab` pour valider le rendu réel.
+* Tests Lua 5.1 : 216 cas, 12 586 assertions.
+
 ## 0.4.2-alpha (Lot 3.4) — équipements, infobulles, descriptions, traductions
 * **Données** : générateur v2 : conserve les champs publiés des amulettes (`growth`, `effects`, `special`, `world`, `needs`) et des légendaires (`template`, `form`, `effects`, `growth`, `fixed`) ; hash de contenu inchangé. Nouveau module `Describe.lua` (règles officielles, FR/EN, aucune valeur inventée).
 * **Cases d'équipement** : structure à zones réservées (fin des chevauchements nom / bouton retirer), principaux et alternatives séparés, nom très long tronqué avec nom complet dans le panneau et l'infobulle, couleurs de rareté.

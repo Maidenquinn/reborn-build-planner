@@ -5,7 +5,7 @@
 -- Lua 5.1 syntax only.
 local ADDON, ns = ...;
 ns = ns or {};
-ns.VERSION = "0.4.2-alpha";
+ns.VERSION = "0.4.3-proto1";
 RebornBuildPlanner = ns;
 
 -- existingDb: the loaded SavedVariables table (nil on first run); now: clock function.
