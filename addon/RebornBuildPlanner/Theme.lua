@@ -109,6 +109,40 @@ function T.Nine(frame, file, layer)
 	return n;
 end
 
+-- Buttons only need horizontal stretching: 3 regions instead of 9.
+-- Preserves edge proportions and greatly reduces the static widget count.
+-- The caller retains the same :SetFile and .file contract as T.Nine.
+function T.Three(frame, file, layer)
+	local def = assert(T.FILES[file]);
+	local size, c = def[1], def[2];
+	local cut = c / size;
+	local n = { tex = {}, file = file };
+	local function mk(x1, x2)
+		local t = frame:CreateTexture(nil, layer or "BACKGROUND");
+		t:SetTexture(M(file));
+		t:SetTexCoord(x1, x2, 0, 1);
+		n.tex[#n.tex + 1] = t;
+		return t;
+	end
+	local left = mk(0, cut);
+	left:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0);
+	left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0);
+	left:SetWidth(c);
+	local right = mk(1 - cut, 1);
+	right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0);
+	right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0);
+	right:SetWidth(c);
+	local mid = mk(cut, 1 - cut);
+	mid:SetPoint("TOPLEFT", frame, "TOPLEFT", c, 0);
+	mid:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -c, 0);
+	function n:SetFile(nextFile)
+		if self.file == nextFile then return; end
+		self.file = nextFile;
+		for _, t in ipairs(self.tex) do t:SetTexture(M(nextFile)); end
+	end
+	return n;
+end
+
 -- text cut to a pixel budget with an ellipsis (UTF-8 aware; 0.62 x font size per glyph, a little pessimistic)
 function T.Fit(str, px, size)
 	local max = math.floor(px / ((size or 12) * 0.62));
@@ -246,7 +280,7 @@ function T.Button(parent, label, w, h, role, onClick, name)
 	if T.mode == "backdrop" then
 		b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, tile = false, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } });
 	else
-		b.nine = T.Nine(b, "button_secondary_nine", "BACKGROUND");
+		b.nine = T.Three(b, "button_secondary_nine", "BACKGROUND");
 	end
 	local fs = b.GetFontString and b:GetFontString();
 	if not fs then
