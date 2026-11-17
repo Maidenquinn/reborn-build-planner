@@ -60,8 +60,8 @@ def panel():
     d=ImageDraw.Draw(im)
     d.rectangle((0,0,w-1,h-1),outline=B,width=3)
     d.rectangle((5,5,w-6,h-6),outline=G,width=1)
-    for x,y in [(12,12),(244,12),(12,244),(244,244)]:
-        d.ellipse((x-2,y-2,x+2,y+2),fill=G,outline=L)
+    # Keep the panel corners completely quiet: labels begin only 8px from the edge.
+    # Decorative studs here obscured 'Rechercher', 'Navigateur', and other short headings.
     return im
 
 def tga_bytes(im):
