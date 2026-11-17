@@ -190,7 +190,7 @@ function lab:Build()
 	root:SetScale(scale);
 	root:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
 	local title = T.Text(root, T.FONT.window, T.C.gold, 24, 18, 760, 20);
-	title:SetText("Reborn Build Planner — laboratoire visuel v2 (textures originales)");
+	title:SetText("Reborn Build Planner — laboratoire Ultimate UI v3 (art fantasy)");
 	local cap = T.Capabilities(root);
 	local keys = { "SetGradientAlpha", "SetBackdrop", "SetHighlightTexture", "SetPushedTexture", "GetHighlightTexture", "SetFontString", "SetTextInsets", "GetStringHeight", "SetVertexColor", "SetTexCoord", "SetToplevel" };
 	local parts = {};
@@ -202,7 +202,7 @@ function lab:Build()
 	capfs:SetText("Ce client : " .. self.capText);
 	local close = T.Button(root, "X", 32, 26, "danger", function() root:Hide(); end, "RebornPlannerThemeLabClose");
 	close:SetPoint("TOPRIGHT", root, "TOPRIGHT", -16, -14);
-	column(root, 18, "textures", "NOUVEAU : textures originales, boutons en relief, états visibles");
+	column(root, 18, "textures", "ULTIMATE v3 : blason, métal gravé, panneaux texturés");
 	column(root, 18 + COLW + 24, "backdrop", "ANCIEN (0.4.2) : aplats unis, pour comparaison");
 	T.mode = "textures";
 	mediaStrip(root);
