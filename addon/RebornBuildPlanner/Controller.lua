@@ -950,6 +950,7 @@ function Controller:TooltipData(kind, key)
 		-- Prefer explicitly sourced client metadata. Never turn a base value into a live stat.
 		d.sections = ns.JewelryEffects and ns.JewelryEffects.Sections(key, entry.slot, lang == "frFR") or nil;
 		if d.sections then
+			d.sourceKind = "jewelry_local";
 			d.preview = ns.Describe and ns.Describe.Preview(d.sections, 3) or {};
 		else
 			line(L("Detailed effect unavailable"), "dim");
