@@ -74,3 +74,38 @@ function E.Sections(key, slot, french)
     { title = fr and "Origine" or "Source", lines = { { text = source, tone = "dim" } } }
   }
 end
+
+-- The game exposes owned jewelry as AZS_GEAR snapshots. It does NOT supply
+-- a reliable catalog key: match only when name + slot resolve to ONE unique
+-- official catalog entry. Shared icons and approximate names are never enough.
+-- Read only at inspection time: the game replaces its snapshot tables.
+local function available()
+  local ph = AZS_GetPhase and AZS_GetPhase() or (AZS_RUN and AZS_RUN.ph)
+  if ph == nil or ph == "ready" or ph == "ended" then return false end
+  if AZS_ZONE and tonumber(AZS_ZONE.hub) == 1 then return false end
+  return type(AZS_GEAR) == "table"
+end
+local function matchUnique(catalog, key, slot, display)
+  if not catalog or type(display) ~= "string" or display == "" then return false end
+  local list = slot == "ring" and "rings" or "trinkets"
+  local found, n = {}, 0
+  for _, lang in ipairs({ "enUS", "frFR" }) do
+    for _, e in ipairs(catalog:FindByName(list, display, lang)) do
+      if not found[e.key] then found[e.key] = true; n = n + 1 end
+    end
+  end
+  return n == 1 and found[key] == true
+end
+function E.LiveSections(catalog, key, slot, french)
+  if not available() or (slot ~= "ring" and slot ~= "trinket") then return nil end
+  for _, worn in ipairs(AZS_GEAR) do
+    if type(worn) == "table" and worn.slot == slot and
+       type(worn.text) == "string" and worn.text ~= "" and
+       #worn.text <= 2048 and matchUnique(catalog, key, slot, worn.name) then
+      return {
+        { title = french and "Actuellement équipé (texte du jeu)" or "Currently equipped (game text)",
+          lines = { { text = worn.text } } }
+      }
+    end
+  end
+end
