@@ -58,6 +58,7 @@ no_cat = None if (os.path.exists(GEN) or have_cat_src) else "no catalogue: set R
 no_cat = no_cat if not os.path.exists(GEN) else None
 
 run("catalogue up to date", [PY, "-I", "tools/generate_catalog.py", "--check"], no_cat or (None if have_cat_src else "catalogue source absent"))
+run("original fantasy textures generated", [PY, "-I", "tools/make_ultimate_art.py", "addon_lab/RebornPlannerThemeLab/Media"])
 run("textures up to date", [PY, "-I", "tools/make_textures.py", "addon_lab/RebornPlannerThemeLab/Media", "--check"])
 run("generator tests", [PY, "-I", "tests/py/test_generator.py"], no_cat or (None if have_cat_src else "catalogue source absent"))
 run("Lot 0 suite", [PY, "-I", "tools/run_tests.py"] + extra, None if have_cat_src else "catalogue source absent")
