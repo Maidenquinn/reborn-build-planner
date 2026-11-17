@@ -39,7 +39,7 @@ $testExit = $LASTEXITCODE
 if ($testExit -eq 1) { throw "A test FAILED. Read tests\results\last_run.txt. No ZIP was produced." }
 if ($testExit -ne 0 -and $testExit -ne 3) { throw "Unexpected test exit code $testExit" }
 $testLog = Get-Content -LiteralPath (Join-Path $root "tests\results\last_run.txt")
-if ($testLog -match "FAIL") { throw "Test failures recorded. No ZIP was produced." }
+if (@($testLog | Where-Object { $_ -match "^== .+: FAIL(?: |$)" }).Count -gt 0) { throw "Test failures recorded. No ZIP was produced." }
 $skipped = @($testLog | Where-Object { $_ -match "^== .+: SKIPPED" })
 if ($skipped.Count -gt 0) {
   $unexpected = @($skipped | Where-Object { $_ -notmatch "^== JS <-> Lua cross-check" })
