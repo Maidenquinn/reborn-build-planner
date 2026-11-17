@@ -160,4 +160,12 @@ return function(H)
 		cat:Name("spell", "whirlwind", "frFR"); cat:FindByName("amulets", "x"); cat:CheckKey("amulets", "warglaives", "warrior");
 		ok(H.deepeq(before, data));
 	end);
+
+	test("class names: localized with English fallback, unknown class shows its key", function()
+		eq(cat:ClassName("warrior"), "Warrior");
+		eq(cat:ClassName("warrior", "frFR"), "Guerrier");
+		eq(cat:ClassName("warrior", "deDE"), "Warrior");
+		eq(cat:ClassName("necromancer", "frFR"), "necromancer");
+		for _, k in ipairs(cat:ClassKeys()) do ok(cat:ClassName(k, "frFR") ~= "", k); end
+	end);
 end

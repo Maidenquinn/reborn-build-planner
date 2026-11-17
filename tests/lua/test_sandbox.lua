@@ -2,7 +2,7 @@ return function(H)
 	local eq, ok, no, test = H.eq, H.ok, H.no, H.test;
 	local function list(t) local o = {}; for k in pairs(t) do o[#o + 1] = k; end table.sort(o); return o; end
 	-- CreateFrame is the one client global Core.lua is allowed to look for (guarded); anything else is a bug.
-	local function reads(sb) local o = {}; for _, k in ipairs(list(sb.reads)) do if k ~= "CreateFrame" then o[#o + 1] = k; end end return o; end
+	local function reads(sb) local o = {}; for _, k in ipairs(list(sb.reads)) do if k ~= "CreateFrame" and k ~= "GetLocale" and k ~= "UnitClass" then o[#o + 1] = k; end end return o; end
 	local function strip(src) return (src:gsub("%-%-[^\n]*", "")); end
 	local function files() return H.tocFiles(H.root); end
 	local function now() return 1700000000; end
@@ -12,7 +12,7 @@ return function(H)
 		ok(toc:find("## Interface: 30300", 1, true));
 		ok(toc:find("## Dependencies: AzerothSurvivors, AzerothSurvivorsAPI", 1, true));
 		ok(toc:find("## SavedVariables: RebornBuildPlannerDB", 1, true));
-		eq(files(), { "Util.lua", "Locale.lua", "GeneratedCatalog.lua", "Catalog.lua", "BuildModel.lua", "Storage.lua", "Utf8.lua", "Base64Url.lua", "Json.lua", "PlannerCodec.lua", "Core.lua" });
+		eq(files(), { "Util.lua", "Locale.lua", "GeneratedCatalog.lua", "Catalog.lua", "BuildModel.lua", "Storage.lua", "Utf8.lua", "Base64Url.lua", "Json.lua", "PlannerCodec.lua", "UIStrings.lua", "Controller.lua", "UI.lua", "Commands.lua", "Core.lua" });
 		for _, f in ipairs(files()) do
 			ok(#H.readFile(H.root .. "/addon/RebornBuildPlanner/" .. f) > 0, f);
 		end
@@ -87,7 +87,7 @@ return function(H)
 		end
 		local function boot(existing)
 			handler, registered = nil, nil;
-			local ns, sb = H.loadAddon({ time = now, CreateFrame = CreateFrame, extra = { RebornBuildPlannerDB = existing } });
+			local ns, sb = H.loadAddon({ time = now, CreateFrame = CreateFrame, extra = { RebornBuildPlannerDB = existing, _G = {}, SlashCmdList = {} } });
 			eq(registered, "ADDON_LOADED");
 			handler("ADDON_LOADED", "SomeOtherAddon");
 			ok(sb.base.RebornBuildPlannerDB == existing, "another addon's load must not initialise us");

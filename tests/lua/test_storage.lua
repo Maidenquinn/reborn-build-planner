@@ -400,4 +400,27 @@ return function(H)
 		local ok2 = U.Measure(h.db, S.LIMITS.dbNodes, S.LIMITS.dbDepth);
 		ok(ok2);
 	end);
+
+	test("Lot 3 settings: window position, scale and last class are validated, persisted and reversible", function()
+		local h = mk(nil);
+		eq(h:GetSetting("scale"), 1);
+		eq(h:GetSetting("lastClass"), "");
+		eq(h:GetSetting("window"), nil);
+		ok(h:SetSetting("window", { point = "TOPLEFT", x = -120.5, y = 40 }));
+		ok(h:SetSetting("scale", 0.8));
+		ok(h:SetSetting("lastClass", "mage"));
+		local h2 = mk(H.roundtrip(h.db));
+		eq(h2:GetSetting("window"), { point = "TOPLEFT", x = -120.5, y = 40 });
+		eq(h2:GetSetting("scale"), 0.8);
+		for _, bad in ipairs({ { "scale", 0.1 }, { "scale", 9 }, { "scale", "1" }, { "scale", 0 / 0 }, { "lastClass", 5 }, { "lastClass", string.rep("x", 65) },
+			{ "window", "x" }, { "window", { point = "CENTER", x = 1 } }, { "window", { point = 5, x = 1, y = 1 } }, { "window", { point = "CENTER", x = 1e9, y = 0 } },
+			{ "window", { point = "CENTER", x = 0 / 0, y = 0 } } }) do
+			local r, err = h:SetSetting(bad[1], bad[2]);
+			eq(r, nil, bad[1]);
+			eq(err.code, "INVALID_VALUE");
+		end
+		eq(h:GetSetting("scale"), 0.8, "refused values change nothing");
+		h.db.settings.window = nil;
+		eq(h:GetSetting("window"), nil, "removing the saved position restores the default");
+	end);
 end

@@ -1,10 +1,11 @@
 # PROJECT_STATE — Reborn Build Planner
 
-Mis à jour : 2026-11-17 · Lot 0 PASS CONDITIONNEL (validé) · Lot 1 PASS CONDITIONNEL (validé) · **Lot 1.1 terminé (PASS)** · **Lot 2 terminé (PASS CONDITIONNEL : navigateur partiel)** · Lot 3 (éditeur simple) non commencé.
+Mis à jour : 2026-11-17 · Lots 0, 1, 1.1, 2 validés (PASS ou PASS CONDITIONNEL) · **Lot 3 livré : PASS CONDITIONNEL (simulé, client non testé)** · Lot 4 (suivi, conseils) non commencé.
 
 ## Décisions acquises
 * Addon natif `RebornBuildPlanner`, `## Interface: 30300`, dépendances `AzerothSurvivors, AzerothSurvivorsAPI`, SavedVariables **`RebornBuildPlannerDB`** (seule globale propre) ; namespace global `RebornBuildPlanner`. Commandes `/rbp`, `/rebornplanner` à valider (collision non vérifiée).
-* Lecture seule des tables `AZS_*`, abonnements `AZS.On`, aucun événement WoW inventé, aucun `sync`/polling, aucune action de jeu. **Pas encore câblé** (Lot 4).
+* Lecture seule des tables `AZS_*`, abonnements `AZS.On`, aucun événement WoW inventé, aucun `sync`/polling, aucune action de jeu. **Pas encore câblé** (Lot 4) : l'interface du Lot 3 n'affiche aucune donnée live.
+* **Interface (Lot 3)** : une fenêtre (Mes builds / Éditeur / Importer / Exporter) + une boîte de dialogue ; `Controller` (comportement sans widget) + `UI` (rendu) ; widgets créés une fois, listes paginées ; brouillon distinct de l'enregistré, jamais auto-enregistré ; suppression via corbeille annulable ; import jamais actif ; « Suivre » refusé pour un build à réparer ; pas de presse-papiers (Ctrl+A/C/V) ; `/rbp`, `/rebornplanner` (collision gérée), `reset`, `diag` ; FR si client `frFR`, EN sinon ; rien de traduit dans les données.
 * Run = `AZS_API_RunId()`, hub = `AZS_ZONE.hub == 1`, jetons de conseil `{run, époque, main, état}`, inconnu ≠ absent (Lot 0).
 * **Conseil automatique de bijou désactivé** jusqu'à `P-J1…P-J3` ; légendaires = `legendary:<spell>` par nom complet + classe, jamais `head`/icône.
 * Catalogue : généré hors jeu (`tools/generate_catalog.py`), embarqué en Lua pur, clés officielles, refus des schémas futurs, anomalies consignées (jamais corrigées). `call_of_flame` = anomalie connue (marqué légendaire sans ligne `legends.json`).
@@ -19,10 +20,10 @@ Mis à jour : 2026-11-17 · Lot 0 PASS CONDITIONNEL (validé) · Lot 1 PASS COND
 Lot 0 : R1-R17 statiques (54 ancres). Lot 1 : D1-D7, S1-S6, C1. Lot 1.1 : quarantaine sans perte (refus contrôlé `QUARANTINE_FULL`), ouverture transactionnelle (copie, invariants, lecture seule en cas d'échec). Lot 2 : X1-X14 (`CONTRACTS.md` §7-8), codes identiques à ceux du site sur 68/68 cas.
 
 ## Tests exécutés (`python -I tools/run_all.py` → exit 0)
-Catalogue à jour · générateur 84 · Lot 0 273 · **Lua 5.1 : 92 cas, 6 526 assertions, 0 échec** (vrais modules, sandbox sans `io/os/require`) · **JS↔Lua : 63 codes vérifiés avec le décodeur officiel (Node)** · recette navigateur partielle (`?p=`, 2026-11-17). Lot 1.1 : avant 33 échecs / après 0 (`REPORT_LOT1_1.md`). Non exécuté : client Reborn, import par collage sur le site.
+Catalogue à jour · générateur 84 · Lot 0 273 · **Lua 5.1 : 135 cas, 6 980 assertions, 0 échec** (dont interface simulée : 41 cas) (vrais modules, sandbox sans `io/os/require`) · **JS↔Lua : 63 codes vérifiés avec le décodeur officiel (Node)** · recette navigateur partielle (`?p=`, 2026-11-17). Lot 1.1 : avant 33 échecs / après 0. Lot 3 : mise en page contrôlée sur dimensions **estimées** (1365×768, 1920×1080, 1024×768, 800×600, EN/FR) — pas un rendu. **Non exécuté : client Reborn (aucune capture), import par collage sur le site.**
 
 ## Inconnues et risques
-Lot 2 : `P-W1` (1)-(4) ; talents réécrits par le site (X13) ; plafonds de taille à confirmer ; URL = approximation WHATWG. `P-K1`, `P-J1/J2/J3`, `P-C1`, `P-C2`, `P-R1/R2/R3`, `P-S1/S2`, `P-U1`, `P-W1` (inchangés, `VALIDATION_PLAN.md`). Nouveaux : comportement réel d'`ADDON_LOADED`/SavedVariables dans le client ; poids du catalogue en mémoire ; légendaires non traduites en FR ; une seule migration (schéma 0 prototype).
+Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOADED`, focus clavier et Ctrl+C/V dans les zones de texte, clamp de la fenêtre, recouvrement des écrans de cartes, rendu FR, coexistence FieldKit/Stats. Lot 2 : `P-W1` (1)-(4) ; talents réécrits par le site (X13) ; plafonds de taille à confirmer ; URL = approximation WHATWG. `P-K1`, `P-J1/J2/J3`, `P-C1`, `P-C2`, `P-R1/R2/R3`, `P-S1/S2`, `P-U1`, `P-W1` (inchangés, `VALIDATION_PLAN.md`). Nouveaux : comportement réel d'`ADDON_LOADED`/SavedVariables dans le client ; poids du catalogue en mémoire ; légendaires non traduites en FR ; une seule migration (schéma 0 prototype).
 
 ## Décisions du Lot 2 (appliquées, à ratifier)
 1. Import : conflits conservés avec aperçu ; build « à réparer » stockable mais **non activable** ; classe inconnue acceptée, jamais activée ni exportée.
@@ -32,4 +33,5 @@ Lot 2 : `P-W1` (1)-(4) ; talents réécrits par le site (X13) ; plafonds de tail
 5. Format natif d'échange : non défini (besoin non établi).
 
 ## Prochaine action
-Lot 3 : éditeur simple (bibliothèque, catalogue filtré, listes prioritaires, aperçu d'import avec `PlannerCodec`). En parallèle Kevin : P-W1 (1)-(4) (~15 min) et recette client `S-A…S-D` (~30 min) pour lever `P-C1/P-S2/P-J*` avant le Lot 4.
+1. **Kevin** : exécuter la recette client du Lot 3 (≈ 25 min, package `reborn-build-planner-recette-lot3\`), puis P-W1 (1)-(4) et la recette `S-A…S-D` (~30 min) qui lèvent `P-C1/P-S2/P-J*`.
+2. Lot 4 (suivi en partie, évaluation, conseils de sorts) seulement après `P-C1`, `P-S2` et les corrections issues de la recette du Lot 3.

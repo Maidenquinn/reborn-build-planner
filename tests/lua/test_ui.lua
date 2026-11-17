@@ -1,0 +1,827 @@
+-- Lot 3: the REAL Controller/UI/Commands/Core code driven through a headless 3.3.5a widget mock (wowstub.lua).
+-- Proves behaviour and a layout lint on estimated text metrics. It does NOT prove rendering in the Reborn client.
+return function(H)
+	local eq, ok, no, test = H.eq, H.ok, H.no, H.test;
+	local Stub = dofile(H.root .. "/tests/lua/wowstub.lua");
+	local U;
+
+	-- boots a fresh "client": stub world + addon files + ADDON_LOADED (optionally with a saved database)
+	local function boot(o)
+		o = o or {};
+		local world = Stub.new({ width = o.width or 1365, height = o.height or 768, locale = o.locale or "enUS", classToken = o.classToken, className = o.className, noWordWrap = o.noWordWrap });
+		for k, v in pairs(o.preset or {}) do world.G[k] = v; end
+		local ns, sb = H.loadAddon({ globals = world.G, time = world.G.time });
+		U = ns.Util;
+		local env = { world = world, ns = ns, sb = sb, G = world.G };
+		function env.start() world.fire("ADDON_LOADED", "RebornBuildPlanner"); env.c, env.ui = ns.controller, ns.ui; return env; end
+		function env.open() world.G.SlashCmdList.REBORNPLANNER(""); env.root = world.G.RebornBuildPlannerFrame; return env.root; end
+		function env.h() return ns.storage; end
+		function env.texts() return table.concat(world.texts(), " | "); end
+		function env.lint() return world.lint(env.root); end
+		if not o.noStart then env.start(); end
+		return env;
+	end
+	-- simulates /reload: the saved variables are what the client would write, re-read into a brand new world
+	local function reload(env, o)
+		o = o or {};
+		local text = H.serialize("RebornBuildPlannerDB", env.G.RebornBuildPlannerDB);
+		o.preset = { RebornBuildPlannerDB = H.reload("RebornBuildPlannerDB", text) };
+		return boot(o);
+	end
+	local function modalButton(env, label) return env.world.clickLabel(label, env.G.RebornBuildPlannerModal); end
+	local function createViaUI(env, name, classKeyClicks)
+		env.world.clickLabel(env.ns.Locale.T("Create a build"), env.ui.views.library);
+		local m = env.G.RebornBuildPlannerModal;
+		ok(m:IsShown(), "create dialog shown");
+		env.world.type(env.G.RebornBuildPlannerModalEdit, name);
+		for _ = 1, classKeyClicks or 0 do env.world.click(env.ui.modal.cycle.next); end
+		modalButton(env, env.ns.Locale.T("Create"));
+		return env.c.state.selectedId;
+	end
+	local function T(env, s) return env.ns.Locale.T(s); end
+
+	-- ------------------------------------------------------------------ 3A: native initialisation
+	test("3A: nothing is created or read before ADDON_LOADED; the event of another addon is ignored", function()
+		local e = boot({ noStart = true });
+		eq(e.G.RebornBuildPlannerDB, nil);
+		eq(e.G.SlashCmdList.REBORNPLANNER, nil);
+		eq(e.G.RebornBuildPlannerFrame, nil);
+		e.world.fire("ADDON_LOADED", "SomeOtherAddon");
+		eq(e.G.RebornBuildPlannerDB, nil);
+		e.world.fire("ADDON_LOADED", "RebornBuildPlanner");
+		eq(e.G.RebornBuildPlannerDB.schema, 1);
+		eq(e.G.SLASH_REBORNPLANNER1, "/rbp");
+		eq(e.G.SLASH_REBORNPLANNER2, "/rebornplanner");
+		ok(e.G.SlashCmdList.REBORNPLANNER ~= nil);
+		eq(e.G.RebornBuildPlannerFrame, nil, "no window until the first /rbp");
+		e.world.fire("ADDON_LOADED", "RebornBuildPlanner");   -- unregistered: a second event does nothing
+		local f = nil;
+		for _, fr in ipairs(e.world.all) do if fr.registered and next(fr.registered) == nil and fr.scripts.OnEvent then f = fr; end end
+		ok(f ~= nil, "the loader frame unregistered ADDON_LOADED");
+	end);
+
+	test("3A: only the planned globals are written; nothing foreign is read", function()
+		local e = boot();
+		e.open();
+		local allowed = { RebornBuildPlanner = true, RebornBuildPlannerDB = true, SLASH_REBORNPLANNER1 = true, SLASH_REBORNPLANNER2 = true, SlashCmdList = true };
+		for k in pairs(e.sb.writes) do
+			ok(allowed[k] or string.find(k, "^RebornBuildPlanner"), "unexpected global write: " .. k);
+		end
+		local reads = {};
+		for k in pairs(e.sb.reads) do reads[#reads + 1] = k; end
+		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" then table.remove(reads, i); end end
+		eq(reads, {}, "non-client globals read");
+	end);
+
+	test("3A: command collisions are left alone", function()
+		local e = boot({ noStart = true, preset = { SLASH_OTHER1 = "/rbp", SlashCmdList = { OTHER = function() end } } });
+		e.start();
+		eq(e.G.SLASH_REBORNPLANNER1, "/rebornplanner", "free alias still registered");
+		eq(e.G.SLASH_OTHER1, "/rbp", "the other addon's alias is untouched");
+		ok(e.world.chat[1] and e.world.chat[1]:find("/rbp", 1, true), "player is told");
+		local e2 = boot({ noStart = true, preset = { SLASH_A1 = "/rbp", SLASH_B1 = "/rebornplanner" } });
+		e2.start();
+		eq(e2.G.SlashCmdList.REBORNPLANNER, nil, "both taken: nothing registered");
+	end);
+
+	test("3A: /rbp opens and closes; /rbp diag and unknown arguments answer", function()
+		local e = boot();
+		local root = e.open();
+		ok(root:IsShown());
+		e.G.SlashCmdList.REBORNPLANNER("");
+		no(root:IsShown());
+		e.G.SlashCmdList.REBORNPLANNER("toggle");
+		ok(root:IsShown());
+		e.G.SlashCmdList.REBORNPLANNER("diag");
+		ok(e.world.chat[#e.world.chat]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat]);
+		e.G.SlashCmdList.REBORNPLANNER("what");
+		ok(e.world.chat[#e.world.chat]:find("Usage", 1, true));
+		eq(e.root.strata, "HIGH");
+		ok(e.root.clamped, "window is clamped to the screen");
+	end);
+
+	test("3A: language follows the client (frFR French, enUS and others English)", function()
+		local fr = boot({ locale = "frFR" }); fr.open();
+		ok(fr.world.hasText("Mes builds") and fr.world.hasText("Créer un build"), fr.texts());
+		local en = boot({ locale = "enUS" }); en.open();
+		ok(en.world.hasText("My builds") and en.world.hasText("Create a build"));
+		local de = boot({ locale = "deDE" }); de.open();
+		ok(de.world.hasText("My builds"), "unsupported locale falls back to English");
+		-- the saved choice wins over the client locale
+		local e = boot({ locale = "frFR" });
+		e.h():SetSetting("lang", "enUS");
+		local again = reload(e, { locale = "frFR" }); again.open();
+		ok(again.world.hasText("My builds"));
+	end);
+
+	test("3A: read-only storage (future schema): nothing is replaced, editing is blocked, the player is told", function()
+		local fut = { schema = 99, keep = "me" };
+		local e = boot({ preset = { RebornBuildPlannerDB = fut } });
+		ok(e.G.RebornBuildPlannerDB == fut, "a newer database must stay untouched");
+		e.open();
+		ok(e.world.hasText("Read only"), e.texts());
+		no(e.ui.lib.create:IsEnabled());
+		e.c:Create("x", "warrior");
+		eq(fut, { schema = 99, keep = "me" });
+		eq(e.c:Handle().readOnly, true);
+	end);
+
+	test("3A: pre-existing prototype data is migrated and the migrated table is assigned", function()
+		local old = { builds = { { name = "Old", class = "warrior", spells = { "whirlwind" } } } };
+		local e = boot({ preset = { RebornBuildPlannerDB = old } });
+		ok(e.G.RebornBuildPlannerDB ~= old);
+		eq(e.G.RebornBuildPlannerDB.schema, 1);
+		e.open();
+		ok(e.world.hasText("Old"));
+	end);
+
+	-- ------------------------------------------------------------------ 3B: library
+	test("3B: empty state, create, appears in the list, never active by itself", function()
+		local e = boot({ classToken = "MAGE", className = "Mage" }); e.open();
+		ok(e.world.hasText("No build yet"));
+		ok(e.world.hasText("Create a build or import a Reborn code."));
+		local id = createViaUI(e, "Frost plan");
+		ok(id);
+		eq(e.h():Get(id).class, "mage", "default class = the player's class");
+		eq(e.h():Get(id).name, "Frost plan");
+		eq(e.c.state.view, "editor", "the new build opens in the editor");
+		eq(e.h():GetActive("mage"), nil, "creating never activates");
+		e.world.click(e.ui.nav.library);
+	end);
+
+	local function populate(e)
+		local ids = {};
+		for _, spec in ipairs({ { "W one", "warrior" }, { "W two", "warrior" }, { "M one", "mage" }, { "R one", "rogue" } }) do
+			ids[#ids + 1] = e.c:Create(spec[1], spec[2]);
+		end
+		e.c:SetView("library");
+		return ids;
+	end
+
+	test("3B: list, class filter, selection, pages", function()
+		local e = boot(); e.open();
+		local ids = populate(e);
+		ok(e.world.hasText("W one") and e.world.hasText("M one") and e.world.hasText("R one"));
+		e.world.click(e.ui.lib.cycle.next);
+		eq(e.c.state.classFilter, "warrior");
+		ok(e.world.hasText("W two") and not e.world.hasText("M one"), e.texts());
+		e.world.click(e.ui.lib.cycle.prev);
+		eq(e.c.state.classFilter, nil);
+		for _ = 1, 20 do e.c:Create("many", "paladin"); end
+		e.c:SetView("library");
+		ok(e.c:PageCount() >= 3);
+		e.world.click(e.ui.lib.pager.next);
+		eq(e.c.state.page, 2);
+		no(e.ui.lib.pager.next:IsEnabled() and e.c.state.page == e.c:PageCount());
+		e.world.click(e.ui.lib.rows[1]);
+		eq(e.c.state.selectedId, e.ui.lib.rows[1].rowId);
+	end);
+
+	test("3B: duplicate, rename, activate / stop following, status shown", function()
+		local e = boot(); e.open();
+		local ids = populate(e);
+		e.c:Select(ids[1]);
+		e.world.clickLabel(T(e, "Duplicate"), e.ui.views.library);
+		eq(#e.h():List("warrior"), 3);
+		ok(e.world.hasText("W one (copy)"));
+		e.c:Select(ids[1]);
+		e.world.clickLabel(T(e, "Rename"), e.ui.views.library);
+		e.world.type(e.G.RebornBuildPlannerModalEdit, "Renamed é");
+		modalButton(e, T(e, "Rename"));
+		eq(e.h():Get(ids[1]).name, "Renamed é");
+		e.c:Select(ids[1]);
+		e.world.clickLabel(T(e, "Follow"), e.ui.views.library);
+		eq(e.h():GetActive("warrior"), ids[1]);
+		ok(e.world.hasText("Active"), e.texts());
+		e.world.clickLabel(T(e, "Stop following"), e.ui.views.library);
+		eq(e.h():GetActive("warrior"), nil);
+		-- cancelling a prompt changes nothing
+		e.c:Select(ids[1]);
+		e.world.clickLabel(T(e, "Rename"), e.ui.views.library);
+		e.world.type(e.G.RebornBuildPlannerModalEdit, "never");
+		modalButton(e, T(e, "Cancel"));
+		eq(e.h():Get(ids[1]).name, "Renamed é");
+	end);
+
+	test("3B: deletion needs a confirmation, can be undone, is explained, and restores from the trash", function()
+		local e = boot(); e.open();
+		local ids = populate(e);
+		e.c:Select(ids[3]);
+		e.world.clickLabel(T(e, "Delete"), e.ui.views.library);
+		ok(e.G.RebornBuildPlannerModal:IsShown());
+		ok(e.G.RebornBuildPlannerModal.body.text:find("20", 1, true), "the trash policy is explained: " .. e.G.RebornBuildPlannerModal.body.text);
+		modalButton(e, T(e, "Cancel"));
+		ok(e.h():Get(ids[3]), "cancel keeps the build");
+		e.world.clickLabel(T(e, "Delete"), e.ui.views.library);
+		modalButton(e, T(e, "Delete"));
+		eq(e.h():Get(ids[3]), nil);
+		ok(e.world.hasText("moved to the trash"));
+		ok(e.world.button(T(e, "Undo the deletion")), "undo offered");
+		e.world.clickLabel(T(e, "Undo the deletion"));
+		ok(e.h():Get(ids[3]));
+		-- again, then restore from the trash view
+		e.c:Select(ids[3]);
+		e.world.clickLabel(T(e, "Delete"), e.ui.views.library);
+		modalButton(e, T(e, "Delete"));
+		e.world.clickLabel("Trash (1)");
+		ok(e.world.hasText("M one") and e.world.hasText("In the trash"), e.texts());
+		e.c:Select(ids[3]);
+		e.world.clickLabel(T(e, "Restore"), e.ui.views.library);
+		ok(e.h():Get(ids[3]));
+		eq(e.c.state.trashMode, false);
+	end);
+
+	test("3B: a full trash warns before and after, naming what is lost", function()
+		local e = boot(); e.open();
+		for i = 1, e.ns.Storage.LIMITS.trash do
+			local id = e.c:Create("t" .. i, "warrior");
+			e.c:ConfirmDelete(id);
+		end
+		e.c:SetView("library");
+		local victim = e.c:Create("fresh", "warrior");
+		e.c:Select(victim);
+		e.world.clickLabel(T(e, "Delete"), e.ui.views.library);
+		ok(e.G.RebornBuildPlannerModal.body.text:find("full", 1, true), e.G.RebornBuildPlannerModal.body.text);
+		modalButton(e, T(e, "Delete"));
+		ok(e.world.hasText("removed for good"), e.texts());
+		ok(e.world.hasText("t1"), "the evicted build is named");
+	end);
+
+	test("3B: duplicate and rename are blocked while read-only", function()
+		local e = boot({ preset = { RebornBuildPlannerDB = { schema = 99 } } }); e.open();
+		for _, b in ipairs({ e.ui.lib.dup, e.ui.lib.rename, e.ui.lib.delete, e.ui.lib.activate, e.ui.lib.create }) do no(b:IsEnabled()); end
+	end);
+
+	-- ------------------------------------------------------------------ 3C / 3D: editor, draft, save
+	local function openNew(e, class)
+		e.open();
+		local id = e.c:Create("Plan", class or "warrior");
+		ok(e.ui:OpenEditor(id) == nil);
+		return id, e.ui.ed;
+	end
+
+	test("3C: one stage first; six spells maximum; banish separate and capped; no conflicts; reorder; remove", function()
+		local e = boot(); local id, ed = openNew(e);
+		no(e.c:ShowAllPhases());
+		no(ed.phaseTabs[2]:IsVisible(), "only one stage by default");
+		ok(e.world.hasText("Single stage"));
+		local keys = e.ns.catalog:SpellsOfClass("warrior");
+		for i = 1, 6 do e.world.click(ed.cat.rows[i].a); end
+		local ph = e.c:Editor().draft.phases[1];
+		eq(#ph.spells, 6);
+		eq(ph.spells[1].key, keys[1]);
+		-- the seventh spell is refused with a reason, the plan is unchanged
+		e.world.click(ed.cat.rows[7].a);
+		eq(#e.c:Editor().draft.phases[1].spells, 6);
+		ok(e.world.hasText("Limit reached"), e.texts());
+		-- banish: three, separate list, never consumes a wanted slot
+		e.world.click(ed.cat.rows[7].b);
+		e.world.click(ed.cat.rows[8].b);
+		e.world.click(ed.cat.rows[9].b);
+		eq(#e.c:Editor().draft.phases[1].banish, 3);
+		eq(#e.c:Editor().draft.phases[1].spells, 6);
+		e.c:SetEditorPage(2);
+		e.world.click(ed.cat.rows[1].b);
+		eq(#e.c:Editor().draft.phases[1].banish, 3);
+		-- a wanted spell cannot be banished, a banished one cannot be wanted
+		e.c:SetEditorPage(1);
+		no(ed.cat.rows[1].b:IsEnabled(), "wanted spell: banish disabled");
+		no(ed.cat.rows[7].a:IsEnabled(), "banished spell: want disabled");
+		ok(e.c:AddBanish(keys[1]) == false);
+		ok(e.world.hasText("remove it from the plan first"), e.texts());
+		-- order
+		e.world.click(ed.plan.spells[2].up);
+		eq(e.c:Editor().draft.phases[1].spells[1].key, keys[2]);
+		eq(e.c:Editor().draft.phases[1].spells[2].key, keys[1]);
+		no(ed.plan.spells[1].up:IsEnabled());
+		no(ed.plan.spells[6].down:IsEnabled());
+		e.world.click(ed.plan.spells[1].down);
+		eq(e.c:Editor().draft.phases[1].spells[1].key, keys[1]);
+		e.world.click(ed.plan.spells[1].del);
+		eq(#e.c:Editor().draft.phases[1].spells, 5);
+		ok(e.world.hasText("A planned banish is not a banish already done."), e.texts());
+		e.world.click(ed.plan.banish[1].del);
+		eq(#e.c:Editor().draft.phases[1].banish, 2);
+	end);
+
+	test("3C: catalogue is filtered by class and by search; names localised, identifiers are catalogue keys", function()
+		local e = boot({ locale = "frFR" }); local id, ed = openNew(e, "warrior");
+		for _, entry in ipairs(e.c:CatalogEntries()) do eq(e.ns.catalog:Get("spell", entry.key).class, "warrior"); end
+		e.world.type(ed.cat.search, "tourb");
+		eq(#e.c:CatalogEntries(), 1);
+		eq(e.c:CatalogEntries()[1].key, "whirlwind", "found by its French name, stored by key");
+		e.world.type(ed.cat.search, "whirl");
+		eq(#e.c:CatalogEntries(), 1, "English name works too");
+		e.world.type(ed.cat.search, "zzzz");
+		eq(#e.c:CatalogEntries(), 0);
+		e.world.type(ed.cat.search, "");
+		e.world.click(ed.cat.rows[1].a);
+		eq(e.c:Editor().draft.phases[1].spells[1].key, e.ns.catalog:SpellsOfClass("warrior")[1]);
+		-- nothing translated ever reaches the data
+		for _, g in ipairs(e.c:Editor().draft.phases[1].spells) do no(g.key:find(" "), "key is not a display name"); end
+		eq(e.c:Editor().draft.phases[1].label, "", "default stage label stays empty");
+	end);
+
+	test("3C: jewelry slots keep holes, alternatives are explicit, duplicates refused, identifiers only", function()
+		local e = boot(); local id, ed = openNew(e);
+		e.c:SetTab("jewels");
+		ok(e.world.hasText("Main 1") and e.world.hasText("Alternative 1"), e.texts());
+		e.c:SetSlotTarget(3);
+		e.world.click(ed.cat.rows[1].a);                           -- first ring in the alternative 1 slot
+		local rings = e.c:Editor().draft.phases[1].rings;
+		eq(rings[1], ""); eq(rings[2], ""); ok(rings[3] ~= ""); eq(rings[4], "");
+		local first = rings[3];
+		e.c:SetSlotTarget(1);
+		no(ed.cat.rows[1].a:IsEnabled(), "a piece already placed cannot be placed twice");
+		e.world.click(ed.cat.rows[2].a);
+		eq(e.c:Editor().draft.phases[1].rings[1], e.c:CatalogEntries()[2].key);
+		e.world.click(ed.jw.slots[3].clear);
+		eq(e.c:Editor().draft.phases[1].rings[3], "");
+		eq(e.c:Editor().draft.phases[1].rings[1] ~= "", true);
+		e.c:SetGroup("amulets");
+		for _, en in ipairs(e.c:CatalogEntries()) do
+			local a = e.ns.catalog:Get("amulet", en.key);
+			ok(a.class == "warrior" or (a.classes ~= nil and (#a.classes == 0 or U.IndexOf(a.classes, "warrior"))), "class-filtered amulets and legends");
+		end
+		e.world.click(ed.cat.rows[1].a);
+		ok(e.c:Editor().draft.phases[1].amulets[1] ~= "");
+		e.c:SetGroup("trinkets");
+		e.world.click(ed.cat.rows[1].a);
+		ok(e.c:Editor().draft.phases[1].trinkets[1] ~= "");
+		local rep = e.c:EditorReport();
+		ok(rep.clean);
+	end);
+
+	test("3C: notes, link, talents; kept data is listed and never dropped by a save", function()
+		local e = boot(); local id, ed = openNew(e);
+		e.c:SetTab("notes");
+		e.world.type(ed.nt.notes, "Ligne 1\nLigne 2 \195\169");
+		e.world.type(ed.nt.link, "https://azreborn.com/planner/warrior");
+		e.world.type(ed.nt.talents, "10203-000-0110");
+		local d = e.c:Editor().draft;
+		eq(d.phases[1].notes, "Ligne 1\nLigne 2 \195\169");
+		eq(d.phases[1].link, "https://azreborn.com/planner/warrior");
+		eq(d.talents, "10203-000-0110");
+		ok(e.world.hasText("No hidden data"));
+		-- an imported build with hidden data (stats, rank goal, ext, 2nd stage)
+		local raw = { name = "Rich", class = "warrior", phases = { { spells = { { key = "whirlwind", mode = "rank", rank = 3 } }, stats = { damage = 50 }, notes = "n" },
+			{ spells = { "execute" } } }, mystery = { 1 } };
+		local rid = e.h():Add(raw);
+		e.ui:CloseEditor();
+		e.c.state.editor = nil;
+		e.ui:OpenEditor(rid);
+		ok(e.c:ShowAllPhases(), "an imported build with several stages shows them at once");
+		ok(ed.phaseTabs[2]:IsVisible());
+		e.c:SetTab("notes");
+		local hidden = e.c:HiddenData();
+		ok(#hidden >= 2, "hidden data listed: " .. H.fmt(hidden));
+		ok(e.world.hasText("kept"), e.texts());
+		e.c:SetNotes("changed");
+		e.world.clickLabel(T(e, "Save"), e.ui.views.editor);
+		local saved = e.h():Get(rid);
+		eq(saved.phases[1].stats, { damage = 50 });
+		eq(saved.phases[1].spells[1], { key = "whirlwind", mode = "rank", rank = 3 });
+		eq(saved.ext.mystery, { 1 });
+		eq(saved.phases[2].spells[1].key, "execute");
+		eq(saved.phases[1].notes, "changed");
+	end);
+
+	test("3D: draft versus saved, statuses, save, discard, follow, repair", function()
+		local e = boot(); local id, ed = openNew(e);
+		ok(e.world.hasText("Saved"), e.texts());
+		no(ed.save:IsEnabled(), "nothing to save yet");
+		e.world.click(ed.cat.rows[1].a);
+		ok(e.world.hasText("Unsaved changes"), e.texts());
+		eq(e.h():Get(id).phases[1].spells[1], nil, "storage untouched until Save");
+		e.world.click(ed.revert);
+		eq(#e.c:Editor().draft.phases[1].spells, 0);
+		ok(e.world.hasText("Saved"));
+		e.world.click(ed.cat.rows[1].a);
+		e.world.click(ed.save);
+		eq(#e.h():Get(id).phases[1].spells, 1);
+		eq(e.h():Get(id).revision, 2);
+		eq(e.h():GetActive("warrior"), nil, "saving does not follow");
+		e.world.click(ed.cat.rows[2].a);
+		e.world.click(ed.follow);
+		eq(e.h():GetActive("warrior"), id);
+		eq(#e.h():Get(id).phases[1].spells, 2);
+		ok(e.world.hasText("Saved and followed"), e.texts());
+		-- a build to repair: saved, never followed
+		local raw = { name = "Broken", class = "warrior", phases = { { spells = { "whirlwind" }, banish = { "whirlwind" } } } };
+		local rid = e.h():Add(raw);
+		e.c.state.editor = nil;
+		e.ui:OpenEditor(rid);
+		ok(e.world.hasText("Needs repair"), e.texts());
+		e.world.click(ed.cat.rows[3].a);              -- an unrelated change
+		ok(e.world.hasText("Unsaved changes | Needs repair"), e.texts());
+		e.world.click(ed.follow);
+		eq(e.h():GetActive("warrior"), id, "the previous active build stays");
+		ok(e.world.hasText("not followed"), e.texts());
+		ok(e.h():Get(rid).phases[1].banish[1] == "whirlwind", "conflict kept as data");
+		e.c:RemoveBanish("whirlwind");
+		e.world.click(ed.follow);
+		eq(e.h():GetActive("warrior"), rid, "repaired: follow works");
+	end);
+
+	test("3D: closing with unsaved changes asks; Escape never discards; no implicit save", function()
+		local e = boot(); local id, ed = openNew(e);
+		e.world.click(ed.cat.rows[1].a);
+		ok(U.IndexOf(e.G.UISpecialFrames, "RebornBuildPlannerFrame") == nil, "dirty editor: Escape must not close the window");
+		eq(e.world.escape(), false);
+		ok(e.root:IsShown());
+		-- Close editor -> prompt -> keep editing
+		e.world.click(ed.close);
+		ok(e.G.RebornBuildPlannerModal:IsShown());
+		ok(e.world.hasText("Unsaved changes"));
+		modalButton(e, T(e, "Keep editing"));
+		eq(e.c.state.view, "editor");
+		eq(#e.c:Editor().draft.phases[1].spells, 1);
+		-- Escape in the dialog = keep editing
+		e.world.click(ed.close);
+		eq(U.IndexOf(e.G.UISpecialFrames, "RebornBuildPlannerModal") ~= nil, true);
+		ok(e.world.escape());
+		no(e.G.RebornBuildPlannerModal:IsShown());
+		eq(e.c.state.view, "editor");
+		-- discard
+		e.world.click(ed.close);
+		modalButton(e, T(e, "Discard"));
+		eq(e.c.state.view, "library");
+		eq(#e.h():Get(id).phases[1].spells, 0, "discarded");
+		-- save from the prompt
+		e.ui:OpenEditor(id);
+		e.world.click(ed.cat.rows[1].a);
+		e.world.click(ed.close);
+		modalButton(e, T(e, "Save"));
+		eq(e.c.state.view, "library");
+		eq(#e.h():Get(id).phases[1].spells, 1);
+		-- closing the WINDOW with changes asks as well
+		e.ui:OpenEditor(id);
+		e.world.click(ed.cat.rows[2].a);
+		e.G.SlashCmdList.REBORNPLANNER("");
+		ok(e.root:IsShown() and e.G.RebornBuildPlannerModal:IsShown(), "/rbp on a dirty editor asks first");
+		modalButton(e, T(e, "Keep editing"));
+		ok(e.root:IsShown());
+		e.world.click(e.G.RebornBuildPlannerClose);
+		modalButton(e, T(e, "Discard"));
+		no(e.root:IsShown());
+		eq(#e.h():Get(id).phases[1].spells, 1);
+		-- clean editor: Escape closes the window
+		e.G.SlashCmdList.REBORNPLANNER("");
+		ok(U.IndexOf(e.G.UISpecialFrames, "RebornBuildPlannerFrame") ~= nil);
+		ok(e.world.escape());
+		no(e.root:IsShown());
+		eq(#e.G.UISpecialFrames, 0, "no stale special frame left behind");
+	end);
+
+	test("3D: a draft survives hiding the window and is lost only on /reload (never auto-saved)", function()
+		local e = boot(); local id, ed = openNew(e);
+		e.world.click(ed.cat.rows[1].a);
+		e.root:Hide();
+		e.G.SlashCmdList.REBORNPLANNER("");
+		ok(e.c:EditorDirty());
+		local again = reload(e);
+		eq(#again.h():Get(id).phases[1].spells, 0, "unsaved draft is not in the saved data");
+	end);
+
+	test("3D: editing is refused in read-only mode", function()
+		local e = boot();
+		e.open();
+		local id = e.c:Create("x", "warrior");
+		e.ui:OpenEditor(id);
+		e.h().readOnly = true; e.h().status = "REPAIR_REFUSED";
+		eq(e.c:AddSpell("whirlwind"), false);
+		ok(e.world.hasText("Read only"));
+		no(e.ui.ed.save:IsEnabled());
+	end);
+
+	test("3D: unknown class: stored, editable list empty, never followed", function()
+		local e = boot(); e.open();
+		local id = e.h():Add({ name = "Future", class = "necromancer", phases = {} });
+		e.c:Select(id);
+		e.c:SetView("library");
+		e.ui:OpenEditor(id);
+		eq(#e.c:CatalogEntries(), 0);
+		ok(e.world.hasText("necromancer"));
+		e.c:SetName("Future 2");
+		e.world.click(e.ui.ed.follow);
+		eq(e.h():GetActive("necromancer"), nil);
+		eq(e.h():Get(id).name, "Future 2");
+	end);
+
+	-- ------------------------------------------------------------------ 3E: import / export
+	local GOOD, CONFLICT;
+	do
+		local ns0 = H.loadAddon();
+		local C, J, B = ns0.PlannerCodec, ns0.Json, ns0.Base64Url;
+		local function code(a) return C.PREFIX .. B.Encode(assert(J.Encode(a))); end
+		local function phase(spells, banish, rings) return J.Array({ "", J.Array(spells), J.Array(banish or {}), J.Array(rings or {}) }); end
+		GOOD = code(J.Array({ 1, "Imported \195\169", "warrior", "10-0-0", phase({ "whirlwind", "execute" }, { "rend" }, { "accuria", "", "quick_strike" }), J.Array({ "Mid", J.Array({ "cleave" }) }) }));
+		CONFLICT = code(J.Array({ 1, "Conflicted", "warrior", "", phase({ "whirlwind", "death_coil" }, { "whirlwind" }) }));
+	end
+
+	local function analyze(e, text)
+		e.c:SetView("import");
+		e.world.type(e.ui.im.box, text);
+		e.world.clickLabel(T(e, "Analyze"), e.ui.views.import);
+	end
+
+	test("3E: import with preview; nothing is saved before Import; the new build is not active", function()
+		local e = boot(); e.open();
+		local before = e.h():Counts().builds;
+		analyze(e, GOOD);
+		ok(e.world.hasText("Imported \195\169"), e.texts());
+		ok(e.world.hasText("Ready to import"));
+		ok(e.world.hasText("2 spell(s)"), e.texts());
+		ok(e.world.hasText("Mid Game") or e.world.hasText("Mid"), e.texts());
+		eq(e.h():Counts().builds, before, "preview must not save");
+		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
+		eq(e.h():Counts().builds, before + 1);
+		local id = e.c.state.selectedId;
+		eq(e.h():Get(id).name, "Imported \195\169");
+		eq(e.h():GetActive("warrior"), nil);
+		eq(e.c.state.view, "library");
+		ok(e.world.hasText("Imported (not active)"), e.texts());
+		eq(e.c:ImportState(), nil);
+	end);
+
+	test("3E: a build with conflicts previews its problems and imports as 'needs repair', not followable", function()
+		local e = boot(); e.open();
+		analyze(e, CONFLICT);
+		ok(e.world.hasText("Importable, needs repair"), e.texts());
+		ok(e.world.hasText("Conflict"), e.texts());
+		ok(e.world.hasText("another class"), e.texts());
+		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
+		local id = e.c.state.selectedId;
+		ok(e.world.hasText("needs repair"), e.texts());
+		e.c:Activate(id);
+		eq(e.h():GetActive("warrior"), nil);
+		ok(e.world.hasText("repair"), e.texts());
+	end);
+
+	test("3E: a refused text changes nothing and says why", function()
+		local e = boot(); e.open();
+		e.c:Create("keep", "warrior");
+		local snap = U.DeepCopy(e.h().db);
+		for _, bad in ipairs({ "azsb1:!!!!", "", "https://azreborn.com/planner/warrior", "azsb1:" .. e.ns.Base64Url.Encode("[2,\"x\",\"warrior\"]") }) do
+			analyze(e, bad);
+			ok(e.world.hasText("Cannot import this text"), "for " .. bad .. ": " .. e.texts());
+			no(e.ui.im.commit:IsEnabled());
+		end
+		e.world.click(e.ui.im.commit);
+		ok(H.deepeq(snap, e.h().db), "refused import mutated storage");
+	end);
+
+	test("3E: talents-only link needs a class; the class comes from the path when it can", function()
+		local e = boot(); e.open();
+		analyze(e, "https://azreborn.com/planner?b=1-2-3");
+		ok(e.world.hasText("Choose a class"), e.texts());
+		no(e.ui.im.commit:IsEnabled());
+		e.world.click(e.ui.im.classCycle.next);
+		ok(e.ui.im.commit:IsEnabled());
+		e.world.click(e.ui.im.commit);
+		eq(e.h():Get(e.c.state.selectedId).talents, "1-2-3");
+		analyze(e, "https://azreborn.com/planner/rogue?b=0-1-2");
+		ok(e.ui.im.commit:IsEnabled());
+		ok(e.world.hasText("Rogue") or e.world.hasText("rogue") or e.world.hasText("Talent string"), e.texts());
+	end);
+
+	test("3E: export without loss shows a selectable code that imports back", function()
+		local e = boot(); e.open();
+		local id = e.c:Create("Export me", "mage");
+		local b = e.h():Get(id);
+		b = e.ns.BuildModel.AddSpell(b, 1, "frostbolt", nil, e.ns.catalog);
+		b = e.ns.BuildModel.SetSlot(b, 1, "rings", 2, "accuria", e.ns.catalog);
+		ok(e.h():Update(id, b));
+		e.c:SetView("library");
+		e.c:Select(id);
+		e.world.clickLabel(T(e, "Export"), e.ui.views.library);
+		eq(e.c.state.view, "export");
+		local box = e.ui.ex.box;
+		ok(box.text:sub(1, 6) == "azsb1:", box.text);
+		ok(box:IsVisible());
+		ok(e.world.hasText("Nothing of your intent is lost"));
+		no(e.ui.ex.accept:IsShown());
+		-- the box is a copy source: focusing selects everything; typing is put back
+		box:SetFocus();
+		ok(box.highlighted);
+		local code = box.text;
+		e.world.type(box, "tampered");
+		eq(box.text, code);
+		local e2 = boot(); e2.open();
+		analyze(e2, code);
+		e2.world.clickLabel(T(e2, "Import"), e2.ui.views.import);
+		local nb = e2.h():Get(e2.c.state.selectedId);
+		eq(nb.phases[1].spells[1].key, "frostbolt");
+		eq(nb.phases[1].rings, { "", "accuria", "", "" });
+	end);
+
+	test("3E: export with losses lists them, hides the code until accepted, never claims 'lossless'", function()
+		local e = boot(); e.open();
+		local id = e.h():Add({ name = "Lossy", class = "warrior", futureField = { 1 }, phases = { { spells = { { key = "whirlwind", mode = "rank", rank = 3 }, "death_coil" } } } });
+		e.c:Select(id);
+		e.c:SetView("library");
+		e.world.clickLabel(T(e, "Export"), e.ui.views.library);
+		ok(e.world.hasText("would be lost"), e.texts());
+		ok(e.world.hasText("Lost:"), e.texts());
+		no(e.ui.ex.box.scroll:IsVisible(), "no code before the losses are accepted");
+		ok(e.ui.ex.accept:IsVisible());
+		no(e.world.hasText("Nothing of your intent"));
+		e.world.click(e.ui.ex.accept);
+		ok(e.ui.ex.box.text:sub(1, 6) == "azsb1:");
+		ok(e.world.hasText("you accepted"), e.texts());
+		-- unknown class: cannot be exported at all
+		local uid = e.h():Add({ name = "U", class = "necromancer", phases = {} });
+		e.c:PrepareExport(uid, "saved");
+		e.c:SetView("export");
+		ok(e.world.hasText("cannot be exported"), e.texts());
+		no(e.ui.ex.accept:IsVisible());
+	end);
+
+	test("3E: exporting the draft reflects unsaved edits and says so", function()
+		local e = boot(); local id, ed = openNew(e, "mage");
+		e.world.click(ed.cat.rows[1].a);
+		e.world.click(ed.export);
+		ok(e.world.hasText("draft"), e.texts());
+		ok(e.c.state.export.code ~= nil);
+		eq(e.h():Get(id).phases[1].spells[1], nil);
+	end);
+
+	-- ------------------------------------------------------------------ persistence and window
+	test("/reload keeps builds, active build, import results and the window position", function()
+		local e = boot(); e.open();
+		local id = e.c:Create("Persist", "warrior");
+		e.ui:OpenEditor(id);
+		e.world.click(e.ui.ed.cat.rows[1].a);
+		e.world.click(e.ui.ed.follow);
+		analyze(e, GOOD);
+		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
+		e.world.drag(e.root, 130, -40);
+		local again = reload(e);
+		eq(again.h():Counts().builds, 2);
+		eq(again.h():GetActive("warrior"), id);
+		eq(again.h():Get(id).phases[1].spells[1].key, e.ns.catalog:SpellsOfClass("warrior")[1]);
+		again.open();
+		local p = again.root.points[1];
+		eq(p.x, 130); eq(p.y, -40);
+		ok(again.world.hasText("Persist"));
+	end);
+
+	test("window: drag saves the position; a corrupt saved position is ignored and /rbp reset recovers", function()
+		local e = boot(); e.open();
+		e.world.drag(e.root, -50, 20);
+		eq(e.h():GetSetting("window").x, -50);
+		e.h().db.settings.window = { point = "TOPLEFT", x = 1e9, y = 5 };
+		e.ui:ApplyPosition();
+		eq(e.root.points[1].x, 0, "absurd offset falls back to the centre");
+		e.h().db.settings.window = { point = "CENTER", x = 300, y = 0 };
+		e.ui:ApplyPosition();
+		e.G.SlashCmdList.REBORNPLANNER("reset");
+		eq(e.root.points[1].x, 0);
+		eq(e.h():GetSetting("window"), nil);
+		local ok2, err = e.h():SetSetting("window", { point = "CENTER", x = 0 / 0, y = 0 });
+		eq(ok2, nil);
+	end);
+
+	test("window: scale buttons are bounded and persisted; the window always fits a small screen", function()
+		local e = boot({ width = 800, height = 600 }); e.open();
+		ok(e.root:GetScale() <= (600 - 24) / 540 + 1e-6, "scale lowered to fit: " .. e.root:GetScale());
+		local big = boot({ width = 1365, height = 768 }); big.open();
+		eq(big.root:GetScale(), 1);
+		big.world.clickLabel(T(big, "Size -"));
+		eq(big.h():GetSetting("scale"), 0.9);
+		for _ = 1, 10 do big.world.clickLabel(T(big, "Size -")); end
+		eq(big.h():GetSetting("scale"), 0.6);
+		for _ = 1, 20 do big.world.clickLabel(T(big, "Size +")); end
+		eq(big.h():GetSetting("scale"), 1.5);
+		ok(big.root:GetScale() <= (768 - 24) / 540 + 1e-6);
+	end);
+
+	-- ------------------------------------------------------------------ widgets are created once
+	test("no widget is created while the window is used", function()
+		local e = boot(); e.open();
+		local n0 = #e.world.all;
+		local id = e.c:Create("A", "warrior");
+		for i = 1, 12 do e.c:Create("B" .. i, "warrior"); end
+		e.c:SetView("library");
+		e.world.click(e.ui.lib.pager.next);
+		e.ui:OpenEditor(id);
+		for i = 1, 6 do e.world.click(e.ui.ed.cat.rows[i].a); end
+		e.c:SetTab("jewels"); e.c:SetGroup("trinkets"); e.c:SetTab("notes");
+		e.world.click(e.ui.ed.save);
+		analyze(e, GOOD);
+		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
+		e.c:PrepareExport(id, "saved"); e.c:SetView("export");
+		e.world.click(e.ui.ex.back);
+		eq(#e.world.all, n0, "frames/regions created after the first open");
+		ok(n0 < 520, "widget budget: " .. n0);
+	end);
+
+	-- ------------------------------------------------------------------ layout lint at several sizes
+	local function tour(e)
+		local problems = {};
+		local function lint(tag) for _, p in ipairs(e.lint()) do problems[#problems + 1] = tag .. ": " .. p; end end
+		local long = string.rep("Nom tr\195\168s long \195\169\195\160 ", 8);
+		local ids = {};
+		for i = 1, 11 do ids[i] = e.c:Create(i == 1 and long or ("Build " .. i), i % 3 == 0 and "demonhunter" or "warrior"); end
+		e.c:SetView("library");
+		e.c:Select(ids[1]);
+		lint("library");
+		e.c:ShowTrash(true); lint("trash"); e.c:ShowTrash(false);
+		e.ui:AskCreate(); lint("create dialog"); e.ui:ModalCancel();
+		e.ui:AskDelete({ id = ids[1], name = long }); lint("delete dialog"); e.ui:ModalCancel();
+		e.ui:OpenEditor(ids[1]);
+		for p = 1, 6 do e.c:AddSpell(e.c:CatalogEntries()[p].key); end
+		for p = 1, 3 do e.c:AddBanish(e.c:CatalogEntries()[6 + p].key); end
+		lint("editor spells");
+		e.c:SetTab("jewels");
+		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
+			e.c:SetGroup(g);
+			for s = 1, #e.c:Editor().draft.phases[1][g] do e.c:SetSlotTarget(s); e.c:SetSlot(g, s, e.c:CatalogEntries()[s].key); end
+			lint("editor " .. g);
+		end
+		e.c:RevealPhases(); lint("editor phases");
+		e.c:SetTab("notes");
+		e.c:SetNotes(string.rep("Note \195\169\195\160 ", 300));
+		e.c:SetLink("https://azreborn.com/planner/warrior");
+		lint("editor notes");
+		e.ui:AskDirty(function() end); lint("dirty dialog"); e.ui:ModalCancel();
+		e.c.state.message = nil;
+		e.c:SetView("import");
+		e.world.type(e.ui.im.box, CONFLICT);
+		e.c:AnalyzeImport(CONFLICT);
+		lint("import");
+		e.c:AnalyzeImport("garbage");
+		lint("import refused");
+		e.c:PrepareExport(ids[1], "draft"); e.c:SetView("export");
+		lint("export");
+		e.c:AcceptLosses(); lint("export accepted");
+		return problems;
+	end
+
+	for _, size in ipairs({ { 1365, 768, "1280x720 (16:9, UI units)" }, { 1920, 1080, "1920x1080" }, { 1024, 768, "1024x768" }, { 800, 600, "800x600" } }) do
+		test("layout lint at " .. size[3] .. ", English and French", function()
+			for _, loc in ipairs({ "enUS", "frFR" }) do
+				local e = boot({ width = size[1], height = size[2], locale = loc }); e.open();
+				local problems = tour(e);
+				eq(problems, {}, size[3] .. " " .. loc);
+			end
+		end);
+	end
+
+	test("layout lint: another UI scale and a moved window", function()
+		local e = boot({ width = 1365, height = 768, locale = "frFR" }); e.open();
+		e.h():SetSetting("scale", 1.5);
+		e.ui:ApplyScale();
+		e.world.drag(e.root, 100, 60);
+		eq(e.lint(), {}, "moved window");
+		e.ui:ApplyScale();
+		ok(e.root:GetScale() <= (768 - 24) / 540 + 1e-6);
+		e.h():SetSetting("scale", 0.6);
+		e.ui:ApplyScale();
+		eq(e.lint(), {});
+	end);
+
+	test("a client without FontString:SetWordWrap still works", function()
+		local e = boot({ noWordWrap = true }); e.open();
+		e.c:Create("x", "warrior");
+		ok(e.world.hasText("x"));
+	end);
+
+	-- ------------------------------------------------------------------ translations
+	test("every string of the window has a French translation", function()
+		local missing = {};
+		local SAME = { ["Build"] = true, ["Page %d/%d"] = true, ["Info"] = true, ["Notes (%s)"] = true, ["Alternative %d"] = true };
+		local ns = H.loadAddon();
+		ns.Locale.SetLang("frFR");
+		for _, f in ipairs({ "Controller.lua", "UI.lua", "Commands.lua" }) do
+			local src = H.readFile(H.root .. "/addon/RebornBuildPlanner/" .. f);
+			for k in src:gmatch('L%("([^\n]-)"%)') do
+				local key = k:gsub('\\"', '"');
+				if ns.Locale.T(key) == key and not SAME[key] then missing[#missing + 1] = f .. ": " .. key; end
+			end
+			for k in src:gmatch('Locale%.T%("([^\n]-)"%)') do
+				local key = k:gsub('\\"', '"');
+				if ns.Locale.T(key) == key then missing[#missing + 1] = f .. ": " .. key; end
+			end
+		end
+		for _, key in ipairs({ "%d statistic objective(s) kept (no editor yet)", "%d rank / unlimited target(s) kept (no editor yet)", "Extra data in %d phase(s) kept",
+			"Extra build data kept: %s", "Limit reached", "Already in this list", "Read only", "The build is invalid" }) do
+			if ns.Locale.T(key) == key then missing[#missing + 1] = "dynamic: " .. key; end
+		end
+		eq(missing, {});
+	end);
+
+	test("saved data holds identifiers and default labels, never translated text", function()
+		local e = boot({ locale = "frFR" }); e.open();
+		local id = e.c:Create("Plan", "warrior");
+		e.ui:OpenEditor(id);
+		e.world.click(e.ui.ed.cat.rows[2].a);
+		e.world.click(e.ui.ed.save);
+		local b = e.h():Get(id);
+		eq(b.phases[1].label, "");
+		eq(b.phases[1].spells[1].key, e.ns.catalog:SpellsOfClass("warrior")[2]);
+		eq(b.class, "warrior");
+		local text = H.serialize("X", e.G.RebornBuildPlannerDB);
+		no(text:find("Tourbillon") or text:find("Guerrier") or text:find("D\195\169but"), "a translated label reached the saved data");
+	end);
+end

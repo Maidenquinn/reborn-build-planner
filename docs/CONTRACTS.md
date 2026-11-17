@@ -175,3 +175,23 @@ Code : `Utf8.lua`, `Base64Url.lua`, `Json.lua`, `PlannerCodec.lua` (originaux, a
 
 ### Format interne natif (non inventé)
 Le modèle interne (`BuildModel`) contient déjà plus que le format du site (objectifs de rang, extensions, conflits conservés). Aucun format d'échange natif n'est défini au Lot 2 : son besoin n'est pas établi. À prévoir **si** des builds avancés doivent s'échanger entre installations : enveloppe versionnée `{format="rbp", v=1, build=<BuildModel sérialisé>}` + hash du catalogue, tolérante aux champs inconnus, avec `ext` conservé ; décision de produit à prendre au moment où une interface d'export existe.
+
+---
+
+## 9. Interface native (Lot 3) : contrats et hypothèses client
+
+Code : `UIStrings.lua`, `Controller.lua` (tout le comportement, sans widget), `UI.lua` (rendu), `Commands.lua`, `Core.lua`. Tests : `tests/lua/test_ui.lua` + `wowstub.lua` (**simulateur** de l'API de widgets, pas le client).
+
+| # | Contrat / décision | Statut |
+|---|---|---|
+| U1 | Ordre d'initialisation : le client charge les SavedVariables **avant** `ADDON_LOADED` de l'addon ; tout ce qui lit `RebornBuildPlannerDB` est dans le gestionnaire `ADDON_LOADED` (nom exact de l'addon, puis `UnregisterEvent`). La base n'est assignée que si le stockage n'est pas en lecture seule. | À CONFIRMER EN CLIENT (C1) ; l'ordre des événements de chargement est tracé nativement dans `AZC_EVENTS` (`!AzerothSurvivorsCompat/Compat.lua:21-29`) |
+| U2 | Commandes `/rbp`, `/rebornplanner` : aucune collision statique dans les addons installés (grep `SLASH_*`) ; à l'exécution, un alias déjà pris par un autre addon n'est **pas** repris. Arguments : rien/`toggle`, `reset`, `diag`. | Statique + simulé ; C3 en client |
+| U3 | Widgets utilisés, tous déjà employés par les addons natifs installés : `UIPanelButtonTemplate` (13 fichiers), `UIPanelCloseButton` (11), `InputBoxTemplate` (3), `UIPanelScrollFrameTemplate` + `EditBox` multiligne (`AzerothFieldKitReborn/CopyLog.lua:681-686`), `SetBackdrop` (48), `SetClampedToScreen` (28), `StartMoving`/`RegisterForDrag` (28), `UISpecialFrames` (17), `SetMaxLetters`, `HighlightText`, `FULLSCREEN_DIALOG`. `SetWordWrap` n'est appelé que s'il existe (test sans). Aucune API de WoW moderne, aucun `C_Timer`, aucun mixin, aucun `OnUpdate`. | Présence statique ; comportement visuel INCONNU (C2, C6, C17, C18) |
+| U4 | **Pas de presse-papiers** : export = zone de texte sélectionnée (`HighlightText`), le joueur fait Ctrl+A / Ctrl+C (même principe que la fenêtre de copie de FieldKit) ; import = Ctrl+V dans une zone de texte. Les liens ne sont jamais ouverts. La zone d'export remet le texte si on le modifie. | À CONFIRMER EN CLIENT (C13, C14) |
+| U5 | Échap : la fenêtre est dans `UISpecialFrames` **seulement** quand l'éditeur n'a aucune modification non enregistrée ; une boîte de dialogue ouverte la remplace (Échap = « Continuer ») ; jamais de perte de brouillon par Échap. Le brouillon reste en mémoire quand la fenêtre est masquée et n'est jamais auto-enregistré (perdu au `/reload`). | Simulé ; C10 |
+| U6 | Aucun widget n'est créé après la première ouverture (412 objets mesurés : 110 boutons, 10 zones de texte, 235 textes, 26 cadres, 25 textures, 3 barres de défilement, 3 zones défilantes) ; listes paginées (8 builds, 9 entrées de catalogue, 6 lignes de rapport) ; pas d'animation. | CONFIRMÉ SIMULÉ (test d'égalité du nombre d'objets) |
+| U7 | Fenêtre 780×540, déplaçable, bornée à l'écran (`SetClampedToScreen`), position `{point,x,y}` et échelle (0,6-1,5) dans `settings` (validées), échelle réduite automatiquement pour tenir dans `UIParent` ; position aberrante ignorée ; `/rbp reset`. | Simulé ; réaction réelle du client au clamp : INCONNU |
+| U8 | Identifiants : le plan ne stocke que des **clés de catalogue** ; les noms (FR/EN) et les icônes ne servent qu'à l'affichage ; libellé d'étape par défaut = `""` ; rien de traduit n'est écrit (test sur le texte sérialisé). | CONFIRMÉ SIMULÉ |
+| U9 | « Suivre » (activer) exige un build sans conflit ni erreur et une classe connue ; « Enregistrer et suivre » enregistre toujours, puis tente d'activer ; un import n'est jamais actif. | CONFIRMÉ SIMULÉ |
+| U10 | Ce que l'éditeur ne sait pas encore éditer (statistiques, objectifs `rank`/`unlimited`, `ext`, étapes en trop) est **listé** dans l'onglet Notes et conservé à l'enregistrement (test de conservation). | CONFIRMÉ SIMULÉ |
+| U11 | Contrôle de mise en page (`world.lint`) sur tailles estimées de texte (0,6 × corps) : fenêtre dans l'écran, textes dans leur cadre, libellés dans leurs boutons, pas de recouvrement de contrôles ; 1365×768, 1920×1080, 1024×768, 800×600 ; EN et FR ; noms longs, notes longues. **Ce n'est pas un rendu** : aucune capture réelle n'existe. | SIMULÉ |
