@@ -6,7 +6,7 @@ return function(H)
 
 	test("catalogue loads", function()
 		ok(cat ~= nil, "Catalog.New failed: " .. tostring(code));
-		eq(cat:Content(), "384db000d5ac311d");
+		eq(cat:Content(), data.meta.content, "generated content metadata must agree with the catalogue");
 		eq(data.meta.schema, 1);
 		eq(#data.meta.bodySha256, 64);
 	end);
@@ -150,7 +150,7 @@ return function(H)
 	end);
 
 	test("catalogue version comparison", function()
-		eq(cat:Compare("384db000d5ac311d"), "same");
+		eq(cat:Compare(data.meta.content), "same");
 		eq(cat:Compare("0000000000000000"), "different");
 		eq(cat:Compare(""), "unknown");
 		eq(cat:Compare(nil), "unknown");
