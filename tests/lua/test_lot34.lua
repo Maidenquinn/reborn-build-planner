@@ -94,9 +94,9 @@ return function(H)
 		local report = e.c:TooltipData("jewel", "accuria");
 		ok(report.sections and #report.sections == 3, "local metadata shown");
 		local joined = plain(report.sections);
-		ok(joined:find("Damage bonus", 1, true), joined);
-		ok(joined:find("0.17", 1, true), joined);
-		ok(joined:find("not the actual bonus", 1, true), joined);
+		ok(joined:find("Damage", 1, true), joined);
+		ok(joined:find("17%", 1, true), joined);
+		ok(joined:find("Not the actual in-run value", 1, true), joined);
 		source.items.accuria.slot = "trinket";
 		eq(e.c:TooltipData("jewel", "accuria").sections, nil, "wrong slot rejected");
 		source.items.accuria = nil;
