@@ -16,10 +16,10 @@ Le catalogue public `jewelry.json` expose les identifiants, noms, slots et icôn
 ## Extraction côté Windows
 
 ```powershell
-python tools/extract_jewelry_local.py --exe "CHEMIN_VERS_EXECUTABLE_REBORN.exe" --catalog "CHEMIN_VERS_data/v1/jewelry.json" --out "addon/RebornBuildPlanner/GeneratedJewelryMechanics.lua"
+python tools/extract_jewelry_local.py --exe "CHEMIN_VERS_EXECUTABLE_REBORN.exe" --catalog "CHEMIN_VERS_data/v1/jewelry.json" --out " .local/generated/GeneratedJewelryMechanics.lua"
 ```
 
-Le chemin exact de l'exécutable doit être retrouvé dans l'installation locale ; ne pas le deviner. Placer ensuite le fichier généré dans le dossier de recette en plus des fichiers de l'addon. Si son extraction échoue, aucune sortie partielle n'est écrite.
+Le chemin exact de l'exécutable doit être retrouvé dans l'installation locale ; ne pas le deviner. Le packaging dépose ce fichier uniquement dans le ZIP généré, sans modifier le fichier vide suivi par Git. Si son extraction échoue, aucune sortie partielle n'est écrite.
 
 ## Limites
 
