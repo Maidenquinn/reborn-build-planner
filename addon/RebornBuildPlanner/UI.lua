@@ -12,6 +12,7 @@
 local ADDON, ns = ...;
 ns = ns or {};
 local Locale, BM = ns.Locale, ns.BuildModel;
+local THEME = ns.Theme;
 assert(Locale and BM and ns.Controller, "RebornBuildPlanner: UI.lua must load after Controller.lua");
 local UI = {};
 ns.UI = UI;
@@ -107,6 +108,13 @@ end
 
 -- Flat button with its own label (no red template). Role = look; the label always says what it does.
 local function button(parent, label, w, h, x, y, onClick, name)
+	if THEME then
+		local b = THEME.Button(parent, label, w, h, "secondary", onClick, name);
+		b:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -y);
+		b.fs = b.label;
+		b.themed = true;
+		return b;
+	end
 	local b = CreateFrame("Button", name, parent);
 	b:SetWidth(w);
 	b:SetHeight(h or 24);
@@ -132,6 +140,13 @@ end
 -- colours and label of a button from its role and enabled state; the plain label stays in b.baseLabel
 local function paint(b)
 	local label = b.baseLabel or "";
+	if b.themed then
+		if b.painted ~= label then b.painted = label; b:SetText(label); end
+		local roles = { quiet = "secondary", warn = "selected", primary = "primary", danger = "danger" };
+		local role = (b.enabledFlag == false) and "disabled" or (roles[b.role] or "secondary");
+		THEME.SetRole(b, role);
+		return;
+	end
 	local sk = SKIN[b.role or "quiet"] or SKIN.quiet;
 	local enabled = b.enabledFlag ~= false;
 	local shown = label;
@@ -229,6 +244,11 @@ end
 
 -- a framed panel (backdrop colour = contrast against the window)
 local function panel(parent, name, x, y, w, h)
+	if THEME then
+		local f = THEME.Frame(parent, w, h, "panel", name);
+		f:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -y);
+		return f;
+	end
 	local f = CreateFrame("Frame", name, parent);
 	f:SetWidth(w);
 	f:SetHeight(h);
@@ -421,16 +441,18 @@ function UI:Build()
 	if self.built then return; end
 	self.built = true;
 	local c = self.c;
-	local root = CreateFrame("Frame", "RebornBuildPlannerFrame", UIParent);
+	local root = THEME and THEME.Window(UIParent, UI.WIDTH, UI.HEIGHT, "RebornBuildPlannerFrame") or CreateFrame("Frame", "RebornBuildPlannerFrame", UIParent);
 	self.root = root;
 	root:SetWidth(UI.WIDTH);
 	root:SetHeight(UI.HEIGHT);
 	root:SetFrameStrata("DIALOG");        -- above the game's HUD texts, below the modal
 	root:SetFrameLevel(20);
-	root:SetBackdrop({ bgFile = WHITE, edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = false, edgeSize = 14,
-		insets = { left = 3, right = 3, top = 3, bottom = 3 } });
-	root:SetBackdropColor(BG[1], BG[2], BG[3], 1);
-	root:SetBackdropBorderColor(0.70, 0.58, 0.30, 1);
+	if not THEME then
+		root:SetBackdrop({ bgFile = WHITE, edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = false, edgeSize = 14,
+			insets = { left = 3, right = 3, top = 3, bottom = 3 } });
+		root:SetBackdropColor(BG[1], BG[2], BG[3], 1);
+		root:SetBackdropBorderColor(0.70, 0.58, 0.30, 1);
+	end
 	root:SetClampedToScreen(true);
 	root:SetMovable(true);
 	root:EnableMouse(true);
@@ -440,8 +462,13 @@ function UI:Build()
 	root:SetScript("OnHide", function() self:HideTip(); self:SyncEscape(); end);
 	root:Hide();
 
-	self.title = text(root, 20, 12, 300, "GameFontNormalLarge", "LEFT", 18);
-	self.title:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
+	if THEME then
+		self.titleBar = THEME.TitleBar(root, "Reborn Build Planner", 8, 5, 310, 40);
+		self.title = self.titleBar.title;
+	else
+		self.title = text(root, 20, 12, 300, "GameFontNormalLarge", "LEFT", 18);
+		self.title:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
+	end
 	local close = button(root, "X", 28, 22, 1204, 8, function() self:RequestClose(); end, "RebornBuildPlannerClose");
 	close.role = "danger";
 	self.close = close;
@@ -1421,7 +1448,7 @@ end
 
 -- ------------------------------------------------------------------ modal dialog (one frame, reused)
 function UI:BuildModal()
-	local m = CreateFrame("Frame", "RebornBuildPlannerModal", UIParent);
+	local m = THEME and THEME.Window(UIParent, 460, 250, "RebornBuildPlannerModal") or CreateFrame("Frame", "RebornBuildPlannerModal", UIParent);
 	self.modal = m;
 	m:SetWidth(460);
 	m:SetHeight(250);
@@ -1430,10 +1457,12 @@ function UI:BuildModal()
 	m:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
 	m:SetClampedToScreen(true);
 	m:EnableMouse(true);
-	m:SetBackdrop({ bgFile = WHITE, edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = false, edgeSize = 14,
-		insets = { left = 3, right = 3, top = 3, bottom = 3 } });
-	m:SetBackdropColor(0.06, 0.065, 0.09, 1);
-	m:SetBackdropBorderColor(0.70, 0.58, 0.30, 1);
+	if not THEME then
+		m:SetBackdrop({ bgFile = WHITE, edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = false, edgeSize = 14,
+			insets = { left = 3, right = 3, top = 3, bottom = 3 } });
+		m:SetBackdropColor(0.06, 0.065, 0.09, 1);
+		m:SetBackdropBorderColor(0.70, 0.58, 0.30, 1);
+	end
 	m:Hide();
 	m.title = text(m, 24, 18, 412, "GameFontNormalLarge", "LEFT", 18);
 	m.title:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
