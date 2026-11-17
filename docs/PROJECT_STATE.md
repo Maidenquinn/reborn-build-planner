@@ -1,6 +1,6 @@
 # PROJECT_STATE — Reborn Build Planner
 
-Mis à jour : 2026-11-17 · Lots 0-2 validés · Lots 3 / 3.1 / 3.2 PASS CONDITIONNEL · **Lot 3.3 livré : 0.4.1-alpha, PASS CONDITIONNEL (simulé, rendu non vu)** · Lot 4 non commencé.
+Mis à jour : 2026-11-17 · Lots 0-2 validés · Lots 3 à 3.3 PASS CONDITIONNEL · **Lot 3.4 livré : 0.4.2-alpha, PASS CONDITIONNEL (simulé, rendu non vu)** · Lot 4 non commencé.
 
 ## Décisions acquises
 * Addon natif `RebornBuildPlanner`, `## Interface: 30300`, dépendances `AzerothSurvivors, AzerothSurvivorsAPI`, SavedVariables **`RebornBuildPlannerDB`** (seule globale propre) ; namespace global `RebornBuildPlanner`. Commandes `/rbp`, `/rebornplanner` à valider (collision non vérifiée).
@@ -60,3 +60,11 @@ Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOA
 * **Tests** : Lua 5.1 193 cas / 9 020 assertions / 0 échec.
 * **À valider en jeu** : `RECETTE_CLIENT_LOT3_3.md` (F1-F19) : boutons sans modèle, molette sur les lignes, rendu, appréciation visuelle ; plus E22 (bannir un sort acquis).
 * **Prochaine action** : Kevin exécute F1-F19 + captures ; ajustements visuels selon ses retours ; puis décision sur la source des effets d'équipement ; puis Lot 4.
+
+## Lot 3.4 (0.4.2-alpha)
+* **Données** : générateur v2 conserve les champs publiés des amulettes et légendaires (hash inchangé). `Describe.lua` applique les règles officielles (FR/EN). Anneaux/bijoux : aucun effet publié -> « Effet détaillé indisponible » ; `API_PROPOSAL_JEWELRY.md` pour SNX.
+* **UI** : cases d'équipement à zones réservées, principaux | alternatives, sorts compacts, inspecteur à sections avec défilement, infobulles courtes (texte natif seulement dans le panneau), ancre selon la moitié d'écran.
+* **Traductions** : légendaires = tête anglaise + sort traduit ; stats et effets sûrs traduits.
+* **Tests** : Lua 5.1 206 cas / 11 773 assertions / 0 échec.
+* **À valider en jeu** : `RECETTE_CLIENT_LOT3_4.md` (G1-G14), dont appréciation visuelle ; comparer 2-3 effets d'amulettes au site.
+* **Prochaine action** : captures de Kevin ; envoyer la proposition API à SNX ; décider de `set_bonuses.json` ; puis Lot 4.

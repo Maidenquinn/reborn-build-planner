@@ -265,17 +265,17 @@ return function(H)
 		e.world.click(e.ui.bs.rows[1]);                 -- cleave
 		local ins = e.ui.det;
 		eq(ins.title.text, "Cleave");
-		ok(ins.body.text:find("Hits two enemies.", 1, true) and ins.body.text:find("Rank 3", 1, true), ins.body.text);
+		ok(e.ui:DetailText():find("Hits two enemies.", 1, true) and e.ui:DetailText():find("Rank 3", 1, true), e.ui:DetailText());
 		ok(ins.source.text:find("game's own spell text", 1, true), ins.source.text);
-		no(ins.body.text:find("Detailed effect unavailable", 1, true));
+		no(e.ui:DetailText():find("Detailed effect unavailable", 1, true));
 		eq(e.world.tooltip.shown, false, "the read leaves no tooltip on screen");
 		local calls = e.world.tooltip.calls;
 		e.c:Notify(); e.c:Notify();
 		eq(e.world.tooltip.calls, calls, "read once per spell, then cached");
 		e.world.click(e.ui.bs.rows[2]);                 -- whirlwind: the game knows nothing
-		ok(ins.body.text:find("Detailed effect unavailable", 1, true), ins.body.text);
+		ok(e.ui:DetailText():find("Detailed effect unavailable", 1, true), e.ui:DetailText());
 		ok(ins.source.text:find("Reborn catalogue", 1, true));
-		no(ins.body.text:find("%d+%%"), "nothing invented");
+		no(e.ui:DetailText():find("%d+%%"), "nothing invented");
 	end);
 
 	test("3.2D inspector: pieces show catalogue facts only; unknown element and homonymous legendaries are handled", function()
@@ -286,12 +286,12 @@ return function(H)
 		e.world.click(e.ui.ed.groups.rings.cells[1]);
 		local ins = e.ui.det;
 		eq(ins.title.text, "Band of Accuria");
-		ok(ins.body.text:find("Type: Ring", 1, true) and ins.body.text:find("Detailed effect unavailable", 1, true), ins.body.text);
-		ok(ins.body.text:find("Placed: main 1", 1, true));
+		ok(e.ui:DetailText():find("Type: Ring", 1, true) and e.ui:DetailText():find("Detailed effect unavailable", 1, true), e.ui:DetailText());
+		ok(e.ui:DetailText():find("Placed: main 1", 1, true));
 		-- unknown element
 		e.c:Inspect("spell", "not_a_spell");
 		eq(ins.title.text, "not_a_spell");
-		ok(ins.body.text:find("Unknown to this catalogue", 1, true), ins.body.text);
+		ok(e.ui:DetailText():find("Unknown to this catalogue", 1, true), e.ui:DetailText());
 		-- homonymous legendaries: two keys, same name, told apart by class
 		local cat = e.ns.catalog;
 		local pair;
@@ -314,10 +314,11 @@ return function(H)
 		local id = e.c:Create("I", "warrior"); e.ui:OpenEditor(id);
 		local n0 = #e.world.all;
 		e.world.click(e.ui.bs.rows[1]);
-		ok(e.ui.det.body.text:find("Line 40", 1, true), "all lines kept");
+		ok(e.ui:DetailText():find("Line 40", 1, true), "all lines kept");
 		eq(e.world.lint(e.root), {});
 		eq(#e.world.all, n0);
-		ok(e.ui.det.body.h >= 100, "the body box wraps in a fixed area");
+		eq(#e.ui.det.rows, 8, "a fixed pool of rows, scrolled");
+		ok(e.ui.det.area.slider:IsShown(), "long text scrolls inside the panel");
 	end);
 
 	-- ------------------------------------------------------------------ storage and migrations

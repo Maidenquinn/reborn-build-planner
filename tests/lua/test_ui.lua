@@ -828,10 +828,10 @@ return function(H)
 	-- ------------------------------------------------------------------ translations
 	test("every string of the window has a French translation", function()
 		local missing = {};
-		local SAME = { ["Build"] = true, ["Page %d/%d"] = true, ["Info"] = true, ["Notes (%s)"] = true, ["Alternative %d"] = true, ["Alt. %d"] = true };
+		local SAME = { ["Build"] = true, ["Page %d/%d"] = true, ["Info"] = true, ["Notes (%s)"] = true, ["Alternative %d"] = true, ["Alt. %d"] = true, ["Description"] = true };
 		local ns = H.loadAddon();
 		ns.Locale.SetLang("frFR");
-		for _, f in ipairs({ "Controller.lua", "UI.lua", "Commands.lua" }) do
+		for _, f in ipairs({ "Controller.lua", "UI.lua", "Commands.lua", "Describe.lua" }) do
 			local src = H.readFile(H.root .. "/addon/RebornBuildPlanner/" .. f);
 			for k in src:gmatch('L%("([^\n]-)"%)') do
 				local key = k:gsub('\\"', '"');

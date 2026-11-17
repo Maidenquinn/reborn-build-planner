@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2-alpha (Lot 3.4) — équipements, infobulles, descriptions, traductions
+* **Données** : générateur v2 : conserve les champs publiés des amulettes (`growth`, `effects`, `special`, `world`, `needs`) et des légendaires (`template`, `form`, `effects`, `growth`, `fixed`) ; hash de contenu inchangé. Nouveau module `Describe.lua` (règles officielles, FR/EN, aucune valeur inventée).
+* **Cases d'équipement** : structure à zones réservées (fin des chevauchements nom / bouton retirer), principaux et alternatives séparés, nom très long tronqué avec nom complet dans le panneau et l'infobulle, couleurs de rareté.
+* **Sorts** : contrôles compacts ; `banishAfter` inchangé.
+* **Inspecteur** : sections (Dans ce build / Description / Informations / Effets / Croissance / Disponibilité), défilement interne, source indiquée.
+* **Infobulles** : aperçu court (≤ 7 lignes), ancre à gauche dans la moitié droite de l'écran, texte natif jamais mélangé.
+* **Traductions** : noms de légendaires = tête anglaise + sort traduit ; libellés de statistiques et d'effets sûrs traduits, les autres laissés tels que publiés.
+* Tests Lua 5.1 : 206 cas, 11 773 assertions.
+
 ## 0.4.1-alpha (Lot 3.3) — refonte visuelle et nouvelle organisation
 * **Droite = navigateur permanent** Sorts / Anneaux / Bijoux / Amulettes (recherche, liste défilante, état « Voulu / Évité / En place / Placé »). **Bas du centre = détails** (icône, type, rareté/classe, texte natif ou « Effet détaillé indisponible », source, statut dans le build, actions Ajouter / Retirer / Éviter / Placer ici / Vider / Déjà placé). Double-clic = action principale.
 * **Cliquer un emplacement** filtre le navigateur sur le bon type et cible l'emplacement ; **sélectionner** une pièce n'en place aucune : le placement se fait par le bouton ou le double-clic.

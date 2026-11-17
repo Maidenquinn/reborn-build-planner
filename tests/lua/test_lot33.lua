@@ -79,7 +79,7 @@ return function(H)
 		local key = e.c:CatalogEntries()[2].key;
 		eq(e.c.state.inspect.key, key);
 		eq(e.ui.det.title.text, e.ns.catalog:Get("jewel", key).name);
-		ok(e.ui.det.body.text:find("Type: Trinket", 1, true), e.ui.det.body.text);
+		ok(e.ui:DetailText():find("Type: Trinket", 1, true), e.ui:DetailText());
 		eq(e.c:Editor().draft.phases[1].trinkets[3], "");
 		ok(e.ui.det.act1:IsEnabled());
 		ok(e.ui.det.act1.text:find("Place here", 1, true), e.ui.det.act1.text);
@@ -198,16 +198,16 @@ return function(H)
 		local id, ed = newEditor(e);
 		ok(e.world.hasText("Select a spell or a piece"), e.texts());
 		e.world.click(e.ui.bs.rows[1]);
-		ok(e.ui.det.body.text:find("Hits two enemies.", 1, true), e.ui.det.body.text);
+		ok(e.ui:DetailText():find("Hits two enemies.", 1, true), e.ui:DetailText());
 		ok(e.ui.det.source.text:find("game's own spell text", 1, true));
 		eq(e.ui.det.type.text, "Spell | Warrior");
 		e.world.click(e.ui.bs.rows[2]);
-		ok(e.ui.det.body.text:find("Detailed effect unavailable", 1, true));
+		ok(e.ui:DetailText():find("Detailed effect unavailable", 1, true));
 		ok(e.ui.det.source.text:find("Reborn catalogue", 1, true));
 		e.world.click(e.ui.bs.kinds.rings);
 		e.world.click(e.ui.bs.rows[1]);
-		ok(e.ui.det.body.text:find("Detailed effect unavailable", 1, true));
-		no(e.ui.det.body.text:find("%d+%%"));
+		ok(e.ui:DetailText():find("Detailed effect unavailable", 1, true));
+		no(e.ui:DetailText():find("%d+%%"));
 		-- the advanced block takes the detail area and gives it back
 		e.c:ToggleAdvanced();
 		no(e.ui.det.title:IsVisible()); ok(e.ui.ed.nt.notes.scroll:IsVisible());

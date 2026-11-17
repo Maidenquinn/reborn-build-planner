@@ -1,18 +1,14 @@
-# Matrice des sources de descriptions (Lot 3.2)
+# Matrice des sources de descriptions (mise à jour Lot 3.4)
 
-Question : quelles données réellement exploitables existent pour décrire un sort, un anneau, un bijou, une amulette ? Recherche faite dans les addons natifs installés (lecture seule) et dans le catalogue embarqué. **Aucune valeur n'est tirée des maquettes.**
+Source principale : **données publiées** `https://azreborn.com/data/v1/` (guide `https://azreborn.com/guides/data-api`), embarquées par `tools/generate_catalog.py` v2 (hash de contenu inchangé : `384db000d5ac311d`). Ce que le générateur v1 avait **perdu** et que la v2 conserve sans modification : `amulets.json` → `growth`, `effects`, `special`, `world`, `needs` ; `legends.json` → `template`, `form`, `effects`, `growth`, `fixed`. (Un test compare chaque enregistrement Lua au JSON publié.)
 
-| Élément | Source | Contient | Utilisée ? | Remarque |
-|---|---|---|---|---|
-| Sort | **Infobulle native du jeu** `GameTooltip:SetHyperlink("spell:<id>")` (même appel que `AzerothSurvivors/Inspect.lua`) | Nom, rang, description, effets tels que le client les construit | **Oui**, lue **une fois par sort**, à la sélection ou au survol, mise en cache, jamais en arrière-plan | Fidélité à Reborn (valeurs modifiées par le serveur) : **à confirmer en client** (D9). Sans réponse : « Effet détaillé indisponible » |
-| Sort | Catalogue embarqué (`GeneratedCatalog`) | clé, nom, id de sort, classe, icône | Oui (nom, classe, icône) | Aucune description ni rang |
-| Sort | `AZS_SPELLTIPS` / `AZSCARDTIP` (natif, **exécution**) | Effet d'un sort proposé / possédé | **Non** (Lot 4 : données live) | Absent hors partie ; pas de scan |
-| Anneau / bijou | Catalogue embarqué | clé, nom, emplacement, icône | Oui | **Aucun effet, aucune statistique** |
-| Anneau / bijou | `AzerothSurvivors/Generated/Content.lua` (`AZS_GEN.jewels`) | clé, nom, icône | Non (même contenu que le catalogue) | Pas de champ d'effet |
-| Anneau / bijou | `AZSCARDS` (`effect~detail~note`) et `AZS_GEAR` (`bonus`, `amount`, `text`) | Effet de la pièce **proposée** / **possédée**, à l'exécution | **Non** | `amount` n'est pas un rang général des bijoux (non généralisé, contrat Lot 0) ; données live = Lot 4 |
-| Amulette | Catalogue embarqué | nom, rareté, classes ; légendaire : sort lié, série, classe | Oui | Pas d'effet de base ni de particularité chiffrée |
-| Amulette | `Content.lua` (`AZS_GEN.amulets`) | clé, nom, icône, rareté | Non (idem) | |
-| Racial, talents de compte | `Content.lua` (`effect = "..."`) | Texte d'effet | Non | Hors périmètre du planner de builds |
-| Site officiel (planner) | Page publique | Texte « A banished spell never comes up in a level-up that run… » | Cité dans CONTRACTS | Pas de description d'objets dans le bundle de référence |
+| Élément | Source | Utilisée | Détail |
+|---|---|---|---|
+| Amulette fixe (22) | `amulets.json` | **Oui** (`Describe.lua`) | effets au rang 1 (parts en %, sauf `regen`, `kill_heal`, `lives`, `targets`), spécial, croissance (formule officielle `3 - 2 x (1 - growth / 2) ^ (rang - 1)`, rangs 2, 3, 5), classes, monde, prérequis « soin ». Les `targets` ne reçoivent pas de valeur au rang 5 (croissance « par paliers entiers » non spécifiée). |
+| Amulette légendaire (237) | `legends.json`, clé `legendary:<sort>` | **Oui** | effets tels que le jeu les écrit (nom + paramètres) ; unités appliquées seulement là où le guide les donne (`share`, `chance` en %, `secs` en s) ; croissance ou valeur `fixed` (formule linéaire, plafond rang 11) ; origine (`template`, `form`). Noms d'effets non traduisibles sans deviner : affichés tels quels. Les titres ne sont **pas** uniques (ex. « The Eternal Talisman: Metamorphosis » existe pour deux classes) : seule la clé identifie. |
+| Anneau / bijou (44) | `jewelry.json` | Nom, emplacement, icône | **Aucun effet publié** ; `Content.lua`, `AZSCARDS`, `AZS_GEAR` écartés (voir `API_PROPOSAL_JEWELRY.md`) |
+| Sort | texte natif du jeu (`GameTooltip:SetHyperlink("spell:<id>")`, lu une fois par sort, mis en cache, **affiché seulement dans le panneau Détails**) | Oui | fidélité à Reborn à confirmer en client ; `spells.json` ne contient pas de description (le guide le dit : « What is not in the files: spell descriptions ») |
+| Bonus de set | `set_bonuses.json` | Non | publié mais non embarqué : hors périmètre de ce lot |
+| Traductions | `i18n/frFR.json` | Noms de sorts, anneaux/bijoux, amulettes fixes (22/22), classes | **Les titres de légendaires et leurs têtes ne sont pas traduits** (0/21 têtes) |
 
-Conséquence : pour les pièces d'équipement, l'inspecteur affiche seulement ce que le catalogue prouve et dit « Effet détaillé indisponible ». Aucun bonus de set, aucune statistique, aucun niveau d'objet n'est fabriqué. Une description fiable des pièces demandera les données live (`AZSCARDS`/`AZS_GEAR`) ou un export de contenu du serveur : à décider avec GPT avant le Lot 4.
+Règle d'affichage : une valeur numérique n'est montrée que si un enregistrement la porte ou si la règle officielle la calcule ; sinon « Effet détaillé indisponible ».

@@ -61,7 +61,8 @@ return function(H)
 		eq(cat:Name("spell", "whirlwind"), "Whirlwind");
 		eq(cat:Name("jewel", "accuria", "frFR"), "Anneau d'Accuria");
 		eq(cat:Name("amulet", "mark_of_fordring", "frFR"), "Marque de Fordring");
-		eq(cat:Name("amulet", "legendary:cleave", "frFR"), "Medallion of the Bladestorm: Cleave");   -- no FR data: English
+		eq(cat:Name("amulet", "legendary:cleave", "frFR"), "Medallion of the Bladestorm: Enchaînement");   -- head: English only in the data; spell part translated
+		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: Cleave");   -- no embedded language: English
 		eq(cat:Name("spell", "no_such_spell", "frFR"), "no_such_spell");
 		eq(cat:Name("spell", "whirlwind", "deDE"), "Whirlwind");                                    -- language not embedded
 	end);
