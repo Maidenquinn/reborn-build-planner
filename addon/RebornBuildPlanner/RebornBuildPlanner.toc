@@ -8,9 +8,11 @@
 Util.lua
 Locale.lua
 GeneratedCatalog.lua
+GeneratedJewelryMechanics.lua
 Glossary.lua
 Catalog.lua
 Describe.lua
+JewelryEffects.lua
 Theme.lua
 BuildModel.lua
 Storage.lua
