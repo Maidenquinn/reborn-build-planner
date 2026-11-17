@@ -371,13 +371,14 @@ return function(H)
 		ok(H.deepeq(before, h2.db));
 	end);
 
-	test("quarantine is capped", function()
+	test("an over-capacity quarantine is refused, never truncated (policy of Lot 1.1)", function()
 		local db = S.NewDB();
 		for i = 1, 70 do db.builds["junk" .. i] = "x" .. i; end
 		local h = mk(db);
-		eq(h:Counts().quarantine, S.LIMITS.quarantine);
+		eq(h.status, "REPAIR_REFUSED");
+		ok(h.readOnly and h.db == db);
+		eq(U.Len(db.builds), 70, "all 70 original records still there");
 	end);
-
 	test("builds missing optional fields are completed, not discarded", function()
 		local db = S.NewDB();
 		db.builds.p1 = { id = "p1", name = "partial", class = "warrior", phases = { { spells = { "whirlwind" } } } };

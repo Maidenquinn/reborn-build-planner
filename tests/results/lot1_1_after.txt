@@ -1,0 +1,12 @@
+﻿[test_catalog]
+  1296 assertions passed so far in this suite
+[test_model]
+  242 assertions passed so far in this suite
+[test_storage]
+  421 assertions passed so far in this suite
+[test_storage_hardening]
+  193 assertions passed so far in this suite
+[test_sandbox]
+  187 assertions passed so far in this suite
+
+Lua tests: 66 test cases, 2339 assertions passed, 0 failed (Lua 5.1)

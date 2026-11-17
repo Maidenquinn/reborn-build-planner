@@ -78,10 +78,21 @@ local function newId(h)
 end
 
 -- ------------------------------------------------------------------ structural repair (non-destructive)
-local function quarantine(db, reason, raw, key)
-	db.quarantine[#db.quarantine + 1] = { reason = reason, key = key, raw = raw };
-	while #db.quarantine > S.LIMITS.quarantine do
-		table.remove(db.quarantine, 1);   -- documented cap; the oldest quarantined record is the only thing ever dropped
+-- Quarantine policy (Lot 1.1): lossless or refused. Items are collected first; if they do not all fit under
+-- S.LIMITS.quarantine the whole operation is refused (error table {code="QUARANTINE_FULL"}), nothing is truncated.
+local function pend(list, reason, raw, key)
+	list[#list + 1] = { reason = reason, key = key, raw = raw };
+end
+
+local function commitQuarantine(db, list)
+	local have, add, cap = #db.quarantine, #list, S.LIMITS.quarantine;
+	if have + add > cap then
+		error({ code = "QUARANTINE_FULL", message = string.format(
+			"QUARANTINE_FULL: %d unreadable record(s) to set aside, %d already in quarantine, capacity %d; nothing was changed or removed",
+			add, have, cap) }, 0);
+	end
+	for i = 1, add do
+		db.quarantine[have + i] = list[i];
 	end
 end
 
@@ -89,17 +100,18 @@ end
 -- record: what it cannot read goes to db.quarantine.
 local function settle(db, catalog)
 	local out = {};
+	local pending = {};
 	if not isTable(db.quarantine) then
 		local old = db.quarantine;
 		db.quarantine = {};
 		if old ~= nil then
-			quarantine(db, "FIELD_NOT_A_TABLE:quarantine", old, "quarantine");
+			pend(pending, "FIELD_NOT_A_TABLE:quarantine", old, "quarantine");
 		end
 	end
 	for _, f in ipairs({ "settings", "builds", "library", "active", "trash", "backups", "ext" }) do
 		if not isTable(db[f]) then
 			if db[f] ~= nil then
-				quarantine(db, "FIELD_NOT_A_TABLE:" .. f, db[f], f);
+				pend(pending, "FIELD_NOT_A_TABLE:" .. f, db[f], f);
 				out[#out + 1] = issue("FIELD_RESET", f .. " was not a table (kept in quarantine)");
 			end
 			db[f] = {};
@@ -118,11 +130,11 @@ local function settle(db, catalog)
 		local b, rep = BM.Normalize(rec, catalog, { id = type(k) == "string" and k or nil });
 		if not b then
 			db.builds[k] = nil;
-			quarantine(db, "INVALID_BUILD", rec, tostring(k));
+			pend(pending, "INVALID_BUILD", rec, tostring(k));
 			out[#out + 1] = issue("BUILD_QUARANTINED", "build " .. tostring(k) .. " is invalid", rep.errors);
 		elseif b.id ~= k then
 			db.builds[k] = nil;
-			quarantine(db, "ID_MISMATCH", rec, tostring(k));
+			pend(pending, "ID_MISMATCH", rec, tostring(k));
 			out[#out + 1] = issue("BUILD_QUARANTINED", "build key " .. tostring(k) .. " differs from its id " .. tostring(b.id));
 		else
 			db.builds[k] = b;
@@ -165,12 +177,57 @@ local function settle(db, catalog)
 		if isTable(t) and isTable(t.build) and type(t.build.id) == "string" then
 			trash[#trash + 1] = t;
 		else
-			quarantine(db, "INVALID_TRASH", t, nil);
+			pend(pending, "INVALID_TRASH", t, nil);
 		end
 	end
 	db.trash = trash;
+	commitQuarantine(db, pending);
 	return out;
 end
+
+-- Invariants of a settled copy; returns nil or a message.
+local function invariants(work, src)
+	if work.schema ~= S.SCHEMA then
+		return "schema is " .. tostring(work.schema);
+	end
+	local seen = {};
+	for id, b in pairs(work.builds) do
+		local rep = BM.Validate(b, nil);
+		if not rep.ok or b.id ~= id then
+			return "build " .. tostring(id) .. " is not valid after repair";
+		end
+	end
+	for class, list in pairs(work.library) do
+		for _, id in ipairs(list) do
+			local b = work.builds[id];
+			if not b or b.class ~= class or seen[id] then
+				return "library entry " .. tostring(id) .. " is inconsistent";
+			end
+			seen[id] = true;
+		end
+	end
+	for id in pairs(work.builds) do
+		if not seen[id] then
+			return "build " .. tostring(id) .. " is missing from the library";
+		end
+	end
+	for class, id in pairs(work.active) do
+		local b = work.builds[id];
+		if not b or b.class ~= class then
+			return "active pointer of " .. tostring(class) .. " is dangling";
+		end
+	end
+	if #work.quarantine > S.LIMITS.quarantine then
+		return "quarantine over capacity";
+	end
+	local srcBuilds = isTable(src.builds) and Util.Len(src.builds) or 0;
+	local srcQ = isTable(src.quarantine) and #src.quarantine or 0;
+	if Util.Len(work.builds) + (#work.quarantine - srcQ) < srcBuilds then
+		return "records were lost: " .. Util.Len(work.builds) .. " kept + " .. (#work.quarantine - srcQ) .. " quarantined of " .. srcBuilds;
+	end
+	return nil;
+end
+S._hooks = {};      -- test seam (afterSettle); empty in production
 
 -- ------------------------------------------------------------------ migrations
 -- Each step turns a COPY of schema v into schema v+1. `count(db)` says how many builds the source holds, so a
@@ -185,6 +242,7 @@ MIGRATIONS[0] = {
 	end,
 	step = function(src, ctx)
 		local out = S.NewDB();
+		local pending = {};
 		out.settings = isTable(src.settings) and Util.DeepCopy(src.settings) or {};
 		local mapped = {};
 		for i = 1, Util.Len(src.builds or {}) do
@@ -203,7 +261,7 @@ MIGRATIONS[0] = {
 				out.builds[raw.id] = raw;
 				mapped[i] = raw.id;
 			else
-				quarantine(out, "NOT_A_BUILD", old, tostring(i));
+				pend(pending, "NOT_A_BUILD", old, tostring(i));
 			end
 		end
 		if isTable(src.active) then
@@ -216,6 +274,7 @@ MIGRATIONS[0] = {
 				out.ext[tostring(k)] = Util.DeepCopy(v);
 			end
 		end
+		commitQuarantine(out, pending);
 		return out;
 	end,
 };
@@ -256,9 +315,51 @@ local function migrate(handle, rawdb)
 	end);
 	if not ok then
 		handle.db = rawdb;
-		return nil, tostring(res);
+		return nil, type(res) == "table" and (res.message or res.code) or tostring(res);
 	end
 	return res.db, res.issues;
+end
+
+-- Current-schema open is transactional: the loaded table is only ever READ. Limits are checked on it, a deep
+-- copy is repaired and verified, and the result is accepted as a whole or refused as a whole (read-only handle
+-- over the untouched original).
+local function refuse(h, existing, code, message)
+	h.db, h.readOnly, h.status = existing, true, "REPAIR_REFUSED";
+	h.issues = { issue(code, message) };
+	return h;
+end
+
+local function openCurrent(h, existing)
+	local fine, why = Util.Measure(existing, S.LIMITS.dbNodes, S.LIMITS.dbDepth);
+	if not fine then
+		return refuse(h, existing, "SOURCE_REJECTED", "saved data rejected before any repair: " .. tostring(why));
+	end
+	local ok, res = pcall(function()
+		local work = Util.DeepCopy(existing);
+		local issues = settle(work, h.catalog);
+		if S._hooks.afterSettle then
+			S._hooks.afterSettle(work);
+		end
+		local bad = invariants(work, existing);
+		if bad then
+			error({ code = "INVARIANT", message = "INVARIANT: " .. bad }, 0);
+		end
+		return { work = work, issues = issues };
+	end);
+	if not ok then
+		if type(res) == "table" and res.code then
+			return refuse(h, existing, res.code, res.message);
+		end
+		return refuse(h, existing, "REPAIR_ERROR", tostring(res));
+	end
+	h.status = "OK";
+	h.issues = res.issues;
+	if Util.DeepEqual(res.work, existing) then
+		h.db = existing;            -- nothing to repair: keep the loaded table, no churn
+	else
+		h.db = res.work;
+	end
+	return h;
 end
 
 -- ------------------------------------------------------------------ open
@@ -291,10 +392,7 @@ function S.Open(existing, opts)
 		return h;
 	end
 	if schema == S.SCHEMA then
-		h.db = existing;
-		h.status = "OK";
-		h.issues = settle(existing, h.catalog);
-		return h;
+		return openCurrent(h, existing);
 	end
 	local db, issues = migrate(h, existing);
 	if not db then
@@ -461,15 +559,17 @@ function H:Delete(id)
 	if not b then return nil, issue("NOT_FOUND", "no build " .. tostring(id)); end
 	local entry = { build = b, wasActive = (self.db.active[b.class] == id) and b.class or nil, seq = self.db.counter };
 	table.insert(self.db.trash, entry);
+	local evicted;
 	while #self.db.trash > S.LIMITS.trash do
-		table.remove(self.db.trash, 1);
+		local old = table.remove(self.db.trash, 1);
+		evicted = { id = old.build.id, name = old.build.name, class = old.build.class };   -- reported, never silent
 	end
 	self.db.builds[id] = nil;
 	libRemove(self.db, b.class, id);
 	if entry.wasActive then
 		self.db.active[b.class] = nil;
 	end
-	return true;
+	return true, evicted;
 end
 
 function H:Trash()

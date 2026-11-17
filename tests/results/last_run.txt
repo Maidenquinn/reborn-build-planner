@@ -5,6 +5,6 @@
 == Lot 0 suite: PASS
    273 assertions passed, 0 failed
 == Lua 5.1 suites: PASS
-     419 assertions passed so far in this suite
+     193 assertions passed so far in this suite
      187 assertions passed so far in this suite
-   Lua tests: 57 test cases, 2144 assertions passed, 0 failed (Lua 5.1)
+   Lua tests: 66 test cases, 2339 assertions passed, 0 failed (Lua 5.1)
