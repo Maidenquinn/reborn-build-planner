@@ -6,7 +6,7 @@ local ADDON, ns = ...;
 ns = ns or {};
 local Util, BM, Locale = ns.Util, ns.BuildModel, ns.Locale;
 assert(Util and BM and Locale and ns.PlannerCodec, "RebornBuildPlanner: Controller.lua must load after the codec");
-local Controller = { LIB_PAGE = 10, CATALOG_PAGE = 5, ISSUE_PAGE = 6, RECENT_MAX = 10 };
+local Controller = { LIB_ROWS = 10, CATALOG_ROWS = 14, ISSUE_PAGE = 6, RECENT_MAX = 10 };
 ns.Controller = Controller;
 Controller.__index = Controller;
 
@@ -14,7 +14,7 @@ local L = function(s) return Locale.T(s); end
 
 function Controller.New(env)
 	local self = setmetatable({ env = env or ns, listeners = {} }, Controller);
-	self.state = { view = "editor", classFilter = nil, selectedId = nil, page = 1, trashMode = false, message = nil, undo = nil,
+	self.state = { view = "editor", classFilter = nil, selectedId = nil, libOffset = 0, trashMode = false, message = nil, undo = nil,
 		editor = nil, import = nil, export = nil, search = "", filter = nil, sort = nil, inspect = nil };
 	self.searchIndex = {};
 	return self;
@@ -104,7 +104,7 @@ end
 
 function Controller:SetClassFilter(class)
 	self.state.classFilter = class;
-	self.state.page = 1;
+	self.state.libOffset = 0;
 	self.state.selectedId = nil;
 	self:Notify();
 end
@@ -124,7 +124,7 @@ function Controller:SetFilter(f)
 	self.state.filter = f;
 	local h = self:Handle();
 	if h and not h.readOnly then h:SetSetting("libFilter", f); end
-	self.state.page = 1;
+	self.state.libOffset = 0;
 	self:Notify();
 end
 
@@ -132,7 +132,7 @@ function Controller:SetSort(sort)
 	self.state.sort = sort;
 	local h = self:Handle();
 	if h and not h.readOnly then h:SetSetting("libSort", sort); end
-	self.state.page = 1;
+	self.state.libOffset = 0;
 	self:Notify();
 end
 
@@ -148,7 +148,7 @@ function Controller:SetLibSearch(text)
 	text = text or "";
 	if self.state.search ~= text then
 		self.state.search = text;
-		self.state.page = 1;
+		self.state.libOffset = 0;
 		self:Notify();
 	end
 end
@@ -253,23 +253,32 @@ function Controller:Rows()
 	return out;
 end
 
-function Controller:PageCount()
-	return math.max(1, math.ceil(#self:Rows() / Controller.LIB_PAGE));
+-- Scrollable lists: the UI shows a fixed window of rows over the full list; offsets are 0-based and clamped.
+local function windowOf(list, offset, n)
+	local max = math.max(0, #list - n);
+	if offset > max then offset = max; end
+	if offset < 0 then offset = 0; end
+	local out = {};
+	for i = 1, n do out[i] = list[offset + i]; end
+	return out, offset, max;
 end
 
-function Controller:SetPage(p)
-	self.state.page = math.max(1, math.min(self:PageCount(), p));
+function Controller:LibView()
+	local out, off, max = windowOf(self:Rows(), self.state.libOffset, Controller.LIB_ROWS);
+	self.state.libOffset = off;
+	return out, off, max;
+end
+
+function Controller:ScrollLib(delta)
+	self.state.libOffset = (self.state.libOffset or 0) + delta;
+	self:LibView();
 	self:Notify();
 end
 
-function Controller:PageRows()
-	local rows, out = self:Rows(), {};
-	if self.state.page > self:PageCount() then self.state.page = self:PageCount(); end
-	local first = (self.state.page - 1) * Controller.LIB_PAGE;
-	for i = 1, Controller.LIB_PAGE do
-		out[i] = rows[first + i];
-	end
-	return out;
+function Controller:SetLibOffset(o)
+	self.state.libOffset = o;
+	self:LibView();
+	self:Notify();
 end
 
 function Controller:Select(id)
@@ -286,7 +295,7 @@ end
 
 function Controller:ShowTrash(on)
 	self.state.trashMode = on and true or false;
-	self.state.page = 1;
+	self.state.libOffset = 0;
 	self.state.selectedId = nil;
 	self:Notify();
 end
@@ -449,7 +458,7 @@ function Controller:OpenEditor(id)
 	if cur and cur.id ~= id and self:EditorDirty() then
 		return false, "DIRTY";
 	end
-	self.state.editor = { id = id, saved = b, draft = BM.Clone(b), phase = 1, cat = "spells", group = "rings", slot = 1, search = "", page = 1, adv = false };
+	self.state.editor = { id = id, saved = b, draft = BM.Clone(b), phase = 1, cat = "spells", group = "rings", slot = 1, search = "", offset = 0, adv = false };
 	self.state.view = "editor";
 	self.state.selectedId = id;
 	self.state.inspect = nil;
@@ -633,7 +642,7 @@ function Controller:SetCatalog(cat)
 	local e = self.state.editor;
 	if not e then return; end
 	if cat ~= "spells" and not BM.MAIN_SLOTS[cat] then return; end
-	e.cat, e.page = cat, 1;
+	e.cat, e.offset = cat, 0;
 	if cat ~= "spells" then
 		e.group = cat;
 		local list = e.draft.phases[e.phase][cat];
@@ -653,13 +662,13 @@ function Controller:SelectSlot(group, pos)
 	if not e or not BM.MAIN_SLOTS[group] then return; end
 	local list = e.draft.phases[e.phase][group];
 	if type(pos) ~= "number" or pos < 1 or pos > #list then return; end
-	e.cat, e.group, e.slot, e.page = group, group, pos, 1;
+	e.cat, e.group, e.slot, e.offset = group, group, pos, 0;
 	local k = list[pos];
 	if k ~= "" then self.state.inspect = { kind = group == "amulets" and "amulet" or "jewel", key = k }; end
 	self:Notify();
 end
 
-function Controller:AddSpellTarget() local e = self.state.editor; if e then e.cat, e.page = "spells", 1; self:Notify(); end end
+function Controller:AddSpellTarget() local e = self.state.editor; if e then e.cat, e.offset = "spells", 0; self:Notify(); end end
 function Controller:ToggleAdvanced() local e = self.state.editor; if e then e.adv = not e.adv; self:Notify(); end end
 
 -- What "Place" will fill: { group, slot, role, key, name } for equipment, nil when the catalogue shows spells.
@@ -680,12 +689,11 @@ function Controller:Inspect(kind, key)
 	if type(key) ~= "string" or key == "" then self.state.inspect = nil; else self.state.inspect = { kind = kind, key = key }; end
 	self:Notify();
 end
-function Controller:SetSearch(text) local e = self.state.editor; if e.search ~= text then e.search = text; e.page = 1; self:Notify(); end end
-function Controller:SetEditorPage(p) local e = self.state.editor; e.page = math.max(1, math.min(self:CatalogPageCount(), p)); self:Notify(); end
+function Controller:SetSearch(text) local e = self.state.editor; if e.search ~= text then e.search = text; e.offset = 0; self:Notify(); end end
 
 function Controller:SetPhase(p)
 	local e = self.state.editor;
-	if p >= 1 and p <= 4 then e.phase = p; e.page = 1; self:Notify(); end
+	if p >= 1 and p <= 4 then e.phase = p; e.offset = 0; self:Notify(); end
 end
 
 -- Phases 2-4 stay hidden until needed: an imported/edited build that uses them shows them at once.
@@ -762,24 +770,62 @@ function Controller:CatalogEntries()
 		if entry then
 			local name = cat:Name(kind, k, lang);
 			if matches({ name, entry.name }, e.search) then
-				out[#out + 1] = { key = k, name = name, icon = entry.icon, state = used[k], rarity = entry.rarity, legend = entry.spell ~= nil, after = after[k] or nil };
+				out[#out + 1] = { key = k, name = name, icon = entry.icon, state = used[k], rarity = entry.rarity, legend = entry.spell ~= nil, after = after[k] or nil,
+				here = (e.cat ~= "spells" and ph[e.group] and ph[e.group][e.slot] == k) or nil };
 			end
 		end
 	end
 	return out;
 end
 
-function Controller:CatalogPageCount()
-	return math.max(1, math.ceil(#self:CatalogEntries() / Controller.CATALOG_PAGE));
+function Controller:CatalogView()
+	local e = self.state.editor;
+	local out, off, max = windowOf(self:CatalogEntries(), e.offset or 0, Controller.CATALOG_ROWS);
+	e.offset = off;
+	return out, off, max;
 end
 
-function Controller:CatalogPage()
-	local all, out = self:CatalogEntries(), {};
+function Controller:ScrollCatalog(delta)
 	local e = self.state.editor;
-	if e.page > self:CatalogPageCount() then e.page = self:CatalogPageCount(); end
-	local first = (e.page - 1) * Controller.CATALOG_PAGE;
-	for i = 1, Controller.CATALOG_PAGE do out[i] = all[first + i]; end
-	return out;
+	if not e then return; end
+	e.offset = (e.offset or 0) + delta;
+	self:CatalogView();
+	self:Notify();
+end
+
+function Controller:SetCatalogOffset(o)
+	local e = self.state.editor;
+	if not e then return; end
+	e.offset = o;
+	self:CatalogView();
+	self:Notify();
+end
+
+-- What the detail panel can do with the selected element: { kind, key, spell = {wanted, avoided, room}, piece = {group,
+-- placedAt, inTarget, targetGroupOk} }. Pure data; the UI draws the buttons, the controller executes through the
+-- same functions as every other control.
+function Controller:DetailState()
+	local e, i = self.state.editor, self.state.inspect;
+	if not e or not i then return nil; end
+	local ph = e.draft.phases[e.phase];
+	local d = { kind = i.kind, key = i.key };
+	if i.kind == "spell" then
+		local wanted = false;
+		for _, g in ipairs(ph.spells) do if g.key == i.key then wanted = true; end end
+		d.spell = { wanted = wanted, avoided = Util.IndexOf(ph.banish, i.key) ~= nil, room = #ph.spells < BM.LIMITS.spells };
+	else
+		local group = i.kind == "amulet" and "amulets" or nil;
+		if not group then
+			local cat = self:Catalog();
+			local j = cat and cat:Get("jewel", i.key);
+			group = j and (j.slot == "ring" and "rings" or "trinkets") or nil;
+		end
+		local placedAt;
+		if group then for pos, k in ipairs(ph[group]) do if k == i.key then placedAt = pos; end end end
+		d.piece = { group = group, placedAt = placedAt, targetGroupOk = group ~= nil and e.cat == group and e.group == group,
+			inTarget = placedAt ~= nil and placedAt == e.slot and e.group == group };
+	end
+	return d;
 end
 
 -- display rows of the plan (wanted spells, banish, slot lists) with localized names; unknown keys shown raw
@@ -860,6 +906,7 @@ function Controller:TooltipData(kind, key)
 	d.icon = entry.icon;
 	if kind == "spell" then
 		d.spellId = type(entry.id) == "number" and entry.id or nil;
+		d.subtitle = L("Spell") .. " | " .. self:ClassName(entry.class);
 		line(L("Class:") .. " " .. self:ClassName(entry.class));
 		if ph then
 			for i, g in ipairs(ph.spells) do
@@ -881,6 +928,7 @@ function Controller:TooltipData(kind, key)
 		end
 		if not d.spellId then line(L("Detailed effect unavailable"), "dim"); end
 	elseif kind == "jewel" then
+		d.subtitle = entry.slot == "ring" and L("Ring") or L("Trinket");
 		line(L("Type:") .. " " .. (entry.slot == "ring" and L("Ring") or L("Trinket")));
 		if ph then
 			local group = entry.slot == "ring" and "rings" or "trinkets";
@@ -895,6 +943,7 @@ function Controller:TooltipData(kind, key)
 		line(L("The Reborn catalogue gives no statistics for this piece."), "dim");
 	else
 		local isLegend = entry.spell ~= nil;
+		d.subtitle = isLegend and (L("Legendary amulet") .. " | " .. self:ClassName(entry.class)) or (L("Amulet") .. " | " .. L(RARITY[entry.rarity or ""] or "Unknown"));
 		line(isLegend and L("Legendary amulet") or (L("Rarity:") .. " " .. L(RARITY[entry.rarity or ""] or "Unknown")));
 		if isLegend then
 			if entry.head then line(L("Series:") .. " " .. entry.head); end
