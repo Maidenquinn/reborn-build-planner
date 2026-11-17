@@ -6,7 +6,7 @@ local ADDON, ns = ...;
 ns = ns or {};
 local Util, BM, Locale = ns.Util, ns.BuildModel, ns.Locale;
 assert(Util and BM and Locale and ns.PlannerCodec, "RebornBuildPlanner: Controller.lua must load after the codec");
-local Controller = { LIB_PAGE = 8, CATALOG_PAGE = 9, ISSUE_PAGE = 6 };
+local Controller = { LIB_PAGE = 10, CATALOG_PAGE = 5, ISSUE_PAGE = 6, RECENT_MAX = 10 };
 ns.Controller = Controller;
 Controller.__index = Controller;
 
@@ -14,8 +14,9 @@ local L = function(s) return Locale.T(s); end
 
 function Controller.New(env)
 	local self = setmetatable({ env = env or ns, listeners = {} }, Controller);
-	self.state = { view = "library", classFilter = nil, selectedId = nil, page = 1, trashMode = false, message = nil, undo = nil,
-		editor = nil, import = nil, export = nil };
+	self.state = { view = "editor", classFilter = nil, selectedId = nil, page = 1, trashMode = false, message = nil, undo = nil,
+		editor = nil, import = nil, export = nil, search = "", filter = nil, sort = nil, inspect = nil };
+	self.searchIndex = {};
 	return self;
 end
 
@@ -27,6 +28,7 @@ function Controller:ReadOnly() local h = self:Handle(); return h == nil or h.rea
 
 function Controller:Subscribe(fn) self.listeners[#self.listeners + 1] = fn; end
 function Controller:Notify()
+	self.rowsCache = nil;      -- the library list is recomputed once per change, not per widget or per frame
 	for _, fn in ipairs(self.listeners) do fn(self); end
 end
 
@@ -107,22 +109,146 @@ function Controller:SetClassFilter(class)
 	self:Notify();
 end
 
--- Rows of the library page. Items for the trash when trashMode.
+-- ---- library: search, filter, sort (computed once per change; indexed text is cached per build revision)
+function Controller:Filter()
+	local h = self:Handle();
+	return self.state.filter or (h and h:GetSetting("libFilter")) or "all";
+end
+
+function Controller:Sort()
+	local h = self:Handle();
+	return self.state.sort or (h and h:GetSetting("libSort")) or "name";
+end
+
+function Controller:SetFilter(f)
+	self.state.filter = f;
+	local h = self:Handle();
+	if h and not h.readOnly then h:SetSetting("libFilter", f); end
+	self.state.page = 1;
+	self:Notify();
+end
+
+function Controller:SetSort(sort)
+	self.state.sort = sort;
+	local h = self:Handle();
+	if h and not h.readOnly then h:SetSetting("libSort", sort); end
+	self.state.page = 1;
+	self:Notify();
+end
+
+function Controller:CycleSort(dir)
+	local order, cur = { "name", "used", "modified" }, self:Sort();
+	local i = (Util.IndexOf(order, cur) or 1) + dir;
+	if i < 1 then i = #order; end
+	if i > #order then i = 1; end
+	self:SetSort(order[i]);
+end
+
+function Controller:SetLibSearch(text)
+	text = text or "";
+	if self.state.search ~= text then
+		self.state.search = text;
+		self.state.page = 1;
+		self:Notify();
+	end
+end
+
+-- Lowercased searchable text of a build: name, class (EN and FR names and key), wanted/avoided spells and placed
+-- pieces (EN and FR names). Rebuilt only when the build's revision changes.
+function Controller:IndexOf(b)
+	local cached = self.searchIndex[b.id];
+	if cached and cached.rev == b.revision and cached.lang == Locale.lang then return cached.text; end
+	local cat = self:Catalog();
+	local parts = { b.name or "", b.class or "" };
+	if cat then
+		parts[#parts + 1] = self:ClassName(b.class);
+		if cat:IsClass(b.class) then parts[#parts + 1] = cat:ClassName(b.class); end
+	end
+	local function name(kind, k)
+		if type(k) ~= "string" or k == "" then return; end
+		parts[#parts + 1] = k;
+		if cat and cat:Get(kind, k) then
+			parts[#parts + 1] = cat:Name(kind, k, nil);
+			parts[#parts + 1] = cat:Name(kind, k, "frFR");
+		end
+	end
+	for _, ph in ipairs(b.phases or {}) do
+		for _, g in ipairs(ph.spells or {}) do name("spell", g.key); end
+		for _, k in ipairs(ph.banish or {}) do name("spell", k); end
+		for _, k in ipairs(ph.rings or {}) do name("jewel", k); end
+		for _, k in ipairs(ph.trinkets or {}) do name("jewel", k); end
+		for _, k in ipairs(ph.amulets or {}) do name("amulet", k); end
+	end
+	local text = string.lower(table.concat(parts, " \n "));
+	self.searchIndex[b.id] = { rev = b.revision, lang = Locale.lang, text = text };
+	return text;
+end
+
+-- Rows of the library: favourites first, then the chosen sort. Items of the trash when trashMode.
 function Controller:Rows()
+	if self.rowsCache then return self.rowsCache; end
 	local h = self:Handle();
 	local out = {};
+	self.rowsCache = out;
 	if not h then return out; end
-	if self.state.trashMode then
+	local st = self.state;
+	if st.trashMode then
 		for _, t in ipairs(h:Trash()) do
-			if not self.state.classFilter or t.class == self.state.classFilter then
+			if not st.classFilter or t.class == st.classFilter then
 				out[#out + 1] = { id = t.id, name = t.name, class = t.class, className = self:ClassName(t.class), trashed = true };
 			end
 		end
 		return out;
 	end
-	for _, e in ipairs(h:List(self.state.classFilter)) do
-		out[#out + 1] = { id = e.id, name = e.name, class = e.class, className = self:ClassName(e.class), revision = e.revision,
-			clean = e.clean, active = h:GetActive(e.class) == e.id };
+	local words = {};
+	for w in string.gmatch(string.lower(st.search or ""), "%S+") do words[#words + 1] = w; end
+	local filter = self:Filter();
+	local builds = h.db and type(h.db.builds) == "table" and h.db.builds or {};
+	for _, e in ipairs(h:List(st.classFilter)) do
+		local meta = h:Meta(e.id);
+		local keep = true;
+		if filter == "favorites" and not meta.fav then keep = false; end
+		if filter == "recent" and not meta.used then keep = false; end
+		if keep and #words > 0 then
+			local text = builds[e.id] and self:IndexOf(builds[e.id]) or string.lower(e.name or "");
+			for _, w in ipairs(words) do
+				if not string.find(text, w, 1, true) then keep = false; break; end
+			end
+		end
+		if keep then
+			out[#out + 1] = { id = e.id, name = e.name, class = e.class, className = self:ClassName(e.class), revision = e.revision,
+				clean = e.clean, active = h:GetActive(e.class) == e.id, fav = meta.fav, used = meta.used, modified = meta.modified,
+				lname = string.lower(e.name or "") };
+		end
+	end
+	local sort = self:Sort();
+	local function newer(key)
+		return function(x, y)
+			if x.fav ~= y.fav then return x.fav; end
+			local a, b = x[key], y[key];
+			if a ~= b then
+				if a == nil then return false; end
+				if b == nil then return true; end
+				return a > b;
+			end
+			if x.lname ~= y.lname then return x.lname < y.lname; end
+			return x.id < y.id;
+		end
+	end
+	if filter == "recent" then
+		table.sort(out, function(x, y)
+			if x.used ~= y.used then return x.used > y.used; end
+			return x.id < y.id;
+		end);
+		while #out > Controller.RECENT_MAX do out[#out] = nil; end
+	elseif sort == "name" then
+		table.sort(out, function(x, y)
+			if x.fav ~= y.fav then return x.fav; end
+			if x.lname ~= y.lname then return x.lname < y.lname; end
+			return x.id < y.id;
+		end);
+	else
+		table.sort(out, newer(sort == "used" and "used" or "modified"));
 	end
 	return out;
 end
@@ -182,7 +308,9 @@ end
 function Controller:Create(name, class)
 	local h = self:Handle();
 	if not h or h.readOnly then self:Say("error", L("Read only")); return nil; end
-	name = (name or "");
+	name = string.gsub(name or "", "^%s+", "");
+	name = string.gsub(name, "%s+$", "");
+	if name == "" then self:Say("error", L("Give the build a name")); return nil, "EMPTY_NAME"; end
 	local id, b = h:Create({ name = name, class = class });
 	if not id then self:Say("error", explain(b)); return nil; end
 	h:SetSetting("lastClass", class);
@@ -190,6 +318,15 @@ function Controller:Create(name, class)
 	self.state.selectedId = id;
 	self:Say("info", L("Build created (not active)"));
 	return id;
+end
+
+function Controller:ToggleFavorite(id)
+	local h = self:Handle();
+	if not h or h.readOnly then self:Say("error", L("Read only")); return false; end
+	local ok, err = h:SetFavorite(id, not h:Meta(id).fav);
+	if not ok then self:Say("error", explain(err)); return false; end
+	self:Notify();
+	return true;
 end
 
 function Controller:Duplicate(id)
@@ -275,6 +412,7 @@ function Controller:Activate(id)
 	if not b then return false; end
 	local ok, err = h:SetActive(b.class, id);
 	if not ok then self:Say("error", explain(err)); return false; end
+	h:Touch(id);
 	self:Say("info", L("Active build for this class"));
 	return true;
 end
@@ -311,9 +449,12 @@ function Controller:OpenEditor(id)
 	if cur and cur.id ~= id and self:EditorDirty() then
 		return false, "DIRTY";
 	end
-	self.state.editor = { id = id, saved = b, draft = BM.Clone(b), phase = 1, tab = "spells", group = "rings", slot = 1, search = "", page = 1 };
+	self.state.editor = { id = id, saved = b, draft = BM.Clone(b), phase = 1, cat = "spells", group = "rings", slot = 1, search = "", page = 1, adv = false };
 	self.state.view = "editor";
+	self.state.selectedId = id;
+	self.state.inspect = nil;
 	self.state.message = nil;
+	if h then h:Touch(id); end
 	self:Notify();
 	return true;
 end
@@ -398,7 +539,7 @@ end
 
 function Controller:CloseEditor()
 	self.state.editor = nil;
-	self.state.view = "library";
+	self.state.view = "editor";
 	self:Notify();
 end
 
@@ -486,9 +627,59 @@ function Controller:ClearSlot(group, pos)
 	return edit(self, function(b) return BM.ClearSlot(b, self.state.editor.phase, group, pos, self:Catalog()); end);
 end
 
-function Controller:SetTab(tab) self.state.editor.tab = tab; self.state.editor.page = 1; self:Notify(); end
-function Controller:SetGroup(group) local e = self.state.editor; e.group = group; e.slot = 1; e.page = 1; self:Notify(); end
-function Controller:SetSlotTarget(pos) self.state.editor.slot = pos; self:Notify(); end
+-- The catalogue shows one kind at a time: "spells" | "rings" | "trinkets" | "amulets". Choosing an equipment kind
+-- also targets a slot of that kind (the first empty main one, else the first slot): the target is always visible.
+function Controller:SetCatalog(cat)
+	local e = self.state.editor;
+	if not e then return; end
+	if cat ~= "spells" and not BM.MAIN_SLOTS[cat] then return; end
+	e.cat, e.page = cat, 1;
+	if cat ~= "spells" then
+		e.group = cat;
+		local list = e.draft.phases[e.phase][cat];
+		local pick = 1;
+		for i = 1, BM.MAIN_SLOTS[cat] do if list[i] == "" then pick = i; break; end end
+		if list[pick] ~= "" then
+			for i = 1, #list do if list[i] == "" then pick = i; break; end end
+		end
+		e.slot = pick;
+	end
+	self:Notify();
+end
+
+-- Clicking a slot (empty or filled) targets it and shows the matching catalogue.
+function Controller:SelectSlot(group, pos)
+	local e = self.state.editor;
+	if not e or not BM.MAIN_SLOTS[group] then return; end
+	local list = e.draft.phases[e.phase][group];
+	if type(pos) ~= "number" or pos < 1 or pos > #list then return; end
+	e.cat, e.group, e.slot, e.page = group, group, pos, 1;
+	local k = list[pos];
+	if k ~= "" then self.state.inspect = { kind = group == "amulets" and "amulet" or "jewel", key = k }; end
+	self:Notify();
+end
+
+function Controller:AddSpellTarget() local e = self.state.editor; if e then e.cat, e.page = "spells", 1; self:Notify(); end end
+function Controller:ToggleAdvanced() local e = self.state.editor; if e then e.adv = not e.adv; self:Notify(); end end
+
+-- What "Place" will fill: { group, slot, role, key, name } for equipment, nil when the catalogue shows spells.
+function Controller:TargetInfo()
+	local e, cat = self.state.editor, self:Catalog();
+	if not e or e.cat == "spells" then return nil; end
+	local list = e.draft.phases[e.phase][e.group];
+	local main = BM.MAIN_SLOTS[e.group];
+	local key = list[e.slot] or "";
+	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local kind = e.group == "amulets" and "amulet" or "jewel";
+	return { group = e.group, slot = e.slot, main = e.slot <= main, altIndex = e.slot - main, key = key,
+		name = key ~= "" and (cat and cat:Get(kind, key) and cat:Name(kind, key, lang) or key) or "" };
+end
+
+-- what the inspector shows: set by selecting (click) a spell or a piece
+function Controller:Inspect(kind, key)
+	if type(key) ~= "string" or key == "" then self.state.inspect = nil; else self.state.inspect = { kind = kind, key = key }; end
+	self:Notify();
+end
 function Controller:SetSearch(text) local e = self.state.editor; if e.search ~= text then e.search = text; e.page = 1; self:Notify(); end end
 function Controller:SetEditorPage(p) local e = self.state.editor; e.page = math.max(1, math.min(self:CatalogPageCount(), p)); self:Notify(); end
 
@@ -544,7 +735,7 @@ function Controller:CatalogEntries()
 	local lang = self:Lang() == "frFR" and "frFR" or nil;
 	local ph = e.draft.phases[e.phase];
 	local keys, kind = {}, "spell";
-	if e.tab == "spells" then
+	if e.cat == "spells" then
 		if cat:IsClass(class) then keys = cat:SpellsOfClass(class); end
 	elseif e.group == "rings" then
 		keys, kind = cat:JewelsBySlot("ring"), "jewel";
@@ -560,7 +751,7 @@ function Controller:CatalogEntries()
 	end
 	local used, after = {}, {};
 	for _, k in ipairs(ph.banishAfter or {}) do after[k] = true; end
-	if e.tab == "spells" then
+	if e.cat == "spells" then
 		for _, g in ipairs(ph.spells) do used[g.key] = "wanted"; end
 		for _, k in ipairs(ph.banish) do if not used[k] then used[k] = "banished"; end end
 	else
@@ -571,7 +762,7 @@ function Controller:CatalogEntries()
 		if entry then
 			local name = cat:Name(kind, k, lang);
 			if matches({ name, entry.name }, e.search) then
-				out[#out + 1] = { key = k, name = name, icon = entry.icon, state = used[k], rarity = entry.rarity, after = after[k] or nil };
+				out[#out + 1] = { key = k, name = name, icon = entry.icon, state = used[k], rarity = entry.rarity, legend = entry.spell ~= nil, after = after[k] or nil };
 			end
 		end
 	end
@@ -727,6 +918,13 @@ function Controller:TooltipData(kind, key)
 	return d;
 end
 
+-- Data for the inspector: the tooltip data of the last selected element (nil when nothing is selected).
+function Controller:InspectorData()
+	local i = self.state.inspect;
+	if not i then return nil; end
+	return self:TooltipData(i.kind, i.key);
+end
+
 -- ------------------------------------------------------------------ import
 function Controller:AnalyzeImport(text)
 	local cat = self:Catalog();
@@ -835,6 +1033,7 @@ function Controller:ClearExport() self.state.export = nil; self:Notify(); end
 
 -- ------------------------------------------------------------------ views
 function Controller:SetView(view, keepMessage)
+	if view == "library" then view = "editor"; end      -- the library is always on screen; the centre shows the editor
 	self.state.view = view;
 	if not keepMessage then self.state.message = nil; end
 	self:Notify();
