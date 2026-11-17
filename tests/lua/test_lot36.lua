@@ -43,7 +43,11 @@ return function(H)
 			eq(d:byte(17), 32, name .. ": 32 bits per pixel");
 			eq(#d, 18 + w * h * 4, name .. ": file length = header + pixels");
 			ok(isPow2(w) and isPow2(h), name .. ": power of two " .. w .. "x" .. h);
-			ok(w <= 256 and h <= 256 and #d < 70000, name .. ": small");
+			if name:find("^ultimate_") then
+				ok(w <= 512 and h <= 256 and #d < 300000, name .. ": capped fantasy texture");
+			else
+				ok(w <= 256 and h <= 256 and #d < 70000, name .. ": small");
+			end
 			if name:find("_nine$") then
 				eq(w, def[1], name .. ": width as declared");
 				eq(h, def[3] or def[1], name .. ": height as declared");
@@ -58,14 +62,14 @@ return function(H)
 			if name == "icon_frame" then eq(centreA, 0, "icon frame: transparent centre (the icon shows through)"); end
 			if name == "veil_hover" or name == "veil_pressed" then ok(centreA > 40 and centreA < 255, name .. ": translucent veil: " .. centreA); end
 		end
-		eq(n, 19);
+		eq(n, 23);
 		-- nothing in Media that the theme does not declare (no stray / copied file)
 		local listing = io.popen and io.popen('dir /b "' .. MEDIA:gsub("/", "\\") .. '" 2>nul');
 		if listing then
 			local seen = 0;
 			for f in listing:lines() do if f:find("%.tga$") then seen = seen + 1; ok(T.FILES[f:gsub("%.tga$", "")], "undeclared file: " .. f); end end
 			listing:close();
-			if seen > 0 then eq(seen, 19, "inventory complete"); end
+			if seen > 0 then eq(seen, 23, "inventory complete"); end
 		end
 	end);
 
@@ -90,7 +94,7 @@ return function(H)
 		-- the strip of swatches draws every declared file
 		local n = 0;
 		for _ in pairs(world.G.RebornPlannerThemeLabFrame and ns.Lab.swatches or {}) do n = n + 1; end
-		eq(n, 19);
+		eq(n, 23);
 	end);
 
 	-- ------------------------------------------------------------------ nine-slice
@@ -101,7 +105,7 @@ return function(H)
 		local frame = T.Frame(world.G.UIParent, 200, 80, "panel");
 		local nine = frame.nine;
 		eq(#nine.tex, 9);
-		local def = T.FILES.panel_nine;
+		local def = T.FILES.ultimate_panel;
 		local c, size = def[2], def[1];
 		local u1, u2 = c / size, 1 - c / size;
 		local want = { { 0, u1, 0, u1 }, { u2, 1, 0, u1 }, { 0, u1, u2, 1 }, { u2, 1, u2, 1 }, { u1, u2, 0, u1 }, { u1, u2, u2, 1 }, { 0, u1, u1, u2 }, { u2, 1, u1, u2 }, { u1, u2, u1, u2 } };
