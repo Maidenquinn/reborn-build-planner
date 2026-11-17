@@ -1,6 +1,6 @@
 # PROJECT_STATE — Reborn Build Planner
 
-Mis à jour : 2026-11-17 · Lots 0, 1, 1.1, 2 validés · Lot 3 PASS CONDITIONNEL (première recette client partielle faite par Kevin) · **Lot 3.1 livré : PASS CONDITIONNEL (simulé, client non testé)** · Lot 4 (suivi, conseils) non commencé.
+Mis à jour : 2026-11-17 · Lots 0-2 validés · Lot 3 / 3.1 PASS CONDITIONNEL · **Lot 3.2 livré : 0.4.0-alpha, PASS CONDITIONNEL (simulé, client non testé)** · Lot 4 non commencé.
 
 ## Décisions acquises
 * Addon natif `RebornBuildPlanner`, `## Interface: 30300`, dépendances `AzerothSurvivors, AzerothSurvivorsAPI`, SavedVariables **`RebornBuildPlannerDB`** (seule globale propre) ; namespace global `RebornBuildPlanner`. Commandes `/rbp`, `/rebornplanner` à valider (collision non vérifiée).
@@ -43,3 +43,11 @@ Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOA
 * **Tests** : Lua 5.1 162 cas / 7 171 assertions / 0 échec. **Lot 0 : 17 ancrages statiques de `AzerothSurvivors` (Run/Cards/Units) ont bougé : le code natif installé a changé ; à ré-ancrer avant le Lot 4.**
 * **Non fait / à valider en jeu** : `RECETTE_CLIENT_LOT3_1.md` (D1-D16) + C1-C18 du Lot 3 restants ; règle de jeu « bannir un sort déjà acquis » (D16) ; format natif complémentaire pour exporter `banishAfter` ; navigation clavier.
 * **Prochaine action** : Kevin exécute D1-D16 et répond à D16 ; GPT relit REPORT_LOT3_1 ; puis ré-ancrage des constats Lot 0 et Lot 4.
+
+## Lot 3.2 (0.4.0-alpha)
+* **Interface** : une fenêtre 1120×704 à trois zones (bibliothèque / éditeur complet sur une page / inspecteur), opaque ; recherche, favoris, récents, tri ; six sorts + « bannir après » ; douze emplacements d'équipement visibles, catalogue intégré avec cible visible ; création corrigée.
+* **Stockage** : `db.meta` (favori / utilisé / modifié / créé) + réglages `libSort` / `libFilter`, schéma 1 inchangé, créés à la demande, jamais exportés.
+* **Contrats natifs** : ré-ancrés (`CONTRACTS.md` §11) : 17 décalages de lignes, **C09 modifié** (bannissements aussi sur les mains de bijoux). Lot 0 : PASS.
+* **Tests** : Lua 5.1 183 cas / 7 934 assertions / 0 échec ; mise en page sur largeurs estimées.
+* **Non fait / à valider** : `RECETTE_CLIENT_LOT3_2.md` (E1-E22) ; effets des pièces indisponibles (`DESCRIPTION_SOURCES.md`) ; règle de jeu du bannissement d'un sort acquis (E22) ; navigation clavier ; format natif complémentaire pour `banishAfter`.
+* **Prochaine action** : Kevin exécute E1-E22 ; GPT relit REPORT_LOT3_2 ; décision sur la source des effets d'équipement ; puis Lot 4.

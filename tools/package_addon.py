@@ -21,7 +21,7 @@ SRC = os.path.join(ROOT, "addon", "RebornBuildPlanner")
 
 
 def main(argv):
-    out = argv[argv.index("--out") + 1] if "--out" in argv else os.path.join(ROOT, "..", "reborn-build-planner-recette-lot3-1")
+    out = argv[argv.index("--out") + 1] if "--out" in argv else os.path.join(ROOT, "..", "reborn-build-planner-recette-lot3-2")
     out = os.path.normpath(out)
     toc_path = os.path.join(SRC, "RebornBuildPlanner.toc")
     toc = open(toc_path, encoding="utf-8").read()
@@ -39,7 +39,7 @@ def main(argv):
     os.makedirs(dest)
     for f in files + ["RebornBuildPlanner.toc"]:
         shutil.copyfile(os.path.join(SRC, f), os.path.join(dest, f))
-    for doc in ("RECETTE_CLIENT_LOT3_1.md", "UPDATE_FROM_0.3.0.md", "RECETTE_CLIENT_LOT3.md"):
+    for doc in ("RECETTE_CLIENT_LOT3_2.md", "UPDATE_FROM_0.3.1.md", "INSTALL.md", "CHANGELOG.md", "DESCRIPTION_SOURCES.md", "RECETTE_CLIENT_LOT3_1.md", "UPDATE_FROM_0.3.0.md", "RECETTE_CLIENT_LOT3.md"):
         shutil.copyfile(os.path.join(ROOT, "docs", doc), os.path.join(out, doc))
     zpath = os.path.join(out, "RebornBuildPlanner-%s-recette.zip" % version)
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:

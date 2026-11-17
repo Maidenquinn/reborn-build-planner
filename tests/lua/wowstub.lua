@@ -246,7 +246,8 @@ function Stub.new(opts)
 	G.DEFAULT_CHAT_FRAME = { AddMessage = function(_, m) world.chat[#world.chat + 1] = m; end };
 	G.GetLocale = function() return opts.locale or "enUS"; end;
 	G.UnitClass = function() return opts.className or "Warrior", opts.classToken or "WARRIOR"; end;
-	G.time = function() return 1700000000; end;
+	G.time = function() return opts.now or 1700000000; end;
+	G.date = function(fmt, t) return os.date(fmt, t); end;
 	G.GetTime = function() return 1000; end;
 
 	-- GameTooltip mock: records what the UI draws. opts.gameSpells = { [id] = { "Name", "description..." } } stands for the
@@ -262,6 +263,7 @@ function Stub.new(opts)
 			local g = id and opts.gameSpells and opts.gameSpells[id];
 			self.lines = {};
 			if g then for _, l in ipairs(g) do self.lines[#self.lines + 1] = l; end end
+			for i, l in ipairs(self.lines) do G["GameTooltipTextLeft" .. i] = { GetText = function() return l; end }; end
 		end
 		function tt:AddLine(text) self.lines[#self.lines + 1] = text; end
 		function tt:NumLines() return #self.lines; end

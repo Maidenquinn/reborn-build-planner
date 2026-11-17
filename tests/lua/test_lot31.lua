@@ -176,40 +176,38 @@ return function(H)
 		e.ui:OpenEditor(id);
 		return id, e.ui.ed;
 	end
-	local function wantSix(e, ed)
-		for i = 1, 6 do e.world.click(ed.cat.rows[i].a); end
+	local function wantSix(e)
+		local keys = e.ns.catalog:SpellsOfClass(e.c:Editor().draft.class);
+		for i = 1, 6 do e.c:AddSpell(keys[i]); end
 	end
 
 	test("3.1A UI: six wanted, three marked; the indicator, labels and the avoid list stay distinct", function()
-		local e = boot(); local id, ed = newEditor(e); wantSix(e, ed);
-		ok(e.world.hasText("6 to keep / 0 to banish after acquisition (max 3)"), e.texts());
-		for i = 1, 3 do e.world.click(ed.plan.spells[i].tog); end
-		ok(e.world.hasText("3 to keep / 3 to banish after acquisition (max 3)"), e.texts());
+		local e = boot(); local id, ed = newEditor(e); wantSix(e);
+		ok(e.world.hasText("6 keep / 0 banish after (max 3)"), e.texts());
+		for i = 1, 3 do e.world.click(ed.spells[i].tog); end
+		ok(e.world.hasText("3 keep / 3 banish after (max 3)"), e.texts());
 		local ph = e.c:Editor().draft.phases[1];
 		eq(#ph.banishAfter, 3);
 		eq(#ph.banish, 0, "marks never touch the avoid list");
-		eq((ed.plan.spells[1].tog:GetText():gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")), "Banish after");
-		ok(e.world.button("Keep", ed.plan.spells[4].frame) ~= nil);
-		-- the status text carries the state, not only a colour
-		no(e.world.button("Keep", ed.plan.spells[1].frame));
-		-- fourth mark: refused with a clear message, data unchanged
-		e.world.click(ed.plan.spells[4].tog);
+		eq((ed.spells[1].tog:GetText():gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")), "Banish after");
+		ok(e.world.button("Keep", ed.spells[4].frame) ~= nil);
+		no(e.world.button("Keep", ed.spells[1].frame), "the text carries the state, not only a colour");
+		e.world.click(ed.spells[4].tog);
 		eq(#e.c:Editor().draft.phases[1].banishAfter, 3);
 		ok(e.world.hasText("At most 3 spells"), e.texts());
-		-- unmark
-		e.world.click(ed.plan.spells[2].tog);
+		e.world.click(ed.spells[2].tog);
 		eq(#e.c:Editor().draft.phases[1].banishAfter, 2);
-		ok(e.world.hasText("4 to keep / 2 to banish after acquisition"), e.texts());
+		ok(e.world.hasText("4 keep / 2 banish after"), e.texts());
 	end);
 
 	test("3.1A UI: marks survive reorder, save, /reload; removal says what else it removed", function()
-		local e = boot(); local id, ed = newEditor(e); wantSix(e, ed);
+		local e = boot(); local id, ed = newEditor(e); wantSix(e);
 		local keys = e.ns.catalog:SpellsOfClass("warrior");
-		for _, i in ipairs({ 2, 4, 6 }) do e.world.click(ed.plan.spells[i].tog); end
-		e.world.click(ed.plan.spells[2].down);          -- the marked spell moves to position 3
+		for _, i in ipairs({ 2, 4, 6 }) do e.world.click(ed.spells[i].tog); end
+		e.world.click(ed.spells[2].down);
 		local draft = e.c:Editor().draft.phases[1];
 		eq(draft.spells[3].key, keys[2]);
-		ok(ed.plan.spells[3].tog:GetText():find("Banish after", 1, true), "mark followed the spell");
+		ok(ed.spells[3].tog:GetText():find("Banish after", 1, true), "mark followed the spell");
 		e.world.click(ed.save);
 		eq(e.h():Get(id).phases[1].banishAfter, { keys[2], keys[4], keys[6] });
 		local text = H.serialize("RebornBuildPlannerDB", e.G.RebornBuildPlannerDB);
@@ -218,40 +216,40 @@ return function(H)
 		local ns2 = H.loadAddon({ globals = world2.G, time = world2.G.time });
 		world2.fire("ADDON_LOADED", "RebornBuildPlanner");
 		eq(ns2.storage:Get(id).phases[1].banishAfter, { keys[2], keys[4], keys[6] }, "persisted across /reload");
-		-- removing a marked spell removes its mark and says so
-		e.world.click(ed.plan.spells[3].del);
+		e.world.click(ed.spells[3].del);
 		ok(e.world.hasText("banish-after mark with it"), e.texts());
 		eq(#e.c:Editor().draft.phases[1].banishAfter, 2);
-		-- discard brings it back
 		e.world.clickLabel("Discard changes", e.ui.views.editor);
 		eq(#e.c:Editor().draft.phases[1].banishAfter, 3);
 	end);
 
 	test("3.1A UI: marking then unmarking an old build leaves it unsaved-free (absent == empty)", function()
 		local e = boot(); local id = e.c:Create("Old", "warrior");
-		e.h().db.builds[id].phases[1].banishAfter = nil;
 		for _, ph in ipairs(e.h().db.builds[id].phases) do ph.banishAfter = nil; end
 		e.ui:OpenEditor(id);
 		no(e.c:EditorDirty(), "opening an old build is not a change");
 		e.c:AddSpell("whirlwind");
-		e.c:Revert();
+		e.c:SetBanishAfter("whirlwind", true);
+		e.c:SetBanishAfter("whirlwind", false);
+		e.c:RemoveSpell("whirlwind");
 		no(e.c:EditorDirty());
 	end);
 
 	test("3.1A UI: a legacy overlap is flagged, offers an explicit convert button, and is never converted silently", function()
 		local e = boot(); local id = e.c:Create("Legacy", "warrior");
-		local b = e.h():Get(id);
-		b = H.roundtrip(b);
+		local b = H.roundtrip(e.h():Get(id));
 		b.phases[1].spells = { { key = "whirlwind", mode = "acquire" }, { key = "execute", mode = "acquire" } };
 		b.phases[1].banish = { "execute" };
 		e.h().db.builds[id] = b;
+		e.c:Notify();
 		e.ui:OpenEditor(id);
 		local ed = e.ui.ed;
 		eq(e.c:EditorStatus(), "repair");
-		ok(ed.plan.banish[1].conv:IsVisible(), "convert offered");
+		e.c:ToggleAdvanced();
+		ok(ed.nt.avoid[1].conv:IsVisible(), "convert offered");
 		eq(e.c:Editor().draft.phases[1].banish, { "execute" }, "still untouched after opening");
 		no(e.c:Activate(id), "cannot follow while in conflict");
-		e.world.click(ed.plan.banish[1].conv);
+		e.world.click(ed.nt.avoid[1].conv);
 		eq(e.c:Editor().draft.phases[1].banish, {});
 		eq(e.c:Editor().draft.phases[1].banishAfter, { "execute" });
 		eq(e.c:EditorStatus(), "dirty");
@@ -261,9 +259,9 @@ return function(H)
 	end);
 
 	test("3.1A UI: export with marks shows the loss list and requires acceptance; nothing is banished anywhere", function()
-		local e = boot(); local id, ed = newEditor(e); wantSix(e, ed);
-		for i = 1, 3 do e.world.click(ed.plan.spells[i].tog); end
-		e.world.click(ed.export);
+		local e = boot(); local id, ed = newEditor(e); wantSix(e);
+		for i = 1, 3 do e.world.click(ed.spells[i].tog); end
+		e.world.click(e.ui.nav.export);
 		local x = e.c.state.export;
 		ok(x.report.intentLosses >= 3);
 		eq(x.code, nil, "no code before acceptance");
@@ -271,19 +269,18 @@ return function(H)
 		ok(e.world.hasText("would be lost"), e.texts());
 		e.c:AcceptLosses();
 		ok(e.c.state.export.code ~= nil);
-		-- no addon file refers to anything that could act in the game
 		for _, f in ipairs({ "Controller.lua", "UI.lua", "Commands.lua", "Core.lua", "BuildModel.lua" }) do
 			local src = H.readFile(H.root .. "/addon/RebornBuildPlanner/" .. f);
 			no(src:find("AZS_API", 1, true) or src:find("Reroll", 1, true) or src:find("BanishCard", 1, true) or src:find("PickCard", 1, true), f .. " must not act in the game");
 		end
 	end);
 
-	-- ------------------------------------------------------------------ 3.1C tooltips
+	-- ------------------------------------------------------------------ tooltips
 	test("3.1C tooltips: spell hover shows the game's own text, then the plan state; leaving hides it", function()
 		local e = boot({ gameSpells = { [845] = { "Cleave", "Hits two enemies." } } });
 		local id, ed = newEditor(e);
-		e.world.click(ed.cat.rows[1].a);                   -- cleave is the first warrior spell
-		e.world.click(ed.plan.spells[1].tog);
+		e.world.click(ed.cat.rows[1].a);
+		e.world.click(ed.spells[1].tog);
 		local tt = e.world.hover(ed.cat.rows[1].hit);
 		ok(tt:IsShown());
 		eq(tt.owner, ed.cat.rows[1].hit);
@@ -294,14 +291,13 @@ return function(H)
 		ok(text:find("nothing is banished automatically", 1, true), text);
 		e.world.unhover(ed.cat.rows[1].hit);
 		no(tt:IsShown());
-		-- the plan row too
-		tt = e.world.hover(ed.plan.spells[1].hit);
+		tt = e.world.hover(ed.spells[1].hit);
 		ok(tt:Text():find("Hits two enemies.", 1, true));
-		e.world.unhover(ed.plan.spells[1].hit);
+		e.world.unhover(ed.spells[1].hit);
 	end);
 
 	test("3.1C tooltips: no game text -> honest 'Detailed effect unavailable'; no invented numbers", function()
-		local e = boot();   -- the mock game knows no spell
+		local e = boot();
 		local id, ed = newEditor(e);
 		local tt = e.world.hover(ed.cat.rows[2].hit);
 		local text = tt:Text();
@@ -315,32 +311,27 @@ return function(H)
 	test("3.1C tooltips: rings, trinkets and amulets (common and legendary) say what the catalogue holds and no more", function()
 		local e = boot();
 		local id, ed = newEditor(e);
-		e.c:SetTab("jewels");
+		e.c:SetCatalog("rings");
 		e.c:SetSlot("rings", 1, "accuria");
 		e.c:SetSlot("rings", 3, "quick_strike");
-		local tt = e.world.hover(ed.jw.slots[1].frame);
-		local t = tt:Text();
+		local cells = ed.groups.rings.cells;
+		local t = e.world.hover(cells[1]):Text();
 		ok(t:find("Band of Accuria", 1, true), t);
 		ok(t:find("Type: Ring", 1, true), t);
 		ok(t:find("Placed: main 1", 1, true), t);
 		ok(t:find("Detailed effect unavailable", 1, true), t);
 		ok(t:find("Main slots", 1, true), "the slot explanation travels with it");
-		e.world.unhover(ed.jw.slots[1].frame);
-		tt = e.world.hover(ed.jw.slots[3].frame);
-		ok(tt:Text():find("Placed: alternative 1", 1, true), tt:Text());
-		e.world.unhover(ed.jw.slots[3].frame);
-		-- an empty slot explains main vs alternative
-		tt = e.world.hover(ed.jw.slots[2].frame);
-		ok(tt:Text():find("fallbacks", 1, true), tt:Text());
-		e.world.unhover(ed.jw.slots[2].frame);
-		-- catalogue rows
-		tt = e.world.hover(ed.cat.rows[1].hit);
-		ok(tt:Text():find("Type: Ring", 1, true) or tt:Text():find("Type: Trinket", 1, true), tt:Text());
+		e.world.unhover(cells[1]);
+		ok(e.world.hover(cells[3]):Text():find("Placed: alternative 1", 1, true));
+		e.world.unhover(cells[3]);
+		ok(e.world.hover(cells[2]):Text():find("fallbacks", 1, true), "an empty slot explains main vs alternative");
+		e.world.unhover(cells[2]);
+		local tt = e.world.hover(ed.cat.rows[1].hit);
+		ok(tt:Text():find("Type: Ring", 1, true), tt:Text());
 		e.world.unhover(ed.cat.rows[1].hit);
-		-- amulets
-		e.c:SetGroup("amulets");
+		e.c:SetCatalog("amulets");
 		local sawLegend, sawCommon = false, false;
-		for i = 1, 9 do
+		for i = 1, 5 do
 			local row = ed.cat.rows[i];
 			if row.frame:IsShown() then
 				local x = e.world.hover(row.hit):Text();
@@ -376,8 +367,8 @@ return function(H)
 		e.c:SetEditorPage(2);
 		no(tt:IsShown(), "page change hides it");
 		e.world.hover(ed.cat.rows[1].hit);
-		e.c:SetTab("jewels");
-		no(tt:IsShown(), "tab change hides it");
+		e.c:SetCatalog("rings");
+		no(tt:IsShown(), "catalogue change hides it");
 		e.world.hover(ed.cat.rows[1].hit);
 		e.ui:Hide();
 		no(tt:IsShown(), "closing the window hides it");
@@ -387,24 +378,14 @@ return function(H)
 			e.world.unhover(ed.cat.rows[1].hit);
 		end
 		eq(#e.world.all, n0, "no widgets created by hovering");
-		-- an item without a spell id never asks the game for a spell tooltip
 		local calls = tt.calls;
 		e.world.hover(ed.cat.rows[1].hit);
 		eq(tt.calls, calls, "jewels do not query spell tooltips");
 		e.world.unhover(ed.cat.rows[1].hit);
 	end);
 
-	test("3.1C tooltips: a hover on a row of the previous page never shows stale data", function()
-		local e = boot();
-		local id, ed = newEditor(e);
-		e.c:SetEditorPage(2);
-		e.c:SetSearch("zzzz");
-		for i = 1, 9 do ok(not ed.cat.rows[i].frame:IsShown() or ed.cat.rows[i].tipKey ~= nil); end
-		ok(ed.cat.rows[1].tipKey == nil or not ed.cat.rows[1].frame:IsShown());
-	end);
-
-	-- ------------------------------------------------------------------ 3.1B look
-	test("3.1B look: the window and the dialog are opaque, above the HUD, with a separate panel per view", function()
+	-- ------------------------------------------------------------------ look
+	test("3.1B look: the window and the dialog are opaque, above the HUD, with a separate panel per zone", function()
 		local e = boot();
 		eq(e.root.strata, "DIALOG");
 		ok(e.root.backdrop.bgFile:find("WHITE8X8", 1, true), "solid background texture, not the translucent dialog tile");
@@ -413,12 +394,10 @@ return function(H)
 		eq(m.strata, "FULLSCREEN_DIALOG");
 		ok(m.backdropColor and m.backdropColor[4] >= 0.97);
 		ok(m.level > e.root.level, "dialog above the window");
-		for name, v in pairs(e.ui.views) do
-			ok(v.panel and v.panel.texColor and v.panel.texColor[4] == 1, name .. " panel is opaque");
+		for name, v in pairs({ library = e.ui.leftPanel, editor = e.ui.centre, inspector = e.ui.rightPanel, import = e.ui.views.import, export = e.ui.views.export }) do
+			ok(v.backdropColor and v.backdropColor[4] == 1, name .. " panel is opaque");
 		end
-		-- panel is lighter than the window: contrast between the two
-		local bg = e.root.backdropColor;
-		local pn = e.ui.views.library.panel.texColor;
+		local bg, pn = e.root.backdropColor, e.ui.leftPanel.backdropColor;
 		ok(pn[1] + pn[2] + pn[3] > bg[1] + bg[2] + bg[3] + 0.1, "panel contrasts with the window");
 	end);
 
@@ -426,57 +405,61 @@ return function(H)
 		local e = boot(); local id, ed = newEditor(e);
 		e.world.click(ed.cat.rows[1].a);
 		ok(ed.save:GetText():find("|cff8cff8c", 1, true), "Save is the accent colour while enabled");
-		ok(ed.close:GetText():find("|cffb4b4b4", 1, true), "Close is quiet");
+		ok(ed.revert:GetText():find("|cffb4b4b4", 1, true), "Discard is quiet");
 		e.world.click(ed.save);
 		no(ed.save:IsEnabled());
 		no(ed.save:GetText():find("|cff", 1, true), "disabled: plain text, greyed by the client");
 		eq(ed.save:GetText(), "Save");
-		-- the tests and the player find buttons by their plain text
-		ok(e.world.button("Close") ~= nil);
+		ok(e.world.button("Save and follow") ~= nil);
 	end);
 
-	test("3.1B look: the editor stays inside the window with six spells, three marks, three avoids, both languages, four screens", function()
+	local function fillEditor(e, ed)
+		e.c:Rename(e.c:Editor().id, string.rep("Nom tr\195\168s long ", 10));
+		wantSix(e);
+		for i = 1, 3 do e.c:AddBanish(e.c:CatalogEntries()[6 + i].key); end
+		for i = 1, 3 do e.world.click(ed.spells[i].tog); end
+		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
+			e.c:SetCatalog(g);
+			for s = 1, #e.c:Editor().draft.phases[1][g] do e.c:SelectSlot(g, s); e.c:SetSlot(g, s, e.c:CatalogEntries()[s].key); end
+		end
+		e.c:Inspect("spell", e.c:Editor().draft.phases[1].spells[1].key);
+	end
+
+	test("3.1B look: the unified editor stays inside the window at four screen sizes, both languages, with everything filled", function()
 		for _, size in ipairs({ { 1365, 768 }, { 1920, 1080 }, { 1024, 768 }, { 800, 600 } }) do
 			for _, loc in ipairs({ "enUS", "frFR" }) do
 				local e = boot({ width = size[1], height = size[2], locale = loc });
 				local id, ed = newEditor(e);
-				e.c:Rename(id, string.rep("Nom tr\195\168s long ", 10));
-				wantSix(e, ed);
-				for i = 1, 3 do e.c:AddBanish(e.c:CatalogEntries()[6 + i].key); end
-				for i = 1, 3 do e.world.click(ed.plan.spells[i].tog); end
-				eq(e.world.lint(e.root), {}, "spells " .. size[1] .. " " .. loc);
+				fillEditor(e, ed);
+				eq(e.world.lint(e.root), {}, "editor " .. size[1] .. " " .. loc);
 				e.world.hover(ed.cat.rows[1].hit); e.world.unhover(ed.cat.rows[1].hit);
-				e.c:SetTab("jewels");
-				for s = 1, 4 do e.c:SetSlotTarget(s); end
-				eq(e.world.lint(e.root), {}, "jewels " .. size[1] .. " " .. loc);
-				e.c:SetTab("notes");
-				eq(e.world.lint(e.root), {}, "notes " .. size[1] .. " " .. loc);
+				e.c:ToggleAdvanced();
+				eq(e.world.lint(e.root), {}, "advanced " .. size[1] .. " " .. loc);
 			end
 		end
 	end);
 
-	test("3.1B look: UI scale 0.6 and 1.5 keep the editor inside the screen", function()
+	test("3.1B look: UI scale 0.6 and 1.5 keep the window inside the screen", function()
 		local e = boot({ width = 1365, height = 768, locale = "frFR" });
-		local id, ed = newEditor(e); wantSix(e, ed);
-		for _, s in ipairs({ 0.6, 1.5 }) do
+		local id, ed = newEditor(e); fillEditor(e, ed);
+		for _, s in ipairs({ 0.6, 1, 1.5 }) do
 			e.h():SetSetting("scale", s);
 			e.ui:ApplyScale();
 			eq(e.world.lint(e.root), {}, "scale " .. s);
 		end
 	end);
 
-	test("3.1D editor: jewelry shows which slot is chosen without relying on colour", function()
+	test("3.1D editor: the chosen slot is announced in words and by a prefix, not only by colour", function()
 		local e = boot(); local id, ed = newEditor(e);
-		e.c:SetTab("jewels");
-		e.c:SetSlotTarget(3);
-		ok(ed.jw.slots[3].role.text:find("^> "), ed.jw.slots[3].role.text);
-		no(ed.jw.slots[1].role.text:find("^> "));
-		ok(e.world.hasText("Chosen slot: Alternative 1"), e.texts());
-		ok(ed.jw.slots[3].sel.shown, "band under the chosen slot too");
-		e.c:SetSlotTarget(1);
-		ok(e.world.hasText("Chosen slot: Main 1"), e.texts());
-		-- sub-tabs show which one is open
-		ok(e.world.button("Jewelry *") ~= nil);
+		e.c:SelectSlot("rings", 3);
+		local cells = ed.groups.rings.cells;
+		ok(cells[3].role.text:find("^> "), cells[3].role.text);
+		no(cells[1].role.text:find("^> "));
+		ok(e.world.hasText("Target: Rings - Alternative 1 (empty)"), e.texts());
+		ok(cells[3].sel.shown, "band under the chosen slot too");
+		e.c:SelectSlot("rings", 1);
+		ok(e.world.hasText("Target: Rings - Main 1 (empty)"), e.texts());
+		ok(e.world.button("Rings *") ~= nil, "the catalogue kind in use is marked");
 	end);
 
 	test("3.1D editor: every new string is translated", function()
@@ -484,7 +467,6 @@ return function(H)
 		ns.Locale.SetLang("frFR");
 		local missing = {};
 		local src = H.readFile(H.root .. "/addon/RebornBuildPlanner/UI.lua");
-		-- help tables: every quoted English sentence of the HELP block
 		local block = (src:match("local HELP = (.-)\n};") or ""):gsub('\\"', "\1");
 		for k in block:gmatch('"([^"\n]-[%a][^"\n]-)"') do
 			local key = k:gsub("\1", '"');

@@ -102,16 +102,16 @@ return function(H)
 
 	test("3A: language follows the client (frFR French, enUS and others English)", function()
 		local fr = boot({ locale = "frFR" }); fr.open();
-		ok(fr.world.hasText("Mes builds") and fr.world.hasText("Créer un build"), fr.texts());
+		ok(fr.world.hasText("Importer") and fr.world.hasText("Créer un build"), fr.texts());
 		local en = boot({ locale = "enUS" }); en.open();
-		ok(en.world.hasText("My builds") and en.world.hasText("Create a build"));
+		ok(en.world.hasText("Search:") and en.world.hasText("Create a build"));
 		local de = boot({ locale = "deDE" }); de.open();
-		ok(de.world.hasText("My builds"), "unsupported locale falls back to English");
+		ok(de.world.hasText("Search:"), "unsupported locale falls back to English");
 		-- the saved choice wins over the client locale
 		local e = boot({ locale = "frFR" });
 		e.h():SetSetting("lang", "enUS");
 		local again = reload(e, { locale = "frFR" }); again.open();
-		ok(again.world.hasText("My builds"));
+		ok(again.world.hasText("Search:"));
 	end);
 
 	test("3A: read-only storage (future schema): nothing is replaced, editing is blocked, the player is told", function()
@@ -139,14 +139,13 @@ return function(H)
 	test("3B: empty state, create, appears in the list, never active by itself", function()
 		local e = boot({ classToken = "MAGE", className = "Mage" }); e.open();
 		ok(e.world.hasText("No build yet"));
-		ok(e.world.hasText("Create a build or import a Reborn code."));
+		ok(e.world.hasText("Create one"));
 		local id = createViaUI(e, "Frost plan");
 		ok(id);
 		eq(e.h():Get(id).class, "mage", "default class = the player's class");
 		eq(e.h():Get(id).name, "Frost plan");
 		eq(e.c.state.view, "editor", "the new build opens in the editor");
 		eq(e.h():GetActive("mage"), nil, "creating never activates");
-		e.world.click(e.ui.nav.library);
 	end);
 
 	local function populate(e)
@@ -162,10 +161,10 @@ return function(H)
 		local e = boot(); e.open();
 		local ids = populate(e);
 		ok(e.world.hasText("W one") and e.world.hasText("M one") and e.world.hasText("R one"));
-		e.world.click(e.ui.lib.cycle.next);
+		e.world.click(e.ui.lib.classCycle.next);
 		eq(e.c.state.classFilter, "warrior");
 		ok(e.world.hasText("W two") and not e.world.hasText("M one"), e.texts());
-		e.world.click(e.ui.lib.cycle.prev);
+		e.world.click(e.ui.lib.classCycle.prev);
 		eq(e.c.state.classFilter, nil);
 		for _ = 1, 20 do e.c:Create("many", "paladin"); end
 		e.c:SetView("library");
@@ -181,23 +180,23 @@ return function(H)
 		local e = boot(); e.open();
 		local ids = populate(e);
 		e.c:Select(ids[1]);
-		e.world.clickLabel(T(e, "Duplicate"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Duplicate"), e.ui.leftPanel);
 		eq(#e.h():List("warrior"), 3);
 		ok(e.world.hasText("W one (copy)"));
 		e.c:Select(ids[1]);
-		e.world.clickLabel(T(e, "Rename"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Rename"), e.ui.leftPanel);
 		e.world.type(e.G.RebornBuildPlannerModalEdit, "Renamed é");
 		modalButton(e, T(e, "Rename"));
 		eq(e.h():Get(ids[1]).name, "Renamed é");
 		e.c:Select(ids[1]);
-		e.world.clickLabel(T(e, "Follow"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Follow"), e.ui.leftPanel);
 		eq(e.h():GetActive("warrior"), ids[1]);
 		ok(e.world.hasText("Active"), e.texts());
-		e.world.clickLabel(T(e, "Stop following"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Unfollow"), e.ui.leftPanel);
 		eq(e.h():GetActive("warrior"), nil);
 		-- cancelling a prompt changes nothing
 		e.c:Select(ids[1]);
-		e.world.clickLabel(T(e, "Rename"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Rename"), e.ui.leftPanel);
 		e.world.type(e.G.RebornBuildPlannerModalEdit, "never");
 		modalButton(e, T(e, "Cancel"));
 		eq(e.h():Get(ids[1]).name, "Renamed é");
@@ -207,12 +206,12 @@ return function(H)
 		local e = boot(); e.open();
 		local ids = populate(e);
 		e.c:Select(ids[3]);
-		e.world.clickLabel(T(e, "Delete"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Delete"), e.ui.leftPanel);
 		ok(e.G.RebornBuildPlannerModal:IsShown());
 		ok(e.G.RebornBuildPlannerModal.body.text:find("20", 1, true), "the trash policy is explained: " .. e.G.RebornBuildPlannerModal.body.text);
 		modalButton(e, T(e, "Cancel"));
 		ok(e.h():Get(ids[3]), "cancel keeps the build");
-		e.world.clickLabel(T(e, "Delete"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Delete"), e.ui.leftPanel);
 		modalButton(e, T(e, "Delete"));
 		eq(e.h():Get(ids[3]), nil);
 		ok(e.world.hasText("moved to the trash"));
@@ -221,12 +220,12 @@ return function(H)
 		ok(e.h():Get(ids[3]));
 		-- again, then restore from the trash view
 		e.c:Select(ids[3]);
-		e.world.clickLabel(T(e, "Delete"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Delete"), e.ui.leftPanel);
 		modalButton(e, T(e, "Delete"));
-		e.world.clickLabel("Trash (1)");
-		ok(e.world.hasText("M one") and e.world.hasText("In the trash"), e.texts());
+		e.world.clickLabel(T(e, "Trash"));
+		ok(e.world.hasText("M one") and e.world.hasText("Deleted"), e.texts());
 		e.c:Select(ids[3]);
-		e.world.clickLabel(T(e, "Restore"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Restore"), e.ui.leftPanel);
 		ok(e.h():Get(ids[3]));
 		eq(e.c.state.trashMode, false);
 	end);
@@ -240,7 +239,7 @@ return function(H)
 		e.c:SetView("library");
 		local victim = e.c:Create("fresh", "warrior");
 		e.c:Select(victim);
-		e.world.clickLabel(T(e, "Delete"), e.ui.views.library);
+		e.world.clickLabel(T(e, "Delete"), e.ui.leftPanel);
 		ok(e.G.RebornBuildPlannerModal.body.text:find("full", 1, true), e.G.RebornBuildPlannerModal.body.text);
 		modalButton(e, T(e, "Delete"));
 		ok(e.world.hasText("removed for good"), e.texts());
@@ -249,7 +248,7 @@ return function(H)
 
 	test("3B: duplicate and rename are blocked while read-only", function()
 		local e = boot({ preset = { RebornBuildPlannerDB = { schema = 99 } } }); e.open();
-		for _, b in ipairs({ e.ui.lib.dup, e.ui.lib.rename, e.ui.lib.delete, e.ui.lib.activate, e.ui.lib.create }) do no(b:IsEnabled()); end
+		for _, b in ipairs({ e.ui.lib.dup, e.ui.lib.rename, e.ui.lib.delete, e.ui.lib.follow, e.ui.lib.create }) do no(b:IsEnabled()); end
 	end);
 
 	-- ------------------------------------------------------------------ 3C / 3D: editor, draft, save
@@ -260,101 +259,128 @@ return function(H)
 		return id, e.ui.ed;
 	end
 
-	test("3C: one stage first; six spells maximum; banish separate and capped; no conflicts; reorder; remove", function()
+	test("3C: one stage first; six spells maximum; avoid list separate and capped; reorder; remove", function()
 		local e = boot(); local id, ed = openNew(e);
 		no(e.c:ShowAllPhases());
 		no(ed.phaseTabs[2]:IsVisible(), "only one stage by default");
 		ok(e.world.hasText("Single stage"));
 		local keys = e.ns.catalog:SpellsOfClass("warrior");
-		for i = 1, 6 do e.world.click(ed.cat.rows[i].a); end
+		-- the first five come from the catalogue page by one click each, the sixth from page 2
+		for i = 1, 5 do e.world.click(ed.cat.rows[i].a); end
 		local ph = e.c:Editor().draft.phases[1];
-		eq(#ph.spells, 6);
+		eq(#ph.spells, 5);
 		eq(ph.spells[1].key, keys[1]);
+		e.c:AddSpell(keys[6]);
+		eq(#e.c:Editor().draft.phases[1].spells, 6);
 		-- the seventh spell is refused with a reason, the plan is unchanged
-		e.world.click(ed.cat.rows[7].a);
+		e.c:AddSpell(keys[7]);
 		eq(#e.c:Editor().draft.phases[1].spells, 6);
 		ok(e.world.hasText("Limit reached"), e.texts());
-		-- banish: three, separate list, never consumes a wanted slot
-		e.world.click(ed.cat.rows[7].b);
-		e.world.click(ed.cat.rows[8].b);
-		e.world.click(ed.cat.rows[9].b);
+		ok(e.world.hasText("6 keep / 0 banish after"), e.texts());
+		-- the avoid list is separate, capped, and never consumes a wanted slot
+		for i = 7, 9 do ok(e.c:AddBanish(keys[i])); end
 		eq(#e.c:Editor().draft.phases[1].banish, 3);
 		eq(#e.c:Editor().draft.phases[1].spells, 6);
-		e.c:SetEditorPage(2);
-		e.world.click(ed.cat.rows[1].b);
+		ok(e.c:AddBanish(keys[10]) == false);
 		eq(#e.c:Editor().draft.phases[1].banish, 3);
-		-- a wanted spell cannot be banished, a banished one cannot be wanted
-		e.c:SetEditorPage(1);
-		no(ed.cat.rows[1].b:IsEnabled(), "wanted spell: banish disabled");
-		no(ed.cat.rows[7].a:IsEnabled(), "banished spell: want disabled");
+		-- a wanted spell cannot go to the avoid list, an avoided one cannot be wanted
 		ok(e.c:AddBanish(keys[1]) == false);
 		ok(e.world.hasText("remove it from the plan first"), e.texts());
+		ok(e.c:AddSpell(keys[7]) == false);
 		-- order
-		e.world.click(ed.plan.spells[2].up);
+		e.world.click(ed.spells[2].up);
 		eq(e.c:Editor().draft.phases[1].spells[1].key, keys[2]);
-		eq(e.c:Editor().draft.phases[1].spells[2].key, keys[1]);
-		no(ed.plan.spells[1].up:IsEnabled());
-		no(ed.plan.spells[6].down:IsEnabled());
-		e.world.click(ed.plan.spells[1].down);
+		no(ed.spells[1].up:IsEnabled());
+		no(ed.spells[6].down:IsEnabled());
+		e.world.click(ed.spells[1].down);
 		eq(e.c:Editor().draft.phases[1].spells[1].key, keys[1]);
-		e.world.click(ed.plan.spells[1].del);
+		e.world.click(ed.spells[1].del);
 		eq(#e.c:Editor().draft.phases[1].spells, 5);
-		ok(e.world.hasText("Planning only: nothing is banished or picked for you."), e.texts());
-		e.world.click(ed.plan.banish[1].del);
+		ok(e.world.hasText("Spells to acquire, by priority (5/6)"), e.texts());
+		-- the avoid list is edited in the advanced block
+		e.c:ToggleAdvanced();
+		ok(ed.nt.avoid[1].frame:IsShown());
+		e.world.click(ed.nt.avoid[1].del);
 		eq(#e.c:Editor().draft.phases[1].banish, 2);
+	end);
+
+	test("3C: an empty spell row offers '+ Add a spell' and points the catalogue at spells", function()
+		local e = boot(); local id, ed = openNew(e);
+		e.c:SetCatalog("rings");
+		eq(e.c:Editor().cat, "rings");
+		ok(ed.spells[1].add:IsVisible(), "empty row shows the add button");
+		e.world.click(ed.spells[1].add);
+		eq(e.c:Editor().cat, "spells");
+		ok(e.world.hasText("Adding to the 6 spells to acquire"), e.texts());
 	end);
 
 	test("3C: catalogue is filtered by class and by search; names localised, identifiers are catalogue keys", function()
 		local e = boot({ locale = "frFR" }); local id, ed = openNew(e, "warrior");
 		for _, entry in ipairs(e.c:CatalogEntries()) do eq(e.ns.catalog:Get("spell", entry.key).class, "warrior"); end
-		e.world.type(ed.cat.search, "tourb");
+		e.world.type(ed.catSearch, "tourb");
 		eq(#e.c:CatalogEntries(), 1);
 		eq(e.c:CatalogEntries()[1].key, "whirlwind", "found by its French name, stored by key");
-		e.world.type(ed.cat.search, "whirl");
+		e.world.type(ed.catSearch, "whirl");
 		eq(#e.c:CatalogEntries(), 1, "English name works too");
-		e.world.type(ed.cat.search, "zzzz");
+		e.world.type(ed.catSearch, "zzzz");
 		eq(#e.c:CatalogEntries(), 0);
-		e.world.type(ed.cat.search, "");
+		e.world.type(ed.catSearch, "");
 		e.world.click(ed.cat.rows[1].a);
 		eq(e.c:Editor().draft.phases[1].spells[1].key, e.ns.catalog:SpellsOfClass("warrior")[1]);
-		-- nothing translated ever reaches the data
 		for _, g in ipairs(e.c:Editor().draft.phases[1].spells) do no(g.key:find(" "), "key is not a display name"); end
 		eq(e.c:Editor().draft.phases[1].label, "", "default stage label stays empty");
 	end);
 
-	test("3C: jewelry slots keep holes, alternatives are explicit, duplicates refused, identifiers only", function()
+	test("3C: equipment on one page: every slot visible, click a slot -> catalogue and target follow, direct replacement", function()
 		local e = boot(); local id, ed = openNew(e);
-		e.c:SetTab("jewels");
-		ok(e.world.hasText("Main 1") and e.world.hasText("Alternative 1"), e.texts());
-		e.c:SetSlotTarget(3);
-		e.world.click(ed.cat.rows[1].a);                           -- first ring in the alternative 1 slot
+		-- all twelve slots are on screen at once, with main / alternative roles
+		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
+			for j, cell in ipairs(ed.groups[g].cells) do ok(cell:IsVisible(), g .. j); end
+		end
+		ok(e.world.hasText("Main 1") and e.world.hasText("Alt. 1"), e.texts());
+		-- clicking an empty alternative ring slot: catalogue = rings, target = that slot, visible
+		e.world.click(ed.groups.rings.cells[3]);
+		eq(e.c:Editor().cat, "rings");
+		ok(e.world.hasText("Target: Rings - Alternative 1 (empty)"), e.texts());
+		e.world.click(ed.cat.rows[1].a);                               -- Place
 		local rings = e.c:Editor().draft.phases[1].rings;
 		eq(rings[1], ""); eq(rings[2], ""); ok(rings[3] ~= ""); eq(rings[4], "");
 		local first = rings[3];
-		e.c:SetSlotTarget(1);
+		-- the same piece cannot be placed twice; the catalogue says so
+		e.world.click(ed.groups.rings.cells[1]);
 		no(ed.cat.rows[1].a:IsEnabled(), "a piece already placed cannot be placed twice");
+		-- placing in the chosen slot only
 		e.world.click(ed.cat.rows[2].a);
 		eq(e.c:Editor().draft.phases[1].rings[1], e.c:CatalogEntries()[2].key);
-		e.world.click(ed.jw.slots[3].clear);
+		eq(e.c:Editor().draft.phases[1].rings[3], first, "other slots untouched");
+		-- direct replacement: select a filled slot, place another piece, no manual emptying
+		e.world.click(ed.groups.rings.cells[1]);
+		local before = e.c:Editor().draft.phases[1].rings[1];
+		e.world.click(ed.cat.rows[3].a);
+		local after = e.c:Editor().draft.phases[1].rings[1];
+		ok(after ~= before and after ~= "", "slot replaced in one click");
+		-- clear
+		e.world.click(ed.groups.rings.cells[3].x);
 		eq(e.c:Editor().draft.phases[1].rings[3], "");
-		eq(e.c:Editor().draft.phases[1].rings[1] ~= "", true);
-		e.c:SetGroup("amulets");
+		ok(e.c:Editor().draft.phases[1].rings[1] ~= "");
+		-- trinkets and amulets: the filter button picks the first empty main slot
+		e.world.click(ed.catKinds.amulets);
+		eq(e.c:Editor().slot, 1);
 		for _, en in ipairs(e.c:CatalogEntries()) do
 			local a = e.ns.catalog:Get("amulet", en.key);
 			ok(a.class == "warrior" or (a.classes ~= nil and (#a.classes == 0 or U.IndexOf(a.classes, "warrior"))), "class-filtered amulets and legends");
 		end
 		e.world.click(ed.cat.rows[1].a);
 		ok(e.c:Editor().draft.phases[1].amulets[1] ~= "");
-		e.c:SetGroup("trinkets");
+		e.world.click(ed.catKinds.trinkets);
 		e.world.click(ed.cat.rows[1].a);
 		ok(e.c:Editor().draft.phases[1].trinkets[1] ~= "");
-		local rep = e.c:EditorReport();
-		ok(rep.clean);
+		ok(e.c:EditorReport().clean);
 	end);
 
-	test("3C: notes, link, talents; kept data is listed and never dropped by a save", function()
+	test("3C: notes, link, talents (advanced block); kept data is listed and never dropped by a save", function()
 		local e = boot(); local id, ed = openNew(e);
-		e.c:SetTab("notes");
+		e.c:ToggleAdvanced();
 		e.world.type(ed.nt.notes, "Ligne 1\nLigne 2 \195\169");
 		e.world.type(ed.nt.link, "https://azreborn.com/planner/warrior");
 		e.world.type(ed.nt.talents, "10203-000-0110");
@@ -367,12 +393,11 @@ return function(H)
 		local raw = { name = "Rich", class = "warrior", phases = { { spells = { { key = "whirlwind", mode = "rank", rank = 3 } }, stats = { damage = 50 }, notes = "n" },
 			{ spells = { "execute" } } }, mystery = { 1 } };
 		local rid = e.h():Add(raw);
-		e.ui:CloseEditor();
 		e.c.state.editor = nil;
 		e.ui:OpenEditor(rid);
 		ok(e.c:ShowAllPhases(), "an imported build with several stages shows them at once");
 		ok(ed.phaseTabs[2]:IsVisible());
-		e.c:SetTab("notes");
+		e.c:ToggleAdvanced();
 		local hidden = e.c:HiddenData();
 		ok(#hidden >= 2, "hidden data listed: " .. H.fmt(hidden));
 		ok(e.world.hasText("kept"), e.texts());
@@ -384,6 +409,8 @@ return function(H)
 		eq(saved.ext.mystery, { 1 });
 		eq(saved.phases[2].spells[1].key, "execute");
 		eq(saved.phases[1].notes, "changed");
+		-- four imported stages stay four after a save
+		eq(#saved.phases, 4);
 	end);
 
 	test("3D: draft versus saved, statuses, save, discard, follow, repair", function()
@@ -423,36 +450,38 @@ return function(H)
 		eq(e.h():GetActive("warrior"), rid, "repaired: follow works");
 	end);
 
-	test("3D: closing with unsaved changes asks; Escape never discards; no implicit save", function()
+	test("3D: switching build / closing with unsaved changes asks; Escape never discards; no implicit save", function()
 		local e = boot(); local id, ed = openNew(e);
+		local other = e.c:Create("Other", "warrior");
 		e.world.click(ed.cat.rows[1].a);
 		ok(U.IndexOf(e.G.UISpecialFrames, "RebornBuildPlannerFrame") == nil, "dirty editor: Escape must not close the window");
 		eq(e.world.escape(), false);
 		ok(e.root:IsShown());
-		-- Close editor -> prompt -> keep editing
-		e.world.click(ed.close);
+		-- clicking another build in the library -> prompt -> keep editing
+		local function rowOf(bid) for _, r in ipairs(e.ui.lib.rows) do if r.rowId == bid and r:IsShown() then return r; end end end
+		e.world.click(rowOf(other));
 		ok(e.G.RebornBuildPlannerModal:IsShown());
 		ok(e.world.hasText("Unsaved changes"));
 		modalButton(e, T(e, "Keep editing"));
-		eq(e.c.state.view, "editor");
+		eq(e.c:Editor().id, id);
 		eq(#e.c:Editor().draft.phases[1].spells, 1);
 		-- Escape in the dialog = keep editing
-		e.world.click(ed.close);
+		e.world.click(rowOf(other));
 		eq(U.IndexOf(e.G.UISpecialFrames, "RebornBuildPlannerModal") ~= nil, true);
 		ok(e.world.escape());
 		no(e.G.RebornBuildPlannerModal:IsShown());
-		eq(e.c.state.view, "editor");
-		-- discard
-		e.world.click(ed.close);
+		eq(e.c:Editor().id, id);
+		-- discard: the other build opens, the draft is gone
+		e.world.click(rowOf(other));
 		modalButton(e, T(e, "Discard"));
-		eq(e.c.state.view, "library");
+		eq(e.c:Editor().id, other);
 		eq(#e.h():Get(id).phases[1].spells, 0, "discarded");
 		-- save from the prompt
 		e.ui:OpenEditor(id);
 		e.world.click(ed.cat.rows[1].a);
-		e.world.click(ed.close);
+		e.world.click(rowOf(other));
 		modalButton(e, T(e, "Save"));
-		eq(e.c.state.view, "library");
+		eq(e.c:Editor().id, other);
 		eq(#e.h():Get(id).phases[1].spells, 1);
 		-- closing the WINDOW with changes asks as well
 		e.ui:OpenEditor(id);
@@ -539,7 +568,7 @@ return function(H)
 		local id = e.c.state.selectedId;
 		eq(e.h():Get(id).name, "Imported \195\169");
 		eq(e.h():GetActive("warrior"), nil);
-		eq(e.c.state.view, "library");
+		eq(e.c.state.view, "editor");
 		ok(e.world.hasText("Imported (not active)"), e.texts());
 		eq(e.c:ImportState(), nil);
 	end);
@@ -594,7 +623,8 @@ return function(H)
 		ok(e.h():Update(id, b));
 		e.c:SetView("library");
 		e.c:Select(id);
-		e.world.clickLabel(T(e, "Export"), e.ui.views.library);
+		e.ui:OpenEditor(id);
+		e.world.click(e.ui.nav.export);
 		eq(e.c.state.view, "export");
 		local box = e.ui.ex.box;
 		ok(box.text:sub(1, 6) == "azsb1:", box.text);
@@ -619,8 +649,8 @@ return function(H)
 		local e = boot(); e.open();
 		local id = e.h():Add({ name = "Lossy", class = "warrior", futureField = { 1 }, phases = { { spells = { { key = "whirlwind", mode = "rank", rank = 3 }, "death_coil" } } } });
 		e.c:Select(id);
-		e.c:SetView("library");
-		e.world.clickLabel(T(e, "Export"), e.ui.views.library);
+		e.ui:OpenEditor(id);
+		e.world.click(e.ui.nav.export);
 		ok(e.world.hasText("would be lost"), e.texts());
 		ok(e.world.hasText("Lost:"), e.texts());
 		no(e.ui.ex.box.scroll:IsVisible(), "no code before the losses are accepted");
@@ -640,7 +670,7 @@ return function(H)
 	test("3E: exporting the draft reflects unsaved edits and says so", function()
 		local e = boot(); local id, ed = openNew(e, "mage");
 		e.world.click(ed.cat.rows[1].a);
-		e.world.click(ed.export);
+		e.world.click(e.ui.nav.export);
 		ok(e.world.hasText("draft"), e.texts());
 		ok(e.c.state.export.code ~= nil);
 		eq(e.h():Get(id).phases[1].spells[1], nil);
@@ -655,14 +685,14 @@ return function(H)
 		e.world.click(e.ui.ed.follow);
 		analyze(e, GOOD);
 		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
-		e.world.drag(e.root, 130, -40);
+		e.world.drag(e.root, 100, -20);
 		local again = reload(e);
 		eq(again.h():Counts().builds, 2);
 		eq(again.h():GetActive("warrior"), id);
 		eq(again.h():Get(id).phases[1].spells[1].key, e.ns.catalog:SpellsOfClass("warrior")[1]);
 		again.open();
 		local p = again.root.points[1];
-		eq(p.x, 130); eq(p.y, -40);
+		eq(p.x, 100); eq(p.y, -20);
 		ok(again.world.hasText("Persist"));
 	end);
 
@@ -705,15 +735,15 @@ return function(H)
 		e.c:SetView("library");
 		e.world.click(e.ui.lib.pager.next);
 		e.ui:OpenEditor(id);
-		for i = 1, 6 do e.world.click(e.ui.ed.cat.rows[i].a); end
-		e.c:SetTab("jewels"); e.c:SetGroup("trinkets"); e.c:SetTab("notes");
+		for i = 1, 5 do e.world.click(e.ui.ed.cat.rows[i].a); end
+		e.c:SetCatalog("trinkets"); e.c:SelectSlot("rings", 2); e.c:ToggleAdvanced(); e.c:ToggleAdvanced();
 		e.world.click(e.ui.ed.save);
 		analyze(e, GOOD);
 		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
 		e.c:PrepareExport(id, "saved"); e.c:SetView("export");
 		e.world.click(e.ui.ex.back);
 		eq(#e.world.all, n0, "frames/regions created after the first open");
-		ok(n0 < 520, "widget budget: " .. n0);
+		ok(n0 < 700, "widget budget (all created once): " .. n0);
 	end);
 
 	-- ------------------------------------------------------------------ layout lint at several sizes
@@ -730,22 +760,24 @@ return function(H)
 		e.ui:AskCreate(); lint("create dialog"); e.ui:ModalCancel();
 		e.ui:AskDelete({ id = ids[1], name = long }); lint("delete dialog"); e.ui:ModalCancel();
 		e.ui:OpenEditor(ids[1]);
+		lint("editor empty");
 		for p = 1, 6 do e.c:AddSpell(e.c:CatalogEntries()[p].key); end
 		for p = 1, 3 do e.c:AddBanish(e.c:CatalogEntries()[6 + p].key); end
-		lint("editor spells");
 		for p = 1, 3 do e.c:ToggleBanishAfter(e.c:Editor().draft.phases[1].spells[p].key); end
 		lint("editor spells with banish-after marks");
-		e.c:SetTab("jewels");
 		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
-			e.c:SetGroup(g);
-			for s = 1, #e.c:Editor().draft.phases[1][g] do e.c:SetSlotTarget(s); e.c:SetSlot(g, s, e.c:CatalogEntries()[s].key); end
+			e.c:SetCatalog(g);
+			for s = 1, #e.c:Editor().draft.phases[1][g] do e.c:SelectSlot(g, s); e.c:SetSlot(g, s, e.c:CatalogEntries()[s].key); end
 			lint("editor " .. g);
 		end
+		e.c:Inspect("spell", e.c:Editor().draft.phases[1].spells[1].key);
+		lint("inspector");
 		e.c:RevealPhases(); lint("editor phases");
-		e.c:SetTab("notes");
+		e.c:ToggleAdvanced();
 		e.c:SetNotes(string.rep("Note \195\169\195\160 ", 300));
 		e.c:SetLink("https://azreborn.com/planner/warrior");
-		lint("editor notes");
+		lint("editor advanced");
+		e.c:ToggleAdvanced();
 		e.ui:AskDirty(function() end); lint("dirty dialog"); e.ui:ModalCancel();
 		e.c.state.message = nil;
 		e.c:SetView("import");
@@ -792,7 +824,7 @@ return function(H)
 	-- ------------------------------------------------------------------ translations
 	test("every string of the window has a French translation", function()
 		local missing = {};
-		local SAME = { ["Build"] = true, ["Page %d/%d"] = true, ["Info"] = true, ["Notes (%s)"] = true, ["Alternative %d"] = true };
+		local SAME = { ["Build"] = true, ["Page %d/%d"] = true, ["Info"] = true, ["Notes (%s)"] = true, ["Alternative %d"] = true, ["Alt. %d"] = true };
 		local ns = H.loadAddon();
 		ns.Locale.SetLang("frFR");
 		for _, f in ipairs({ "Controller.lua", "UI.lua", "Commands.lua" }) do
