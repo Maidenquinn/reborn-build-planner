@@ -64,8 +64,8 @@ return function(H)
 		} };
 		local item = assert(j.JewelryEffects.Sections("accuria", "ring", true));
 		eq(item[1].lines[1].text, "17 % de dégâts supplémentaires.", "effect first in plain language");
-		eq(item[2].lines[1].text, "Dégâts : 17 %", "reference value accurately labelled");
-		ok(item[2].lines[2].text:find("Ce n'est pas", 1, true), "not represented as an actual run value");
+		eq(item[2].title, "Origine", "no duplicate raw coefficient for a simple percent bonus");
+		ok(item[1].lines[2].text:find("Valeur de base", 1, true), "not represented as an actual run value");
 		eq(j.JewelryEffects.Sections("accuria", "trinket", true), nil, "wrong slot cannot match");
 		eq(j.JewelryEffects.Sections("none", "ring", true), nil, "unknown must stay unavailable");
 		j.GeneratedJewelryMechanics.items.blooddrinker = { slot = "ring", behavior = "lifesteal", base = 0.01 };
@@ -83,12 +83,12 @@ return function(H)
 			}
 		} };
 		local e = j.JewelryEffects.Sections("accuria", "ring", true);
-		eq(e[3].title, "Autres effets déclarés");
-		eq(e[3].lines[1].text, "Chance de critique: 4 %");
-		eq(e[3].lines[2].text, "Régénération: 2,5");
-		eq(e[4].title, "Effets conditionnels");
-		eq(e[4].lines[1].text, "on_hit: 0,18");
-		ok(e[4].lines[3].text:find("interprétation dépend du jeu", 1, true));
+		eq(e[2].title, "Autres effets déclarés");
+		eq(e[2].lines[1].text, "Chance de critique: 4 %");
+		eq(e[2].lines[2].text, "Régénération: 2,5");
+		eq(e[3].title, "Effets conditionnels");
+		eq(e[3].lines[1].text, "on_hit: 0,18");
+		ok(e[3].lines[3].text:find("interprétation dépend du jeu", 1, true));
 	end);
 
 	test("jewelry: live text is read only for an exact unique identity during an active run", function()
