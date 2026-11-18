@@ -961,7 +961,8 @@ function Controller:TooltipData(kind, key)
 			if d.sections then d.sourceKind = "jewelry_local"; end
 		end
 		if d.sections then
-			d.preview = ns.Describe and ns.Describe.Preview(d.sections, 3) or {};
+			-- The first line is now the meaningful bonus, not a technical label.
+			d.preview = ns.Describe and ns.Describe.Preview(d.sections, 2) or {};
 		else
 			line(L("Detailed effect unavailable"), "dim");
 			line(L("The Reborn catalogue gives no statistics for this piece."), "dim");
