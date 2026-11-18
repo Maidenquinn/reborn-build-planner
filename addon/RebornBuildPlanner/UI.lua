@@ -639,6 +639,7 @@ function UI:BuildLibrary(v)
 	lib.dismiss:SetFrameLevel(134);
 	lib.dismiss:EnableMouse(true);
 	lib.dismiss:SetScript("OnMouseDown", function() self:HideLibraryMenu(); end);
+	lib.dismiss:SetScript("OnClick", function() self:HideLibraryMenu(); end);
 	lib.dismiss:Hide();
 	local classKeys = c:ClassKeys();
 	lib.classMenu = panel(v, nil, 8, 88, 236, 12 + (#classKeys + 1) * 24);
@@ -694,8 +695,8 @@ function UI:BuildLibrary(v)
 		r.classIcon:SetWidth(26); r.classIcon:SetHeight(26);
 		r.classIcon:SetPoint("TOPLEFT", r, "TOPLEFT", 5, -4);
 		r.name = text(r, 37, 3, 155, "GameFontHighlight");
-		r.tag = text(r, 160, 19, 34, "GameFontNormalSmall", "RIGHT");
-		r.sub = text(r, 37, 19, 119, "GameFontNormalSmall");
+		r.tag = text(r, 141, 19, 53, "GameFontNormalSmall", "RIGHT");
+		r.sub = text(r, 37, 19, 100, "GameFontNormalSmall");
 		r.sub:SetTextColor(0.66, 0.72, 0.82);
 		r.star = CreateFrame("Button", nil, r);
 		r.star:SetWidth(24); r.star:SetHeight(26);
@@ -822,14 +823,14 @@ function UI:RefreshLibrary()
 			if d.trashed then s = L("Deleted");
 			elseif d.active then s = L("Active");
 			elseif d.clean == false then s = L("Repair"); end
-			r.tag:SetText(fitFontText(r.tag, s, 34));
+			r.tag:SetText(fitFontText(r.tag, s, 53));
 			local when = "";
 			if not d.trashed then
 				local key = c:Sort() == "used" and d.used or d.modified;
 				local ds = dateText(key);
 				if ds then when = " | " .. ds; end
 			end
-			r.sub:SetText(fitFontText(r.sub, d.className .. when, 117));
+			r.sub:SetText(fitFontText(r.sub, d.className .. when, 98));
 			r.star.tex:SetTexture(THEME and THEME.Media(d.fav and "ultimate_fav_on" or "ultimate_fav_off") or
 				"Interface\\Buttons\\WHITE8X8");
 			setShown(r.star, not d.trashed);
