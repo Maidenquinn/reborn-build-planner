@@ -38,8 +38,8 @@ function Commands.Handle(ui, controller, msg)
 		say(string.format("version %s, storage %s%s, catalogue %s (%s)", tostring(ns.VERSION), h and h.status or "none",
 			(h and h.readOnly) and " (read only)" or "", ns.catalog and ns.catalog:Content() or "none", tostring(ns.catalogStatus)));
 		if ns.JewelryEffects then
-			local total, runtime = ns.JewelryEffects.MetadataStatus();
-			say(string.format("bijoux : %d mecanique(s) locale(s), AZS_GEN %s, effets live uniquement pour objets equipes et identifies", total, runtime and "present" or "absent"));
+			local total, runtime, expected = ns.JewelryEffects.MetadataStatus();
+			say(string.format("bijoux : %d/%s mecanique(s) locale(s), AZS_GEN %s, effets live uniquement pour objets equipes et identifies", total, expected and tostring(expected) or "?", runtime and "present" or "absent"));
 		end
 	else
 		say(Locale.T("Usage: /rbp (open or close) | /rbp reset | /rbp diag"));
