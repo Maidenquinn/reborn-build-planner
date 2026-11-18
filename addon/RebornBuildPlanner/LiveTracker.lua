@@ -114,7 +114,11 @@ function M.CardHint(build, phaseIndex, snapshot, card)
   if not wanted then return nil end
   local after = has(ph.banishAfter, card.key);
   local owned = spellMap(snapshot.spells)[card.key] ~= nil;
-  if after and snapshot.spellsKnown and owned then return "banish_after", wanted end
+  -- Before AZSSPELLS has arrived we cannot tell whether a wanted-and-later-
+  -- banished spell is already owned. Display no hint rather than a misleading
+  -- green recommendation.
+  if after and not snapshot.spellsKnown then return nil end
+  if after and owned then return "banish_after", wanted end
   return "wanted", wanted
 end
 
