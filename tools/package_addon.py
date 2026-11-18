@@ -60,7 +60,7 @@ def main(argv):
         shutil.copyfile(local_mechanics, os.path.join(dest, "GeneratedJewelryMechanics.lua"))
     # Original fantasy UI assets: regenerate locally if absent, never fetch third-party assets.
     lab_media = os.path.join(ROOT, "addon_lab", "RebornPlannerThemeLab", "Media")
-    needed = ("ultimate_corner.tga", "ultimate_crest.tga", "ultimate_titlebar.tga", "ultimate_panel.tga", "ultimate_fav_on.tga", "ultimate_fav_off.tga")
+    needed = ("ultimate_corner.tga", "ultimate_crest.tga", "ultimate_titlebar.tga", "ultimate_panel.tga", "ultimate_fav_on.tga", "ultimate_fav_off.tga", "ultimate_class_monk.tga", "ultimate_class_dh.tga")
     if not all(os.path.isfile(os.path.join(lab_media, n)) for n in needed):
         print("Generating original fantasy textures (build-time Pillow required)")
         subprocess.run([sys.executable, os.path.join(ROOT, "tools", "make_ultimate_art.py"), lab_media], check=True)
