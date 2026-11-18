@@ -47,7 +47,12 @@ def title():
             p[x,y]=(max(0,int(18-6*t+n)),max(0,int(40-13*t+n)),max(0,int(72-25*t+n)),255)
     d=ImageDraw.Draw(im)
     d.polygon([(0,18),(88,18),(104,2),(408,2),(424,18),(511,18),(511,111),(423,111),(406,125),(106,125),(89,111),(0,111)],outline=G,width=4)
-    d.line((24,32,488,32),fill=B,width=2);d.line((24,99,488,99),fill=G,width=2)
+    d.line((22,28,490,28),fill=(210,240,254,255),width=2)
+    d.line((24,32,488,32),fill=B,width=2)
+    d.line((24,99,488,99),fill=G,width=2)
+    d.line((26,105,486,105),fill=(6,15,35,255),width=4)
+    d.line((34,47,476,47),fill=(67,119,170,255),width=1)
+    d.line((34,84,476,84),fill=(30,78,132,255),width=1)
     for flip,cx in ((1,20),(-1,492)):motif(d,cx,40,.7,flip)
     return im
 
@@ -55,13 +60,32 @@ def panel():
     w=h=256;im=Image.new("RGBA",(w,h));p=im.load();rng=random.Random(42)
     for y in range(h):
         for x in range(w):
-            n=rng.randint(-3,3);v=2*math.sin(x*.045+y*.025)+2*math.cos(y*.035)
-            p[x,y]=(max(0,int(14+v+n)),max(0,int(28+v+n)),max(0,int(51+v+n)),255)
+            # Subtle forged-steel texture: three low-frequency waves, a
+            # soft halo, restrained micrograin, and darkened perimeter.
+            n=rng.randint(-3,3)
+            wave=2.5*math.sin(x*.034+y*.019)+1.8*math.cos(y*.057)
+            halo=3.2*(1-abs(x-w/2)/(w/2))*(1-abs(y-h/2)/(h/2))
+            edge=5.0*(min(x,y,w-1-x,h-1-y)<16)
+            v=wave+halo-edge+n
+            p[x,y]=(max(0,int(13+v)),max(0,int(28+v*1.1)),max(0,int(51+v*1.35)),255)
     d=ImageDraw.Draw(im)
-    d.rectangle((0,0,w-1,h-1),outline=B,width=3)
-    d.rectangle((5,5,w-6,h-6),outline=G,width=1)
-    # Keep the panel corners completely quiet: labels begin only 8px from the edge.
-    # Decorative studs here obscured 'Rechercher', 'Navigateur', and other short headings.
+    # Hand-drawn three-stage bevel: dark silhouette, cool-steel lip and a
+    # softer inner highlight. No rivets near short labels.
+    d.rectangle((0,0,w-1,h-1),outline=(4,12,27,255),width=2)
+    d.rectangle((2,2,w-3,h-3),outline=(65,132,184,255),width=2)
+    d.line([(5,5),(w-6,5)],fill=(151,209,236,255),width=1)
+    d.line([(5,6),(5,h-8)],fill=(100,170,214,255),width=1)
+    d.line([(6,h-6),(w-6,h-6)],fill=(24,65,103,255),width=2)
+    d.line([(w-6,6),(w-6,h-7)],fill=(20,59,105,255),width=2)
+    # Fine engraved corner tracery, constrained to a 12px peripheral strip.
+    for mirror_x in (False, True):
+        for mirror_y in (False, True):
+            def reflect(x,y):
+                return (w-1-x if mirror_x else x, h-1-y if mirror_y else y)
+            d.line([reflect(8,22),reflect(8,13),reflect(13,8),reflect(22,8)],
+                   fill=(89,160,205,235),width=1)
+            d.line([reflect(9,21),reflect(9,13),reflect(13,9),reflect(21,9)],
+                   fill=(29,86,140,255),width=1)
     return im
 
 def tga_bytes(im):
