@@ -22,70 +22,77 @@ def motif(d,cx,cy,k=1,flip=1):
     d.ellipse((min(q[0],r[0]),min(q[1],r[1]),max(q[0],r[0]),max(q[1],r[1])),fill=L)
 
 def corner():
-    im=Image.new("RGBA",(128,128));d=ImageDraw.Draw(im)
-    d.polygon([(0,0),(121,0),(96,13),(27,13),(13,30),(13,101),(0,122)],fill=(18,49,85,245),outline=G)
-    d.line([(3,109),(3,6),(112,6)],fill=L,width=3)
-    d.line([(16,98),(16,26),(28,16),(90,16)],fill=B,width=4)
-    motif(d,23,20,.9)
-    for x,y in [(10,10),(105,10),(10,105)]:
-        d.ellipse((x-4,y-4,x+4,y+4),fill=G,outline=L)
-    return im.filter(ImageFilter.GaussianBlur(.25))
+    """Low-key metal end-cap, not a huge ornamental window bracket."""
+    im = Image.new("RGBA", (128, 128))
+    d = ImageDraw.Draw(im)
+    # A thin L-piece and tiny tapered glow; the source is mostly transparent.
+    d.line([(2, 82), (2, 12), (12, 2), (82, 2)], fill=(83, 151, 194, 180), width=2)
+    d.line([(6, 58), (6, 15), (15, 6), (58, 6)], fill=(171, 220, 247, 105), width=1)
+    d.line([(11, 35), (11, 18), (18, 11), (35, 11)], fill=(66, 120, 162, 100), width=1)
+    d.ellipse((10, 10, 15, 15), fill=(198, 232, 253, 170))
+    return im
 
 def crest():
-    im=Image.new("RGBA",(128,128));d=ImageDraw.Draw(im)
-    d.polygon([(64,4),(105,22),(110,66),(91,104),(64,124),(37,104),(18,66),(23,22)],fill=(20,42,76,255),outline=L,width=4)
-    d.polygon([(64,14),(96,29),(99,65),(83,95),(64,111),(45,95),(29,65),(32,29)],fill=(9,31,65,255),outline=G,width=3)
-    d.polygon([(64,27),(72,50),(96,48),(76,64),(82,91),(64,76),(46,91),(52,64),(32,48),(56,50)],fill=G,outline=L)
-    d.ellipse((58,58,70,70),fill=L)
+    """A small original arcane interface glyph, designed for a 30px header."""
+    im = Image.new("RGBA", (128, 128))
+    d = ImageDraw.Draw(im)
+    d.ellipse((17, 17, 111, 111), fill=(12, 34, 61, 255),
+              outline=(88, 151, 196, 255), width=4)
+    d.ellipse((25, 25, 103, 103), outline=(173, 216, 240, 210), width=2)
+    d.arc((36, 36, 92, 92), 215, 335, fill=(120, 212, 249, 255), width=5)
+    d.arc((36, 36, 92, 92), 35, 155, fill=(67, 114, 172, 255), width=5)
+    d.polygon([(64, 37), (87, 64), (64, 91), (41, 64)], fill=(35, 91, 146, 255),
+              outline=(168, 223, 251, 255))
+    d.line([(64, 49), (76, 64), (64, 79)], fill=(216, 244, 255, 255), width=3)
     return im
 
 def title():
-    w,h=512,128;im=Image.new("RGBA",(w,h));p=im.load();rng=random.Random(117)
+    """Continuous satin-metal header, without the old RPG banner cutouts."""
+    w, h = 512, 128
+    im = Image.new("RGBA", (w, h))
+    p = im.load()
+    rng = random.Random(117)
     for y in range(h):
+        t = y / (h - 1)
         for x in range(w):
-            n=rng.randrange(-5,6);t=y/(h-1)
-            p[x,y]=(max(0,int(18-6*t+n)),max(0,int(40-13*t+n)),max(0,int(72-25*t+n)),255)
-    d=ImageDraw.Draw(im)
-    d.polygon([(0,18),(88,18),(104,2),(408,2),(424,18),(511,18),(511,111),(423,111),(406,125),(106,125),(89,111),(0,111)],outline=G,width=4)
-    d.line((22,28,490,28),fill=(210,240,254,255),width=2)
-    d.line((24,32,488,32),fill=B,width=2)
-    d.line((24,99,488,99),fill=G,width=2)
-    d.line((26,105,486,105),fill=(6,15,35,255),width=4)
-    d.line((34,47,476,47),fill=(67,119,170,255),width=1)
-    d.line((34,84,476,84),fill=(30,78,132,255),width=1)
-    for flip,cx in ((1,20),(-1,492)):motif(d,cx,40,.7,flip)
+            wave = 1.2 * math.sin(x * .022 + y * .014)
+            grain = rng.randint(-2, 2)
+            halo = 6 * (1 - abs(x - w / 2) / (w / 2)) * (1 - t)
+            v = halo + wave + grain
+            p[x, y] = (int(16 + 7 * (1 - t) + v),
+                       int(33 + 12 * (1 - t) + v),
+                       int(57 + 18 * (1 - t) + v), 255)
+    d = ImageDraw.Draw(im)
+    d.line((0, 0, w-1, 0), fill=(72, 139, 190, 255), width=2)
+    d.line((0, 3, w-1, 3), fill=(170, 220, 245, 120), width=1)
+    d.line((0, h-3, w-1, h-3), fill=(30, 76, 117, 255), width=2)
+    d.line((0, h-1, w-1, h-1), fill=(5, 16, 33, 255), width=1)
     return im
 
 def panel():
-    w=h=256;im=Image.new("RGBA",(w,h));p=im.load();rng=random.Random(42)
+    """Opaque layered smoke-glass with tiny cold rim and no boxed-in corner art."""
+    w = h = 256
+    im = Image.new("RGBA", (w, h))
+    p = im.load()
+    rng = random.Random(42)
     for y in range(h):
+        t = y / (h - 1)
         for x in range(w):
-            # Subtle forged-steel texture: three low-frequency waves, a
-            # soft halo, restrained micrograin, and darkened perimeter.
-            n=rng.randint(-3,3)
-            wave=2.5*math.sin(x*.034+y*.019)+1.8*math.cos(y*.057)
-            halo=3.2*(1-abs(x-w/2)/(w/2))*(1-abs(y-h/2)/(h/2))
-            edge=5.0*(min(x,y,w-1-x,h-1-y)<16)
-            v=wave+halo-edge+n
-            p[x,y]=(max(0,int(13+v)),max(0,int(28+v*1.1)),max(0,int(51+v*1.35)),255)
-    d=ImageDraw.Draw(im)
-    # Hand-drawn three-stage bevel: dark silhouette, cool-steel lip and a
-    # softer inner highlight. No rivets near short labels.
-    d.rectangle((0,0,w-1,h-1),outline=(4,12,27,255),width=2)
-    d.rectangle((2,2,w-3,h-3),outline=(65,132,184,255),width=2)
-    d.line([(5,5),(w-6,5)],fill=(151,209,236,255),width=1)
-    d.line([(5,6),(5,h-8)],fill=(100,170,214,255),width=1)
-    d.line([(6,h-6),(w-6,h-6)],fill=(24,65,103,255),width=2)
-    d.line([(w-6,6),(w-6,h-7)],fill=(20,59,105,255),width=2)
-    # Fine engraved corner tracery, constrained to a 12px peripheral strip.
-    for mirror_x in (False, True):
-        for mirror_y in (False, True):
-            def reflect(x,y):
-                return (w-1-x if mirror_x else x, h-1-y if mirror_y else y)
-            d.line([reflect(8,22),reflect(8,13),reflect(13,8),reflect(22,8)],
-                   fill=(89,160,205,235),width=1)
-            d.line([reflect(9,21),reflect(9,13),reflect(13,9),reflect(21,9)],
-                   fill=(29,86,140,255),width=1)
+            noise = rng.randint(-2, 2)
+            wave = 2.0 * math.sin(x * .03 + y * .018)
+            glow = 4.0 * (1 - abs(x - w/2) / (w/2)) * (1 - t)
+            v = noise + wave + glow
+            p[x, y] = (max(0, int(12 + (1-t)*3 + v)),
+                       max(0, int(24 + (1-t)*6 + v)),
+                       max(0, int(42 + (1-t)*10 + v)), 255)
+    d = ImageDraw.Draw(im)
+    # Hairline separators are deliberately lower contrast than item quality.
+    d.rectangle((0, 0, w-1, h-1), outline=(7, 19, 37, 255), width=2)
+    d.line((2, 2, w-3, 2), fill=(74, 133, 171, 255), width=1)
+    d.line((3, 4, w-4, 4), fill=(44, 87, 127, 255), width=1)
+    d.line((2, 3, 2, h-3), fill=(52, 97, 134, 255), width=1)
+    d.line((w-3, 3, w-3, h-3), fill=(27, 60, 99, 255), width=1)
+    d.line((3, h-3, w-3, h-3), fill=(25, 54, 85, 255), width=1)
     return im
 
 def tga_bytes(im):
