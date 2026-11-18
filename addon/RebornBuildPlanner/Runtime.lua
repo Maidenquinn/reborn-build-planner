@@ -173,7 +173,8 @@ function R.Start()
   if R.ready then return true end
   if type(AZS)~="table" or type(AZS.On)~="function" then return false end
   R.hud=ns.TrackHUD.New(function()R.ToggleTheme()end,function()R.CycleStage()end,
-    function(id)R.SelectBuild(id)end,function()R.ToggleCompact()end);
+    function(id)R.SelectBuild(id)end,function()R.ToggleCompact()end,
+    function() if ns.ui and ns.ui.Show then ns.ui:Show() end end);
   if not R.hud then return false end
   R.ready=true;
   if type(hooksecurefunc)=="function" and type(SendAddonMessage)=="function" then
