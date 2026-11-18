@@ -19,13 +19,32 @@ class LocalExtractionTests(unittest.TestCase):
             b'[[amulet]] key = "mark_of_fordring"\neffects = []\n'
         )
         records = mod.read_records(data)
-        self.assertEqual(records["accuria"], {"slot":"ring", "behavior":"damage", "base":0.17})
+        self.assertEqual(records["accuria"], {"slot":"ring", "behavior":"damage", "base":0.17, "effects": [], "specials": []})
         self.assertEqual(records["blackhand"]["slot"], "trinket")
         self.assertEqual(len(records), 2)
         lua = mod.render(records, "a"*64)
         self.assertIn('["accuria"]', lua)
         self.assertIn("base = 0.17", lua)
         self.assertNotIn("mark_of_fordring", lua)
+    def test_inline_record_with_specials_and_effect_pairs(self):
+        raw = (b'[[jewel]] key = "accuria" slot = "ring" behavior = "damage" base = 0.17 '
+               b'effects = [["damage",0.2],["max_health",0.05]] special = { echo = 0.15, jump = 2 }'
+               b'[[jewel]] key = "blackhand" slot = "trinket" behavior = "crit_damage" base = 0.195')
+        rows = mod.read_records(raw)
+        self.assertEqual(rows["accuria"]["effects"], [("damage",0.2), ("max_health",0.05)])
+        self.assertEqual(rows["accuria"]["specials"], [("echo",0.15), ("jump",2)])
+        self.assertIn('effects = { { "damage", 0.2 }', mod.render(rows, "a"*64))
+
+    def test_validate_exact_coverage(self):
+        base = {"slot":"ring","behavior":"damage","base":0.17,"effects":[],"specials":[]}
+        rows = {("j%d" % k): dict(base) for k in range(30)}
+        catalogue = [{"key":k,"slot":"ring"} for k in rows]
+        self.assertEqual(mod.validate(rows,catalogue), 30)
+        with self.assertRaises(ValueError):
+            mod.validate(dict(list(rows.items())[:-1]), catalogue)
+        with self.assertRaises(ValueError):
+            mod.validate(rows,catalogue+[{"key":"j0","slot":"ring"}])
+
     def test_repeated_record_conflict_fails(self):
         data = (b'[[jewel]] key = "accuria"\nslot = "ring"\nbehavior = "damage"\nbase = 0.17\n'
                 b'[[jewel]] key = "accuria"\nslot = "ring"\nbehavior = "damage"\nbase = 0.19\n')
