@@ -344,12 +344,14 @@ function UI:ShowTip(owner, d)
 		n = n + 1;
 	end
 	if d.subtitle then add(d.subtitle, "dim"); end
-	for _, ln in ipairs(d.state or {}) do add(ln.text, ln.tone); end
+	-- The hovered item's actual bonus is the useful first thing to read.
+	-- State such as "Placed: main 1" comes afterward.
 	if d.preview and d.preview[1] then
 		for _, t in ipairs(d.preview) do add(t); end
 	elseif d.sections == nil and (d.kind ~= "help") then
 		for _, ln in ipairs(d.facts or d.lines or {}) do add(ln.text, ln.tone); end
 	end
+	for _, ln in ipairs(d.state or {}) do add(ln.text, ln.tone); end
 	if d.helpLines then for _, ln in ipairs(d.helpLines) do add(ln.text, ln.tone); end end
 	if d.moreHint ~= false and d.kind ~= "help" then add(L("Click for the full details."), "dim"); end
 	tt:Show();
