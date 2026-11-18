@@ -1076,6 +1076,15 @@ function UI:DetailLines(d)
 	local function body(textIn, tone)
 		for _, w in ipairs(wrapText(textIn, DET_CHARS)) do out[#out + 1] = { text = w, rgb = TONE_RGB[tone or ""] or { 1, 1, 1 } }; end
 	end
+	-- Equipment buyers first want the EFFECT, not the bookkeeping of their plan.
+	-- Keep state and provenance underneath; spells retain their original order.
+	local equipment = d.sections and not d.spellId;
+	if equipment then
+		for _, sec in ipairs(d.sections) do
+			head(sec.title);
+			for _, ln in ipairs(sec.lines) do body(ln.text, ln.tone); end
+		end
+	end
 	if d.state and d.state[1] then
 		head(L("In this build"));
 		for _, ln in ipairs(d.state) do body(ln.text, ln.tone); end
@@ -1093,9 +1102,11 @@ function UI:DetailLines(d)
 		head(L("Information"));
 		for _, ln in ipairs(d.facts) do body(ln.text, ln.tone); end
 	end
-	for _, sec in ipairs(d.sections or {}) do
-		head(sec.title);
-		for _, ln in ipairs(sec.lines) do body(ln.text, ln.tone); end
+	if not equipment then
+		for _, sec in ipairs(d.sections or {}) do
+			head(sec.title);
+			for _, ln in ipairs(sec.lines) do body(ln.text, ln.tone); end
+		end
 	end
 	return out;
 end
