@@ -11,6 +11,7 @@ GeneratedCatalog.lua
 GeneratedJewelryMechanics.lua
 Glossary.lua
 Catalog.lua
+ClassVisual.lua
 Describe.lua
 JewelryEffects.lua
 Theme.lua
