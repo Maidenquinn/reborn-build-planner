@@ -544,35 +544,49 @@ local function cardEdge(parent,side,thickness,offset,layer)
   end
   return t;
 end
+-- ADD-blended outer-edge aura. Anchors extend beyond all four edges.
+-- Thin diffuse strips avoid ASBuilder's square action-button texture artifacts.
+local function outerAura(parent,side,thickness)
+  local t=parent:CreateTexture(nil,"ARTWORK");
+  t:SetTexture(WHITE);
+  if t.SetBlendMode then t:SetBlendMode("ADD") end
+  local spread=4;
+  if side=="TOP" then
+    t:SetHeight(thickness);
+    t:SetPoint("BOTTOMLEFT",parent,"TOPLEFT",-spread,2);
+    t:SetPoint("BOTTOMRIGHT",parent,"TOPRIGHT",spread,2);
+  elseif side=="BOTTOM" then
+    t:SetHeight(thickness);
+    t:SetPoint("TOPLEFT",parent,"BOTTOMLEFT",-spread,-2);
+    t:SetPoint("TOPRIGHT",parent,"BOTTOMRIGHT",spread,-2);
+  elseif side=="LEFT" then
+    t:SetWidth(thickness);
+    t:SetPoint("TOPRIGHT",parent,"TOPLEFT",-2,spread);
+    t:SetPoint("BOTTOMRIGHT",parent,"BOTTOMLEFT",-2,-spread);
+  else
+    t:SetWidth(thickness);
+    t:SetPoint("TOPLEFT",parent,"TOPRIGHT",2,spread);
+    t:SetPoint("BOTTOMLEFT",parent,"BOTTOMRIGHT",2,-spread);
+  end
+  return t;
+end
 local function createCardMark(card)
   local mark=CreateFrame("Frame",nil,card);
   mark:SetFrameLevel(card:GetFrameLevel()+15);
   mark:SetAllPoints(card);
   mark:EnableMouse(false);
   mark.border={};mark.glow={};mark.corners={};
-  -- ASBuilder's signature luminous border: UI-ActionButton-Border + ADD.
-  -- Four small instances trace the OUTER card corners rather than covering
-  -- the native portrait, heading, description, or choice controls.
-  mark.shine={};
-  for _,point in ipairs({"TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
-    local tex=mark:CreateTexture(nil,"OVERLAY");
-    tex:SetTexture("Interface\\Buttons\\UI-ActionButton-Border");
-    if tex.SetBlendMode then tex:SetBlendMode("ADD") end;
-    tex:SetSize(84,84);
-    tex:SetPoint(point,mark,point,0,0);
-    tex:SetAlpha(.55);
-    mark.shine[#mark.shine+1]=tex;
-  end
-  mark.shinePhase=0;
-  mark.shineEnabled=false;
+  -- Animate only the four EXTERNAL edge strips; never stamp a square glow
+  -- texture in the card's interior. The outline remains mouse-transparent.
+  mark.shine={};mark.shinePhase=0;mark.shineEnabled=false;
   -- The edge is aligned with the metallic outer border; ADD glow extends
   -- slightly past it, never inward over the card text or artwork.
   for _,side in ipairs({"TOP","BOTTOM","LEFT","RIGHT"}) do
     local edge=cardEdge(mark,side,3,1,"OVERLAY");
-    local halo=cardEdge(mark,side,10,4,"ARTWORK");
-    if halo.SetBlendMode then halo:SetBlendMode("ADD") end
+    local halo=outerAura(mark,side,8);
     mark.border[#mark.border+1]=edge;
     mark.glow[#mark.glow+1]=halo;
+    mark.shine[#mark.shine+1]=halo;
   end
   for _,point in ipairs({"TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
     local horiz=mark:CreateTexture(nil,"OVERLAY");
@@ -683,7 +697,7 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
       for _,mark in ipairs(H.marks or {}) do
         if mark.shineEnabled and mark:IsShown() then
           mark.shinePhase=(mark.shinePhase+(tonumber(elapsed) or 0))%4.8;
-          local light=.66+.22*math.sin(mark.shinePhase*2.1);
+          local light=.38+.18*math.sin(mark.shinePhase*2.1);
           for _,t in ipairs(mark.shine) do t:SetAlpha(light) end
           any=true;
         end
@@ -710,14 +724,11 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
       if style then
         local rgb=style.color;
         for _,t in ipairs(mark.border) do paint(t,rgb,0.87) end
-        for _,t in ipairs(mark.glow) do paint(t,rgb,0.11) end
+        for _,t in ipairs(mark.glow) do paint(t,rgb,0.17) end
         for _,t in ipairs(mark.corners) do paint(t,rgb,1) end
-        -- Keep the original ASBuilder luminosity, re-tinted by RBP's
-        -- recommendation state (gold for build, copper for ban, etc.).
+        -- Pulse the external border glow only. All interior card elements
+        -- remain unobstructed by additional shine textures.
         mark.shineEnabled=true;
-        for _,t in ipairs(mark.shine) do
-          t:SetVertexColor(rgb[1],rgb[2],rgb[3],1);
-        end
         paint(mark.badge,rgb,0.86);
         local fr=ns.Locale and ns.Locale.lang=="frFR";
         local caption=style.label;
