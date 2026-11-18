@@ -4,6 +4,31 @@ local ADDON, ns = ...;
 ns = ns or {};
 local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false, cards=false, spellTips=false }, runKey=nil, stage=1, stageRun=nil };
 ns.Runtime = R;
+R.bans={};R.pendingBan=nil;R.banRun=nil;
+-- Observe only the game's already-issued command, never issue one ourselves.
+-- Confirm against the subsequent AZSCARDS ban-count change (ASR Advisor
+-- uses this same handshake). A reload cannot recover historical ban actions.
+function R.ObserveBanishCommand(prefix,command)
+  local index=tonumber(string.match(tostring(command or ""),"^banish (%d+)$"));
+  if not index then return end
+  local offer=type(AZS_CARDS)=="table" and AZS_CARDS or nil;
+  local card=offer and type(offer.cards)=="table" and offer.cards[index];
+  local runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or R.runKey;
+  if not offer or offer.kind~="spell" or type(card)~="table" or
+     type(card.key)~="string" or not tonumber(offer.bn) or tonumber(offer.bn)<=0 or not runId then return end
+  R.pendingBan={run=tostring(runId),key=card.key,before=tonumber(offer.bn)};
+end
+function R.ConfirmBanish()
+  local pending=R.pendingBan;
+  if not pending then return end
+  local runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or R.runKey;
+  local offer=type(AZS_CARDS)=="table" and AZS_CARDS or nil;
+  R.pendingBan=nil;
+  if runId and tostring(runId)==pending.run and offer and
+     offer.kind=="spell" and tonumber(offer.bn)==pending.before-1 then
+    R.bans[pending.key]=true;
+  end
+end
 local EVENTS = { "AZSSPELLS", "AZSSPELLTIP", "AZSGEAR", "AZSCARDS",
   "AZSCARDTIP", "AZSRUN", "AZSZONE", "AZSEND" };
 
@@ -15,11 +40,12 @@ function R.Note(event)
   if runKey ~= R.runKey then
     R.runKey=runKey;
     R.received={ spells=false, gear=false, cards=false, spellTips=false };
+    R.bans={};R.pendingBan=nil;R.banRun=runKey;
   end
   if event=="AZSSPELLS" then R.received.spells=true end
   if event=="AZSGEAR" then R.received.gear=true end
   if event=="AZSSPELLTIP" then R.received.spellTips=true end
-  if event=="AZSCARDS" then R.received.cards=true end
+  if event=="AZSCARDS" then R.ConfirmBanish();R.received.cards=true end
 end
 function R.Capture()
   local phase = type(AZS_GetPhase)=="function" and AZS_GetPhase() or
@@ -35,6 +61,8 @@ function R.Capture()
     gearKnown=running and R.received.gear and type(AZS_GEAR)=="table" or false,
     spellTips=running and type(AZS_SPELLTIPS)=="table" and AZS_SPELLTIPS or nil,
     spellTipsKnown=running and R.received.spellTips and type(AZS_SPELLTIPS)=="table" or false,
+    banned=running and R.bans or {},
+    bannedKnown=running and R.banRun~=nil or false,
     cards=running and R.received.cards and type(AZS_CARDS)=="table" and AZS_CARDS or nil,
     gold=running and type(AZS_RUN)=="table" and tonumber(AZS_RUN.gold) or nil,
     runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or nil
@@ -148,6 +176,9 @@ function R.Start()
     function(id)R.SelectBuild(id)end,function()R.ToggleCompact()end);
   if not R.hud then return false end
   R.ready=true;
+  if type(hooksecurefunc)=="function" and type(SendAddonMessage)=="function" then
+    hooksecurefunc("SendAddonMessage",function(prefix,command)R.ObserveBanishCommand(prefix,command)end);
+  end
   -- One explicit subscription to each documented API event.
   for _,event in ipairs(EVENTS) do
     AZS.On(event,function()
