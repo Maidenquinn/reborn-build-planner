@@ -96,6 +96,12 @@ return function(H)
 		ok(e.ns.TrackHUD.marks[1] and e.ns.TrackHUD.marks[1]:IsShown(),"wanted card outlined");
 		ok(e.ns.TrackHUD.marks[2] and e.ns.TrackHUD.marks[2]:IsShown(),"unowned banish-after remains wanted");
 		ok(e.ns.TrackHUD.marks[1].mouse==false,"overlay cannot capture card clicks");
+		local goldMark=e.ns.TrackHUD.marks[1];
+		eq(#goldMark.shine,4,"four ASBuilder-style additive corner glow textures");
+		ok(goldMark.shineEnabled,"recommended card enables glow animation");
+		ok(goldMark.shine[1].texture:find("UI-ActionButton-Border",1,true)~=nil,
+		  "use the native ASBuilder glow texture");
+
 		cardRoot:Hide();
 		no(e.ns.TrackHUD.marks[1]:IsShown(),"native OnHide immediately clears highlight");
 		cardRoot:Show();
