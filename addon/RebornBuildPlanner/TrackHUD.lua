@@ -98,9 +98,30 @@ local function iconTexture(record)
   if string.find(icon,"\\",1,true) then return icon end
   return "Interface\\Icons\\"..icon;
 end
+-- Uses the authoritative AZSSPELLTIP text; no guessed DPS/bonus values.
+local function spellTooltip(owner,tip)
+  if not tip or not GameTooltip then return end
+  GameTooltip:SetOwner(owner,"ANCHOR_RIGHT");
+  GameTooltip:SetText(tip.name or "");
+  if tip.rank then
+    local rank="Rang "..tostring(tip.rank);
+    if tip.targetRank then rank=rank.." / "..tostring(tip.targetRank) end
+    if GameTooltip.AddLine then GameTooltip:AddLine(rank,1,.82,.42) end
+  end
+  if type(tip.native)=="string" and tip.native~="" and GameTooltip.AddLine then
+    local raw=string.sub(tip.native,1,2400);
+    GameTooltip:AddLine(raw,.87,.93,1,true);
+  elseif GameTooltip.AddLine then
+    GameTooltip:AddLine("Statistiques non reçues du jeu",.65,.65,.65,true);
+  end
+  GameTooltip:Show();
+end
 local function row(parent, y, compact)
   local r=CreateFrame("Frame",nil,parent);
   r:SetSize(WIDTH-12,compact and 14 or 16);
+  r:EnableMouse(true);
+  r:SetScript("OnEnter",function(self) if self.spellTip then spellTooltip(self,self.spellTip) end end);
+  r:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end);
   r:SetPoint("TOPLEFT",parent,"TOPLEFT",6,-y);
   r.icon=r:CreateTexture(nil,"ARTWORK");
   r.icon:SetSize(compact and 12 or 14,compact and 12 or 14);
@@ -184,7 +205,8 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
     local cell=CreateFrame("Frame",nil,f);
     cell:SetSize(22,22);cell:EnableMouse(true);
     cell:SetScript("OnEnter",function(self)
-      if GameTooltip and self.tip then
+      if self.spellTip then spellTooltip(self,self.spellTip)
+      elseif GameTooltip and self.tip then
         GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(self.tip);GameTooltip:Show()
       end
     end);
@@ -256,7 +278,7 @@ function H.ToggleBuildMenu(self)
   local f=self.frame;if not f then return end
   if f.menu:IsShown() then f.menu:Hide() else f.menu.page=1;H.DrawMenu(self);f.menu:Show() end
 end
-function H.Refresh(self,build,progress,catalog,lang,theme)
+function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
   local f=self.frame;if not f then return end
   if not build or not progress or not progress.inRun then f:Hide();return end
   theme=THEMES[theme] and theme or "standard";
@@ -296,10 +318,15 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
       local rec=catalog and catalog:Get("spell",spell.key);
       r.icon:SetTexture(iconTexture(rec));
       r.name:SetText(trunc(catalog and catalog:Name("spell",spell.key,lang) or spell.key,19));
+      local native=snapshot and snapshot.spellTipsKnown and snapshot.spellTips and snapshot.spellTips[spell.key];
+      r.spellTip={
+        name=catalog and catalog:Name("spell",spell.key,lang) or spell.key,
+        rank=spell.rank,targetRank=spell.targetRank,native=native
+      };
       local status,color;
       if spell.status=="UNKNOWN" then status="?";color={0.74,0.77,0.82};
-      elseif spell.remindAfter then status=fr and "Bannir" or "Banish";color={1,0.43,0.46};
-      elseif spell.status=="ACHIEVED" then status=fr and "OK" or "OK";color={0.42,0.95,0.62};
+      elseif spell.remindAfter then status=spell.rank and ("R"..spell.rank.." !") or (fr and "Bannir" or "Banish");color={1,0.43,0.46};
+      elseif spell.status=="ACHIEVED" then status=spell.rank and ("R"..spell.rank) or "OK";color={0.42,0.95,0.62};
       elseif spell.rank then status="R"..tostring(spell.rank);color={0.75,0.87,1};
       else status=fr and "Manque" or "Missing";color={0.94,0.67,0.42};end
       r.state:SetText(status);r.state:SetTextColor(unpack(color));r:Show();
@@ -352,6 +379,11 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
       elseif state=="UNKNOWN" then status=fr and "État inconnu" or "Unknown"
       else status=fr and "Manquant" or "Missing" end
       m.cell.tip=tostring(name).." - "..status;
+      m.cell.spellTip=nil;
+      if i<=6 then
+        local native=snapshot and snapshot.spellTipsKnown and snapshot.spellTips and snapshot.spellTips[item.key];
+        m.cell.spellTip={name=name,rank=item.rank,targetRank=item.targetRank,native=native};
+      end
       -- Keep game icons in their original colours: status lives in the rim.
       t:SetVertexColor(1,1,1,1);
       local rgb;
