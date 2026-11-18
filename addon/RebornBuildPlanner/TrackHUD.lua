@@ -550,6 +550,21 @@ local function createCardMark(card)
   mark:SetAllPoints(card);
   mark:EnableMouse(false);
   mark.border={};mark.glow={};mark.corners={};
+  -- ASBuilder's signature luminous border: UI-ActionButton-Border + ADD.
+  -- Four small instances trace the OUTER card corners rather than covering
+  -- the native portrait, heading, description, or choice controls.
+  mark.shine={};
+  for _,point in ipairs({"TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
+    local tex=mark:CreateTexture(nil,"OVERLAY");
+    tex:SetTexture("Interface\\Buttons\\UI-ActionButton-Border");
+    tex:SetBlendMode("ADD");
+    tex:SetSize(84,84);
+    tex:SetPoint(point,mark,point,0,0);
+    tex:SetAlpha(.55);
+    mark.shine[#mark.shine+1]=tex;
+  end
+  mark.shinePhase=0;
+  mark.shineEnabled=false;
   -- The edge is aligned with the metallic outer border; ADD glow extends
   -- slightly past it, never inward over the card text or artwork.
   for _,side in ipairs({"TOP","BOTTOM","LEFT","RIGHT"}) do
@@ -661,6 +676,20 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
     self.cardRoot:SetFrameStrata("FULLSCREEN_DIALOG");
     self.cardRoot:SetFrameLevel(130);
     self.cardRoot:EnableMouse(false);self.marks={};
+    -- One lightweight animation for every visible card, not one OnUpdate
+    -- callback per texture. No changes to native cards or gameplay.
+    self.cardRoot:SetScript("OnUpdate",function(root,elapsed)
+      local any=false;
+      for _,mark in ipairs(H.marks or {}) do
+        if mark.shineEnabled and mark:IsShown() then
+          mark.shinePhase=(mark.shinePhase+(tonumber(elapsed) or 0))%4.8;
+          local light=.66+.22*math.sin(mark.shinePhase*2.1);
+          for _,t in ipairs(mark.shine) do t:SetAlpha(light) end
+          any=true;
+        end
+      end
+      if not any then H.shineIdle=true else H.shineIdle=false end
+    end);
     if type(AZS_SetOnTopOfScreens)=="function" then
       pcall(AZS_SetOnTopOfScreens,"RBPCardHighlights",true);
     end
@@ -683,6 +712,12 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
         for _,t in ipairs(mark.border) do paint(t,rgb,0.87) end
         for _,t in ipairs(mark.glow) do paint(t,rgb,0.11) end
         for _,t in ipairs(mark.corners) do paint(t,rgb,1) end
+        -- Keep the original ASBuilder luminosity, re-tinted by RBP's
+        -- recommendation state (gold for build, copper for ban, etc.).
+        mark.shineEnabled=true;
+        for _,t in ipairs(mark.shine) do
+          t:SetVertexColor(rgb[1],rgb[2],rgb[3],1);
+        end
         paint(mark.badge,rgb,0.86);
         local fr=ns.Locale and ns.Locale.lang=="frFR";
         local caption=style.label;
@@ -693,7 +728,7 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
         mark.note:SetText(caption);
         mark.note:SetTextColor(0.09,0.065,0.025,1);
         mark:Show();
-      else mark:Hide() end
+      else mark.shineEnabled=false;mark:Hide() end
     end
   end
   if showing then self.cardRoot:Show() else self.cardRoot:Hide() end
