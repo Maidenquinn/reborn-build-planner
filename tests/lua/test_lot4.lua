@@ -53,6 +53,28 @@ return function(H)
     eq(p.jewelry[1].state,"UNKNOWN")
     eq(p.jewelry[2].state,"UNKNOWN")
   end)
+  test("lot4: outside-build owned spells, jewelry and confirmed bans", function()
+    local plan={class="hunter",phases={{
+      spells={{key="whirlwind",mode="acquire"}},
+      rings={"ring_a","ring_alt"},trinkets={},amulets={}
+    }}}
+    local snap={inRun=true,spellsKnown=true,gearKnown=true,bannedKnown=true,
+      spells={{key="whirlwind",rank=2},{key="execute",rank=3},{key="rend",rank=1}},
+      gear={{key="ring_a"},{key="ring_out"}},banned={rend=true}}
+    local p=T.Evaluate(plan,1,snap)
+    eq(p.spells[1].rank,2)
+    eq(#p.outsideSpells,1)
+    eq(p.outsideSpells[1].key,"execute")
+    eq(#p.outsideJewelry,1)
+    eq(p.outsideJewelry[1].key,"ring_out")
+    eq(#p.banishedSpells,1)
+    eq(p.banishedSpells[1].key,"rend")
+    eq(p.jewelry[1].state,"EQUIPPED")
+    snap.spellsKnown=false;snap.gearKnown=false
+    p=T.Evaluate(plan,1,snap)
+    eq(#p.outsideSpells,0)
+    eq(#p.outsideJewelry,0)
+  end)
   test("lot4: jewelry offers use exact keys for jewel/ring/trinket/amulet", function()
     local gearBuild={phases={{spells={},banish={},
       rings={"ring_a","ring_b","ring_alt"},
