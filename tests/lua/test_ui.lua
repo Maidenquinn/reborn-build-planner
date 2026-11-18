@@ -85,6 +85,10 @@ return function(H)
 		ok(e.ns.TrackHUD.marks[1] and e.ns.TrackHUD.marks[1]:IsShown(),"wanted card outlined");
 		ok(e.ns.TrackHUD.marks[2] and e.ns.TrackHUD.marks[2]:IsShown(),"unowned banish-after remains wanted");
 		ok(e.ns.TrackHUD.marks[1].mouse==false,"overlay cannot capture card clicks");
+		cardRoot:Hide();
+		no(e.ns.TrackHUD.marks[1]:IsShown(),"native OnHide immediately clears highlight");
+		cardRoot:Show();
+		ok(e.ns.TrackHUD.marks[1]:IsShown(),"native OnShow restores current relevant highlight");
 		e.G.AZS_SPELLS[2]={key="execute",rank=1};events.AZSSPELLS();
 		ok(e.ns.Runtime.progress.spells[2].remindAfter);
 		ok(e.ns.TrackHUD.marks[2].note.text:find("BANISH",1,true),"after-acquisition indicator is shown in English client");
