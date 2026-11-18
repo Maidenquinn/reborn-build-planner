@@ -145,6 +145,7 @@ return function(H)
 		e.G.AZS_ZONE.run="run-b";events.AZSZONE();
 		eq(e.ns.Runtime.bans.execute,nil,"next run clears previous bans");
 		e.G.AZS_ZONE.run="run-a";events.AZSZONE();
+		e.G.AZS_CARDS={kind="spell",cards={{key="whirlwind"},{key="execute"},{key="rend"}}};events.AZSCARDS();
 		-- In-game build selection must use the same validated active pointer as the planner.
 		local second=assert(h:Create({name="Second warrior plan",class="warrior"}));
 		ok(e.ns.Runtime.SelectBuild(second));
