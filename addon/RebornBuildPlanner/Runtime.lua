@@ -33,6 +33,7 @@ function R.Capture()
     gear=running and type(AZS_GEAR)=="table" and AZS_GEAR or nil,
     gearKnown=running and R.received.gear and type(AZS_GEAR)=="table" or false,
     cards=running and R.received.cards and type(AZS_CARDS)=="table" and AZS_CARDS or nil,
+    gold=running and type(AZS_RUN)=="table" and tonumber(AZS_RUN.gold) or nil,
     runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or nil
   };
 end
@@ -106,7 +107,7 @@ function R.Refresh()
     if ns.storage:GetSetting("trackerEnabled") ~= false then
       ns.TrackHUD.Refresh(ns.TrackHUD,build,progress,ns.catalog,ns.Locale.lang,theme);
     else R.hud:Hide();end
-    ns.TrackHUD.UpdateCards(ns.TrackHUD,build,snapshot,phase,theme);
+    ns.TrackHUD.UpdateCards(ns.TrackHUD,build,snapshot,phase,theme,ns.catalog,ns.Locale.lang);
   end
   R.progress=progress;
 end
