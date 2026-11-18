@@ -576,17 +576,18 @@ local function createCardMark(card)
   mark:SetAllPoints(card);
   mark:EnableMouse(false);
   mark.border={};mark.glow={};mark.corners={};
-  -- Animate only the four EXTERNAL edge strips; never stamp a square glow
-  -- texture in the card's interior. The outline remains mouse-transparent.
-  mark.shine={};mark.shinePhase=0;mark.shineEnabled=false;
-  -- The edge is aligned with the metallic outer border; ADD glow extends
-  -- slightly past it, never inward over the card text or artwork.
+  -- Two continuous ADD-blended layers per OUTER side, never square stamps.
+  -- The broad layer provides visible ambience; the thin layer and gold edge
+  -- brighten together at each pulse peak. No overlap with card contents.
+  mark.shine={};mark.shineWide={};mark.shinePhase=0;mark.shineEnabled=false;
   for _,side in ipairs({"TOP","BOTTOM","LEFT","RIGHT"}) do
     local edge=cardEdge(mark,side,3,1,"OVERLAY");
-    local halo=outerAura(mark,side,8);
+    local ambient=outerAura(mark,side,17);
+    local core=outerAura(mark,side,5);
     mark.border[#mark.border+1]=edge;
-    mark.glow[#mark.glow+1]=halo;
-    mark.shine[#mark.shine+1]=halo;
+    mark.glow[#mark.glow+1]=ambient;
+    mark.shineWide[#mark.shineWide+1]=ambient;
+    mark.shine[#mark.shine+1]=core;
   end
   for _,point in ipairs({"TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
     local horiz=mark:CreateTexture(nil,"OVERLAY");
@@ -696,9 +697,13 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
       local any=false;
       for _,mark in ipairs(H.marks or {}) do
         if mark.shineEnabled and mark:IsShown() then
-          mark.shinePhase=(mark.shinePhase+(tonumber(elapsed) or 0))%4.8;
-          local light=.38+.18*math.sin(mark.shinePhase*2.1);
-          for _,t in ipairs(mark.shine) do t:SetAlpha(light) end
+          mark.shinePhase=(mark.shinePhase+(tonumber(elapsed) or 0))%6.2831853;
+          -- A clear, slow glow: 0.25 at trough, 1.0 at peak. No blinking.
+          local pulse=.5+.5*math.sin(mark.shinePhase*1.85);
+          for _,t in ipairs(mark.shineWide) do t:SetAlpha(.19+.32*pulse) end
+          for _,t in ipairs(mark.shine) do t:SetAlpha(.38+.62*pulse) end
+          for _,t in ipairs(mark.border) do t:SetAlpha(.70+.30*pulse) end
+          for _,t in ipairs(mark.corners) do t:SetAlpha(.70+.30*pulse) end
           any=true;
         end
       end
@@ -723,11 +728,12 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
       local style=hint and CARD_STYLES[hint];
       if style then
         local rgb=style.color;
-        for _,t in ipairs(mark.border) do paint(t,rgb,0.87) end
-        for _,t in ipairs(mark.glow) do paint(t,rgb,0.17) end
+        for _,t in ipairs(mark.border) do paint(t,rgb,1) end
+        for _,t in ipairs(mark.glow) do paint(t,rgb,1) end
+        for _,t in ipairs(mark.shine) do paint(t,rgb,1) end
         for _,t in ipairs(mark.corners) do paint(t,rgb,1) end
-        -- Pulse the external border glow only. All interior card elements
-        -- remain unobstructed by additional shine textures.
+        -- Highlight build priorities with clear gold breathing along all
+        -- four outside edges; preserve the other existing state colours.
         mark.shineEnabled=true;
         paint(mark.badge,rgb,0.86);
         local fr=ns.Locale and ns.Locale.lang=="frFR";
