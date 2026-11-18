@@ -160,4 +160,35 @@ function M.CardHint(build, phaseIndex, snapshot, card, catalog, lang)
   return "wanted", wanted
 end
 
+
+-- Return false rather than recommending reroll when the offer cannot be
+-- identified reliably. Avoid/banish-after are not selectable build goals.
+function M.OfferHasGoal(build,phaseIndex,snapshot,catalog,lang)
+  local offer=snapshot and snapshot.cards;
+  if not build or not snapshot or not offer or snapshot.inRun~=true or type(offer.cards)~="table" or #offer.cards==0 then
+    return nil
+  end
+  local kind=offer.kind;
+  if kind~="spell" and kind~="jewel" and kind~="amulet" and kind~="ring" and kind~="trinket" then return nil end
+  local known=0;
+  for _,card in ipairs(offer.cards) do
+    if type(card)=="table" then
+      local identified=false;
+      if kind=="spell" then
+        identified=type(card.key)=="string" and
+          (not catalog or catalog:Get("spell",card.key)~=nil);
+      else
+        identified=resolvedAccessoryKey(card,kind,catalog,build.class,lang)~=nil;
+      end
+      if identified then
+        known=known+1;
+        local hint=M.CardHint(build,phaseIndex,snapshot,card,catalog,lang);
+        if hint=="wanted" or hint=="alternative" then return true end
+      end
+    end
+  end
+  if known<#offer.cards then return nil end
+  return false
+end
+
 return M;
