@@ -314,6 +314,14 @@ return function(H)
 	end);
 
 	-- ------------------------------------------------------------------ inspector with sections and scroll
+	test("3.4 inspector: full-width readable detail area and source without sidebar clipping", function()
+		local e = boot();
+		local d = e.ui.det;
+		ok(d.area.hold:GetWidth() >= 520, "inspector body uses the full centre panel width");
+		no(d.source:IsVisible(), "old 162px source sidebar is hidden");
+		ok(d.rows[1]:GetWidth() >= 500, "detail rows can show long natural-language bonuses");
+	end);
+
 	test("3.4 inspector: sections (In this build / Information / Effects / Growth / Availability), source line, honest limits", function()
 		local e = boot();
 		local id, ed = newEditor(e);
