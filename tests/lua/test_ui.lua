@@ -860,6 +860,16 @@ return function(H)
 		end);
 	end
 
+	test("layout lint: initial editor has no clipped labels in any selectable language", function()
+		for _, item in ipairs(H.loadAddon().Locale.LANGUAGES) do
+			local loc = item.code == "auto" and "enUS" or item.code;
+			local e = boot({ width = 1365, height = 768, locale = loc }); e.open();
+			local id = e.c:Create("test", "warrior");
+			e.ui:OpenEditor(id);
+			eq(e.lint(), {}, "label layout in " .. loc);
+		end
+	end);
+
 	test("layout lint Russian: translated labels remain inside controls", function()
 		local e = boot({ width = 1365, height = 768, locale = "ruRU" }); e.open();
 		eq(e.ns.Locale.lang, "ruRU");
