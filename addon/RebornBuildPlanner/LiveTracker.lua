@@ -64,7 +64,9 @@ function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
   output.known = output.inRun and snapshot.spellsKnown == true;
   local state = { known = output.known, spells = spellMap(snapshot.spells) };
   local wantedSpells={};
-  for _,goal in ipairs(phase.spells or {}) do if type(goal.key)=="string" then wantedSpells[goal.key]=true end end
+  for _,buildPhase in ipairs(build.phases or {}) do
+    for _,goal in ipairs(buildPhase.spells or {}) do if type(goal.key)=="string" then wantedSpells[goal.key]=true end end
+  end
   for _, goal in ipairs(phase.spells or {}) do
     local status, reason = BM.EvaluateGoal(goal, state);
     local later = has(phase.banishAfter, goal.key);
@@ -102,8 +104,10 @@ function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
   local equipped = {};
   local unidentified = false;
   local wantedJewelry={};
-  for _,kind in ipairs({"rings","trinkets","amulets"}) do
-    for _,key in ipairs(phase[kind] or {}) do if type(key)=="string" and key~="" then wantedJewelry[key]=true end end
+  for _,buildPhase in ipairs(build.phases or {}) do
+    for _,kind in ipairs({"rings","trinkets","amulets"}) do
+      for _,key in ipairs(buildPhase[kind] or {}) do if type(key)=="string" and key~="" then wantedJewelry[key]=true end end
+    end
   end
   if output.inRun and snapshot.gearKnown then
     for _, item in ipairs(snapshot.gear or {}) do
