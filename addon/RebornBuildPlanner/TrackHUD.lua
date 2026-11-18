@@ -29,10 +29,10 @@ local function trunc(s,n)
   if #s<=n then return s end
   return string.sub(s,1,n-3).."...";
 end
-function H.New(onTheme)
+function H.New(onTheme,onStage)
   if type(CreateFrame)~="function" or not UIParent then return nil end
   local f=CreateFrame("Frame","RBPTrackerHUD",UIParent);
-  f:SetWidth(270);f:SetHeight(246);
+  f:SetWidth(270);f:SetHeight(280);
   f:SetFrameStrata("HIGH");f:SetFrameLevel(75);
   f:SetPoint("BOTTOMRIGHT",UIParent,"BOTTOMRIGHT",-26,180);
   f:SetClampedToScreen(true);f:SetMovable(true);
@@ -46,24 +46,28 @@ function H.New(onTheme)
   f:EnableMouse(true);f:RegisterForDrag("LeftButton");
   f:SetScript("OnDragStart",function(self)self:StartMoving()end);
   f:SetScript("OnDragStop",function(self)self:StopMovingOrSizing()end);
-  f.title=label(f,"GameFontNormal",14,12,11,185);
-  f.counter=label(f,"GameFontHighlightSmall",10,191,14,63);
+  f.title=label(f,"GameFontNormal",14,12,11,157);
+  f.counter=label(f,"GameFontHighlightSmall",10,172,14,36);
   f.counter:SetJustifyH("RIGHT");
   f.rule=f:CreateTexture(nil,"ARTWORK");f.rule:SetTexture(WHITE);
-  f.rule:SetHeight(1);f.rule:SetPoint("TOPLEFT",f,"TOPLEFT",10,-31);
-  f.rule:SetPoint("TOPRIGHT",f,"TOPRIGHT",-10,-31);
+  f.rule:SetHeight(1);f.rule:SetPoint("TOPLEFT",f,"TOPLEFT",10,-56);
+  f.rule:SetPoint("TOPRIGHT",f,"TOPRIGHT",-10,-56);
+  f.stageButton=CreateFrame("Button",nil,f);f.stageButton:SetSize(242,20);
+  f.stageButton:SetPoint("TOPLEFT",f,"TOPLEFT",12,-34);
+  f.stageButton.text=label(f.stageButton,"GameFontHighlightSmall",11,0,2,242);
+  f.stageButton:SetScript("OnClick",function() if onStage then onStage() end end);
   f.rows={};
   for i=1,6 do
     local row=CreateFrame("Frame",nil,f);row:SetWidth(250);row:SetHeight(25);
-    row:SetPoint("TOPLEFT",f,"TOPLEFT",10,-38-(i-1)*27);
+    row:SetPoint("TOPLEFT",f,"TOPLEFT",10,-63-(i-1)*27);
     row.icon=row:CreateTexture(nil,"ARTWORK");row.icon:SetSize(20,20);
     row.icon:SetPoint("LEFT",row,"LEFT",1,0);
     row.name=label(row,"GameFontHighlightSmall",11,26,5,144);
     row.state=label(row,"GameFontNormalSmall",10,175,5,74);row.state:SetJustifyH("RIGHT");
     f.rows[i]=row;
   end
-  f.gear=label(f,"GameFontHighlightSmall",11,12,207,242);
-  f.info=label(f,"GameFontHighlightSmall",10,12,226,240);
+  f.gear=label(f,"GameFontHighlightSmall",11,12,233,242);
+  f.info=label(f,"GameFontHighlightSmall",10,12,252,240);
   f.themeButton=CreateFrame("Button",nil,f);f.themeButton:SetSize(48,21);
   f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-4,-4);
   f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",10,3,5,43);
@@ -90,6 +94,13 @@ function H.Refresh(self, build, progress, catalog, lang, theme)
   f.themeButton.text:SetText(theme=="elwynn" and "ELW" or "STD");
   f.themeButton.text:SetTextColor(unpack(c.gold));
   local fr=lang=="frFR";
+  local stage=progress.stage or 1;
+  local name=build.phases and build.phases[stage] and build.phases[stage].label;
+  if not name or name=="" then
+    name=ns.Locale.T(ns.BuildModel.DEFAULT_LABELS[stage] or "Stage");
+  end
+  f.stageButton.text:SetText((fr and "Étape " or "Stage ")..stage.."/4 · "..trunc(name,24).."  >");
+  f.stageButton.text:SetTextColor(unpack(c.gold));
   for i,row in ipairs(f.rows) do
     local spell=progress.spells[i];
     if spell then
