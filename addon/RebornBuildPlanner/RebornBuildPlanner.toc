@@ -21,6 +21,7 @@ Base64Url.lua
 Json.lua
 PlannerCodec.lua
 UIStrings.lua
+AdditionalLocales.lua
 Controller.lua
 UI.lua
 Commands.lua
