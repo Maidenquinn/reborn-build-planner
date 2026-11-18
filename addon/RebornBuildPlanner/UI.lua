@@ -694,9 +694,9 @@ function UI:BuildLibrary(v)
 		r.classIcon = r:CreateTexture(nil, "ARTWORK");
 		r.classIcon:SetWidth(26); r.classIcon:SetHeight(26);
 		r.classIcon:SetPoint("TOPLEFT", r, "TOPLEFT", 5, -4);
-		r.name = text(r, 37, 3, 155, "GameFontHighlight");
-		r.tag = text(r, 141, 19, 53, "GameFontNormalSmall", "RIGHT");
-		r.sub = text(r, 37, 19, 100, "GameFontNormalSmall");
+		r.name = text(r, 37, 3, 107, "GameFontHighlight");
+		r.tag = text(r, 145, 3, 49, "GameFontNormalSmall", "RIGHT");
+		r.sub = text(r, 37, 19, 156, "GameFontNormalSmall");
 		r.sub:SetTextColor(0.66, 0.72, 0.82);
 		r.star = CreateFrame("Button", nil, r);
 		r.star:SetWidth(24); r.star:SetHeight(26);
@@ -818,19 +818,19 @@ function UI:RefreshLibrary()
 			r.classIcon:SetTexCoord(l, right, top, bottom);
 			local cr, cg, cb = ns.ClassVisual.Color(d.class);
 			r.name:SetTextColor(cr, cg, cb);
-			r.name:SetText(fitFontText(r.name, d.name ~= "" and d.name or L("(no name)"), 152));
+			r.name:SetText(fitFontText(r.name, d.name ~= "" and d.name or L("(no name)"), 105));
 			local s = "";
 			if d.trashed then s = L("Deleted");
 			elseif d.active then s = L("Active");
 			elseif d.clean == false then s = L("Repair"); end
-			r.tag:SetText(fitFontText(r.tag, s, 53));
+			r.tag:SetText(fitFontText(r.tag, s, 49));
 			local when = "";
 			if not d.trashed then
 				local key = c:Sort() == "used" and d.used or d.modified;
 				local ds = dateText(key);
 				if ds then when = " | " .. ds; end
 			end
-			r.sub:SetText(fitFontText(r.sub, d.className .. when, 98));
+			r.sub:SetText(fitFontText(r.sub, d.className .. when, 154));
 			r.star.tex:SetTexture(THEME and THEME.Media(d.fav and "ultimate_fav_on" or "ultimate_fav_off") or
 				"Interface\\Buttons\\WHITE8X8");
 			setShown(r.star, not d.trashed);
