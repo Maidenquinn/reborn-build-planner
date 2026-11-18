@@ -799,7 +799,7 @@ function UI:RefreshLibrary()
 		setLabel(b, label .. (name == filter and " *" or ""));
 		setShown(b, not st.trashMode);
 	end
-	local sortNames = { name = L("Name"), used = L("Last used"), modified = L("Last modified") };
+	local sortNames = { name = L("Name"), created = L("Created"), modified = L("Last modified"), used = L("Last used"), class = L("Class") };
 	setLabel(lib.classButton, L("Class:") .. " " .. (st.classFilter and c:ClassName(st.classFilter) or L("All classes")) .. "  v");
 	setLabel(lib.sortButton, L("Sort:") .. " " .. sortNames[c:Sort()] .. "  v");
 	setShown(lib.sortButton, not st.trashMode);
