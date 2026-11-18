@@ -1,131 +1,164 @@
--- TrackHUD: compact optional in-game companion, independent from the planner window.
--- Two schemes: Standard (blue) and Elwynn (wood/forest). No third-party assets
--- are copied; when FieldKit is installed its existing Elwynn artwork can be reused.
--- All card marks are mouse-transparent. Never edits Reborn's buttons or cards.
+-- Read-only compact in-game build tracker. No polling, no native card interaction.
+-- Standard follows FieldKit's Naxxramas family; Elwynn follows FieldKit's
+-- forest/gold family. FieldKit is optional: own artwork remains the fallback.
 local ADDON, ns = ...;
 ns = ns or {};
 local H = {};
 ns.TrackHUD = H;
 local WHITE = "Interface\\Buttons\\WHITE8X8";
 local EDGE = "Interface\\Tooltips\\UI-Tooltip-Border";
+local FIELDKIT = "Interface\\AddOns\\AzerothFieldKit\\media\\ReferenceHUD\\";
 local THEMES = {
-  standard = { bg={0.035,0.075,0.15,0.94}, edge={0.28,0.55,0.82,1}, gold={0.65,0.84,1}, mute={0.72,0.82,0.91} },
-  elwynn = { bg={0.065,0.10,0.070,0.94}, edge={0.73,0.59,0.30,1}, gold={1.0,0.85,0.49}, mute={0.83,0.88,0.70} },
+  standard = { bg={0.025,0.045,0.065,0.96}, edge={0.39,0.55,0.64,1}, gold={0.77,0.87,0.91}, mute={0.65,0.73,0.78},
+    art="naxx_card_body_v9.tga" },
+  elwynn = { bg={0.035,0.075,0.055,0.96}, edge={0.76,0.56,0.24,1}, gold={1,0.82,0.41}, mute={0.78,0.83,0.70},
+    art="elwynn_card_body_v9.tga" },
 };
-local function label(parent, name, size, x, y, width)
-  local f=parent:CreateFontString(nil,"OVERLAY",name or "GameFontHighlightSmall");
-  f:SetPoint("TOPLEFT",parent,"TOPLEFT",x,-y);f:SetWidth(width);
-  f:SetHeight(size+3);f:SetJustifyH("LEFT");return f;
-end
-local function surface(frame, theme)
-  frame:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=12,
-    insets={left=3,right=3,top=3,bottom=3}});
-  local c=THEMES[theme] or THEMES.standard;
-  frame:SetBackdropColor(unpack(c.bg));
-  frame:SetBackdropBorderColor(unpack(c.edge));
+local WIDTH, HEIGHT = 204, 222;
+local function label(parent, font, size, x, y, width)
+  local f=parent:CreateFontString(nil,"OVERLAY",font or "GameFontHighlightSmall");
+  f:SetPoint("TOPLEFT",parent,"TOPLEFT",x,-y);
+  f:SetWidth(width);f:SetHeight(size+3);f:SetJustifyH("LEFT");
+  return f;
 end
 local function trunc(s,n)
   s=tostring(s or "");
   if #s<=n then return s end
   return string.sub(s,1,n-3).."...";
 end
+local function surface(frame, theme)
+  local c=THEMES[theme] or THEMES.standard;
+  frame:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=10,
+    insets={left=2,right=2,top=2,bottom=2}});
+  frame:SetBackdropColor(unpack(c.bg));
+  frame:SetBackdropBorderColor(unpack(c.edge));
+end
+local function iconTexture(record)
+  local icon=record and record.icon;
+  if type(icon)~="string" or icon=="" then return "Interface\\Icons\\INV_Misc_QuestionMark" end
+  if string.find(icon,"\\",1,true) then return icon end
+  return "Interface\\Icons\\"..icon;
+end
+local function row(parent, y, compact)
+  local r=CreateFrame("Frame",nil,parent);
+  r:SetSize(WIDTH-12,compact and 14 or 16);
+  r:SetPoint("TOPLEFT",parent,"TOPLEFT",6,-y);
+  r.icon=r:CreateTexture(nil,"ARTWORK");
+  r.icon:SetSize(compact and 12 or 14,compact and 12 or 14);
+  r.icon:SetPoint("LEFT",r,"LEFT",2,0);
+  r.name=label(r,"GameFontHighlightSmall",compact and 9 or 9,20,2,124);
+  r.state=label(r,"GameFontNormalSmall",9,146,2,43);
+  r.state:SetJustifyH("RIGHT");
+  return r;
+end
 function H.New(onTheme,onStage)
   if type(CreateFrame)~="function" or not UIParent then return nil end
   local f=CreateFrame("Frame","RBPTrackerHUD",UIParent);
-  f:SetWidth(270);f:SetHeight(280);
+  f:SetSize(WIDTH,HEIGHT);
   f:SetFrameStrata("HIGH");f:SetFrameLevel(75);
   f:SetPoint("BOTTOMRIGHT",UIParent,"BOTTOMRIGHT",-26,180);
   f:SetClampedToScreen(true);f:SetMovable(true);
-  -- The Elwynn visual reuses FieldKit's installed panel artwork if available;
-  -- no FieldKit texture is copied into this addon and it remains optional.
   f.art=f:CreateTexture(nil,"BACKGROUND");
   f.art:SetPoint("TOPLEFT",f,"TOPLEFT",3,-3);
   f.art:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-3,3);
-  f.art:SetTexture(ns.Theme.Media("ultimate_panel"));
-  f.art:SetAlpha(0.19);
+  f.art:SetTexture(ns.Theme.Media("ultimate_panel"));f.art:SetAlpha(0.19);
   f:EnableMouse(true);f:RegisterForDrag("LeftButton");
   f:SetScript("OnDragStart",function(self)self:StartMoving()end);
   f:SetScript("OnDragStop",function(self)self:StopMovingOrSizing()end);
-  f.title=label(f,"GameFontNormal",14,12,11,157);
-  f.counter=label(f,"GameFontHighlightSmall",10,172,14,36);
+  f.title=label(f,"GameFontNormal",10,8,6,135);
+  f.counter=label(f,"GameFontHighlightSmall",9,144,7,29);
   f.counter:SetJustifyH("RIGHT");
-  f.rule=f:CreateTexture(nil,"ARTWORK");f.rule:SetTexture(WHITE);
-  f.rule:SetHeight(1);f.rule:SetPoint("TOPLEFT",f,"TOPLEFT",10,-56);
-  f.rule:SetPoint("TOPRIGHT",f,"TOPRIGHT",-10,-56);
-  f.stageButton=CreateFrame("Button",nil,f);f.stageButton:SetSize(242,20);
-  f.stageButton:SetPoint("TOPLEFT",f,"TOPLEFT",12,-34);
-  f.stageButton.text=label(f.stageButton,"GameFontHighlightSmall",11,0,2,242);
-  f.stageButton:SetScript("OnClick",function() if onStage then onStage() end end);
-  f.rows={};
-  for i=1,6 do
-    local row=CreateFrame("Frame",nil,f);row:SetWidth(250);row:SetHeight(25);
-    row:SetPoint("TOPLEFT",f,"TOPLEFT",10,-63-(i-1)*27);
-    row.icon=row:CreateTexture(nil,"ARTWORK");row.icon:SetSize(20,20);
-    row.icon:SetPoint("LEFT",row,"LEFT",1,0);
-    row.name=label(row,"GameFontHighlightSmall",11,26,5,144);
-    row.state=label(row,"GameFontNormalSmall",10,175,5,74);row.state:SetJustifyH("RIGHT");
-    f.rows[i]=row;
-  end
-  f.gear=label(f,"GameFontHighlightSmall",11,12,233,242);
-  f.info=label(f,"GameFontHighlightSmall",10,12,252,240);
-  f.themeButton=CreateFrame("Button",nil,f);f.themeButton:SetSize(48,21);
-  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-4,-4);
-  f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",10,3,5,43);
+  f.themeButton=CreateFrame("Button",nil,f);
+  f.themeButton:SetSize(28,16);
+  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-3,-2);
+  f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",9,1,2,27);
   f.themeButton:SetScript("OnClick",function()if onTheme then onTheme()end end);
-  f:Hide();
-  H.frame=f;return f
+  f.stageButton=CreateFrame("Button",nil,f);
+  f.stageButton:SetSize(WIDTH-12,15);
+  f.stageButton:SetPoint("TOPLEFT",f,"TOPLEFT",6,-20);
+  f.stageButton.text=label(f.stageButton,"GameFontHighlightSmall",9,1,1,WIDTH-15);
+  f.stageButton:SetScript("OnClick",function()if onStage then onStage()end end);
+  f.rule=f:CreateTexture(nil,"ARTWORK");f.rule:SetTexture(WHITE);
+  f.rule:SetHeight(1);
+  f.rule:SetPoint("TOPLEFT",f,"TOPLEFT",7,-37);
+  f.rule:SetPoint("TOPRIGHT",f,"TOPRIGHT",-7,-37);
+  f.rows={};
+  for i=1,6 do f.rows[i]=row(f,40+(i-1)*16,false) end
+  f.gear=label(f,"GameFontNormalSmall",9,8,139,152);
+  f.gearCount=label(f,"GameFontHighlightSmall",9,153,139,41);
+  f.gearCount:SetJustifyH("RIGHT");
+  f.jewels={};
+  for i=1,5 do f.jewels[i]=row(f,153+(i-1)*13,true) end
+  f.info=label(f,"GameFontHighlightSmall",9,8,211,188);
+  f:Hide();H.frame=f;return f;
 end
-function H.Refresh(self, build, progress, catalog, lang, theme)
-  local f=self.frame;if not f then return end;
+function H.Refresh(self,build,progress,catalog,lang,theme)
+  local f=self.frame;if not f then return end
   if not build or not progress or not progress.inRun then f:Hide();return end
   theme=THEMES[theme] and theme or "standard";
   local c=THEMES[theme];surface(f,theme);
-  if theme=="elwynn" and type(IsAddOnLoaded)=="function" and IsAddOnLoaded("AzerothFieldKit") then
-    f.art:SetTexture("Interface\\AddOns\\AzerothFieldKit\\media\\ReferenceHUD\\elwynn_card_body_v9.tga");
-    f.art:SetAlpha(0.34);
+  if type(IsAddOnLoaded)=="function" and IsAddOnLoaded("AzerothFieldKit") then
+    f.art:SetTexture(FIELDKIT..c.art);
+    f.art:SetAlpha(0.65);
   else
     f.art:SetTexture(ns.Theme.Media("ultimate_panel"));
-    f.art:SetAlpha(theme=="elwynn" and 0.23 or 0.16);
+    f.art:SetAlpha(0.22);
   end
   f.rule:SetVertexColor(unpack(c.edge));
-  f.title:SetText(trunc(build.name,24));f.title:SetTextColor(unpack(c.gold));
-  f.counter:SetText(tostring(progress.achieved).."/"..tostring(progress.total));
+  f.title:SetText(trunc(build.name,19));f.title:SetTextColor(unpack(c.gold));
+  f.counter:SetText(tostring(progress.achieved or 0).."/"..tostring(progress.total or 0));
   f.counter:SetTextColor(unpack(c.mute));
   f.themeButton.text:SetText(theme=="elwynn" and "ELW" or "STD");
   f.themeButton.text:SetTextColor(unpack(c.gold));
   local fr=lang=="frFR";
   local stage=progress.stage or 1;
-  local name=build.phases and build.phases[stage] and build.phases[stage].label;
-  if not name or name=="" then
-    name=ns.Locale.T(ns.BuildModel.DEFAULT_LABELS[stage] or "Stage");
+  local phaseName=build.phases and build.phases[stage] and build.phases[stage].label;
+  if not phaseName or phaseName=="" then
+    phaseName=ns.Locale.T(ns.BuildModel.DEFAULT_LABELS[stage] or "Stage");
   end
-  f.stageButton.text:SetText((fr and "Étape " or "Stage ")..stage.."/4 · "..trunc(name,24).."  >");
+  f.stageButton.text:SetText((fr and "Étape " or "Stage ")..stage.."/4 · "..trunc(phaseName,22).." >");
   f.stageButton.text:SetTextColor(unpack(c.gold));
-  for i,row in ipairs(f.rows) do
-    local spell=progress.spells[i];
+  for i,r in ipairs(f.rows) do
+    local spell=progress.spells and progress.spells[i];
     if spell then
-      local record=catalog and catalog:Get("spell",spell.key);
-      row.icon:SetTexture(record and ("Interface\\Icons\\"..tostring(record.icon)) or "Interface\\Icons\\INV_Misc_QuestionMark");
-      local name=catalog and catalog:Name("spell",spell.key,lang) or spell.key;
-      row.name:SetText(trunc(name,24));row:Show();
-      local text,color;
-      if spell.status=="UNKNOWN" then text=fr and "?" or "?";color={0.7,0.74,0.8};
-      elseif spell.remindAfter then text=fr and "Bannir" or "Banish";color={1,0.48,0.50};
-      elseif spell.status=="ACHIEVED" then text=fr and "Acquis" or "Owned";color={0.42,0.95,0.62};
-      elseif spell.rank then text="R"..tostring(spell.rank);color={0.75,0.87,1};
-      else text=fr and "Manque" or "Missing";color={0.9,0.65,0.45};end
-      row.state:SetText(text);row.state:SetTextColor(unpack(color));
-    else row:Hide();end
+      local rec=catalog and catalog:Get("spell",spell.key);
+      r.icon:SetTexture(iconTexture(rec));
+      r.name:SetText(trunc(catalog and catalog:Name("spell",spell.key,lang) or spell.key,19));
+      local status,color;
+      if spell.status=="UNKNOWN" then status="?";color={0.74,0.77,0.82};
+      elseif spell.remindAfter then status=fr and "Bannir" or "Banish";color={1,0.43,0.46};
+      elseif spell.status=="ACHIEVED" then status=fr and "OK" or "OK";color={0.42,0.95,0.62};
+      elseif spell.rank then status="R"..tostring(spell.rank);color={0.75,0.87,1};
+      else status=fr and "Manque" or "Missing";color={0.94,0.67,0.42};end
+      r.state:SetText(status);r.state:SetTextColor(unpack(color));r:Show();
+    else r:Hide() end
   end
-  local known=0;local have=0;
-  for _,item in ipairs(progress.jewelry)do
+  local known,have=0,0;
+  for _,item in ipairs(progress.jewelry or {}) do
     if item.state~="UNKNOWN" then known=known+1 end
     if item.state=="EQUIPPED" or item.state=="ALTERNATIVE" then have=have+1 end
   end
-  f.gear:SetText(fr and "Équipement" or "Equipment");
+  f.gear:SetText(fr and "BIJOUX CONSEILLÉS" or "RECOMMENDED JEWELS");
   f.gear:SetTextColor(unpack(c.gold));
-  f.info:SetText(known==0 and (fr and "Statut des bijoux non disponible" or "Jewelry status unavailable") or
-    (tostring(have).."/"..tostring(known)..(fr and " emplacements identifiés" or " identified slots")));
+  f.gearCount:SetText(tostring(have).."/"..tostring(#(progress.jewelry or {})));
+  f.gearCount:SetTextColor(unpack(c.mute));
+  for i,r in ipairs(f.jewels) do
+    local item=progress.jewelry and progress.jewelry[i];
+    if item then
+      local kind=item.group=="amulets" and "amulet" or "jewel";
+      local rec=catalog and catalog:Get(kind,item.key);
+      r.icon:SetTexture(iconTexture(rec));
+      r.name:SetText(trunc(catalog and catalog:Name(kind,item.key,lang) or item.key,21));
+      local status,color;
+      if item.state=="EQUIPPED" then status="OK";color={0.42,0.95,0.62};
+      elseif item.state=="ALTERNATIVE" then status="ALT";color={0.72,0.84,1};
+      elseif item.state=="MISSING" then status=fr and "Manque" or "Missing";color={0.94,0.67,0.42};
+      else status="?";color={0.74,0.77,0.82};end
+      r.state:SetText(status);r.state:SetTextColor(unpack(color));r:Show();
+    else r:Hide() end
+  end
+  f.info:SetText(known==0 and (fr and "? = équipement non identifié" or "? = equipment not identified") or
+    (fr and "Suivi informatif · aucun choix auto" or "Read-only · no automatic choice"));
   f.info:SetTextColor(unpack(c.mute));
   f:Show();
 end
