@@ -122,10 +122,10 @@ local function growthLines(growth, fixed)
 		out[#out + 1] = line(string.format(L("Growth %s: %s at rank 2, %s at rank 3, %s at rank 5."), num(growth),
 			x(D.Multiplier(growth, 2)), x(D.Multiplier(growth, 3)), x(D.Multiplier(growth, 5))));
 		out[#out + 1] = line(Locale.lang == "frFR" and
-			"Les effets concernes deviennent plus forts a mesure que le rang augmente." or
+			"Les effets concernés deviennent plus forts à mesure que le rang augmente." or
 			"The affected effects become stronger as the rank increases.", "dim");
 	elseif fixed then
-		out[#out + 1] = line((Locale.lang == "frFR" and "Degats et zone d'effet : " or
+		out[#out + 1] = line((Locale.lang == "frFR" and "Dégâts et zone d'effet : " or
 			"Damage and area: ") .. x(D.FixedMultiplier(fixed, 5)) ..
 			(Locale.lang == "frFR" and " au rang 5, " or " at rank 5, ") ..
 			x(D.FixedMultiplier(fixed, 11)) ..
