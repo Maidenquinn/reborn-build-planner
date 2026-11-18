@@ -52,6 +52,31 @@ return function(H)
     eq(hint("ring","unknown"),nil)
     eq(T.CardHint(gearBuild,1,{inRun=true,cards={kind="ring"}},{name="ring_a"}),nil)
   end)
+  test("lot4: official unique accessory names resolve without false matches", function()
+    local c={data={jewelry={
+      {key="ring_a",slot="ring",name="Anneau alpha"},
+      {key="ring_b",slot="ring",name="Anneau double"},
+      {key="ring_c",slot="ring",name="Anneau double"},
+      {key="trinket_a",slot="trinket",name="Bijou alpha"}}},
+      amulets={},legends={}}
+    function c:Get(kind,key)
+      for _,r in ipairs(self.data.jewelry) do if r.key==key and kind=="jewel" then return r end end
+    end
+    function c:Name(kind,key,lang)
+      local item=self:Get(kind,key);return item and item.name or key
+    end
+    function c:CheckKey(list,key,class) return "ok" end
+    local b={class="warrior",phases={{rings={"ring_a","ring_b","ring_c"},trinkets={"trinket_a"},amulets={}}}}
+    local offer={inRun=true,cards={kind="jewel",cards={{name="Anneau alpha",slot="ring"},{name="Anneau double",slot="ring"}}}}
+    eq(T.CardHint(b,1,offer,offer.cards.cards[1],c,"frFR"),"wanted")
+    eq(T.CardHint(b,1,offer,offer.cards.cards[2],c,"frFR"),nil)
+    eq(T.OfferHasGoal(b,1,offer,c,"frFR"),true)
+    eq(T.CardHint(b,1,offer,{name="Anneau alpha",slot="trinket"},c,"frFR"),nil)
+    local unknown={inRun=true,cards={kind="jewel",cards={{name="unlisted"}}}}
+    eq(T.OfferHasGoal(b,1,unknown,c,"frFR"),nil)
+    local emptyMatch={inRun=true,cards={kind="jewel",cards={{key="trinket_a"}}}}
+    eq(T.OfferHasGoal(b,1,emptyMatch,c,"frFR"),true)
+  end)
   test("lot4: banish-after waits for spell synchronization", function()
     local unknown={inRun=true,spellsKnown=false,cards={kind="spell"},spells={}}
     eq(T.CardHint(build,1,unknown,{key="whirlwind"}),nil)
