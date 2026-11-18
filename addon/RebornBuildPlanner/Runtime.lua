@@ -2,7 +2,7 @@
 -- no SendAddonMessage or any automated card interaction.
 local ADDON, ns = ...;
 ns = ns or {};
-local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false, cards=false }, runKey=nil, stage=1, stageRun=nil };
+local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false, cards=false, spellTips=false }, runKey=nil, stage=1, stageRun=nil };
 ns.Runtime = R;
 local EVENTS = { "AZSSPELLS", "AZSSPELLTIP", "AZSGEAR", "AZSCARDS",
   "AZSCARDTIP", "AZSRUN", "AZSZONE", "AZSEND" };
@@ -14,10 +14,11 @@ function R.Note(event)
     (type(AZS_ZONE)=="table" and AZS_ZONE.run or nil);
   if runKey ~= R.runKey then
     R.runKey=runKey;
-    R.received={ spells=false, gear=false, cards=false };
+    R.received={ spells=false, gear=false, cards=false, spellTips=false };
   end
   if event=="AZSSPELLS" then R.received.spells=true end
   if event=="AZSGEAR" then R.received.gear=true end
+  if event=="AZSSPELLTIP" then R.received.spellTips=true end
   if event=="AZSCARDS" then R.received.cards=true end
 end
 function R.Capture()
@@ -32,6 +33,8 @@ function R.Capture()
     spellsKnown=running and R.received.spells and type(AZS_SPELLS)=="table" or false,
     gear=running and type(AZS_GEAR)=="table" and AZS_GEAR or nil,
     gearKnown=running and R.received.gear and type(AZS_GEAR)=="table" or false,
+    spellTips=running and type(AZS_SPELLTIPS)=="table" and AZS_SPELLTIPS or nil,
+    spellTipsKnown=running and R.received.spellTips and type(AZS_SPELLTIPS)=="table" or false,
     cards=running and R.received.cards and type(AZS_CARDS)=="table" and AZS_CARDS or nil,
     gold=running and type(AZS_RUN)=="table" and tonumber(AZS_RUN.gold) or nil,
     runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or nil
@@ -98,14 +101,14 @@ function R.Refresh()
     R.stage=1; -- new run: do not carry last run's manually selected phase
   end
   local phase=R.stage or 1; -- explicit selection, no invented mapping from game phase
-  local progress=build and ns.LiveTracker.Evaluate(build,phase,snapshot) or nil;
+  local progress=build and ns.LiveTracker.Evaluate(build,phase,snapshot,ns.catalog,ns.Locale.lang) or nil;
   if progress then progress.stage=phase; progress.stageMax=4 end
   local theme=ns.storage:GetSetting("trackerTheme") or "standard";
   ns.TrackHUD.compact=ns.storage:GetSetting("trackerCompact")==true;
   ns.TrackHUD.SetBuildOptions(ns.TrackHUD,R.BuildOptions());
   if ns.TrackHUD and R.hud then
     if ns.storage:GetSetting("trackerEnabled") ~= false then
-      ns.TrackHUD.Refresh(ns.TrackHUD,build,progress,ns.catalog,ns.Locale.lang,theme);
+      ns.TrackHUD.Refresh(ns.TrackHUD,build,progress,ns.catalog,ns.Locale.lang,theme,snapshot);
     else R.hud:Hide();end
     ns.TrackHUD.UpdateCards(ns.TrackHUD,build,snapshot,phase,theme,ns.catalog,ns.Locale.lang);
   end
