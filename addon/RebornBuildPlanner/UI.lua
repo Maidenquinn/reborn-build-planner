@@ -645,12 +645,12 @@ function UI:BuildLibrary(v)
 	end
 	lib.empty = wrapped(v, 12, 160, 212, 80, "GameFontNormal");
 	lib.create = button(v, "", 236, 28, 8, 494, function() self:AskCreate(); end);
-	lib.follow = button(v, "", 70, 24, 8, 530, function()
+	lib.follow = button(v, "", 78, 24, 8, 530, function()
 		local r = c:Selected();
 		if r then if r.active then c:Deactivate(r.id); else c:Activate(r.id); end end
 	end);
-	lib.dup = button(v, "", 84, 24, 82, 530, function() local r = c:Selected(); if r then c:Duplicate(r.id); end end);
-	lib.rename = button(v, "", 74, 24, 170, 530, function() local r = c:Selected(); if r then self:AskRename(r); end end);
+	lib.dup = button(v, "", 82, 24, 88, 530, function() local r = c:Selected(); if r then c:Duplicate(r.id); end end);
+	lib.rename = button(v, "", 72, 24, 172, 530, function() local r = c:Selected(); if r then self:AskRename(r); end end);
 	lib.importBtn = button(v, "", 72, 24, 8, 560, function() c:SetView("import"); end);
 	lib.trashBtn = button(v, "", 84, 24, 84, 560, function() c:ShowTrash(not c.state.trashMode); end);
 	lib.delete = button(v, "", 80, 24, 172, 560, function() local r = c:Selected(); if r then self:AskDelete(r); end end);
