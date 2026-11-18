@@ -37,11 +37,11 @@ class LocalExtractionTests(unittest.TestCase):
 
     def test_validate_exact_coverage(self):
         base = {"slot":"ring","behavior":"damage","base":0.17,"effects":[],"specials":[]}
-        rows = {("j%d" % k): dict(base) for k in range(30)}
+        rows = {("j%d" % k): dict(base) for k in range(31)}
         catalogue = [{"key":k,"slot":"ring"} for k in rows]
-        self.assertEqual(mod.validate(rows,catalogue), (30, []))
+        self.assertEqual(mod.validate(rows,catalogue), (31, []))
         reduced = dict(list(rows.items())[:-1])
-        self.assertEqual(mod.validate(reduced, catalogue), (30, [list(rows)[-1]]))
+        self.assertEqual(mod.validate(reduced, catalogue), (31, [list(rows)[-1]]))
         with self.assertRaises(ValueError):
             mod.validate(reduced, catalogue, require_complete=True)
         with self.assertRaises(ValueError):
