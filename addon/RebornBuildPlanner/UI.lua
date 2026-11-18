@@ -143,7 +143,7 @@ end
 
 -- colours and label of a button from its role and enabled state; the plain label stays in b.baseLabel
 local function paint(b)
-	local label = b.baseLabel or "";
+	local label = b.displayLabel or b.baseLabel or "";
 	if b.themed then
 		if b.painted ~= label then b.painted = label; b:SetText(label); end
 		local roles = { quiet = "secondary", warn = "selected", primary = "primary", danger = "danger" };
@@ -163,9 +163,18 @@ local function paint(b)
 	if b.fs and b.fs.SetTextColor then if enabled then b.fs:SetTextColor(1, 1, 1); else b.fs:SetTextColor(0.45, 0.46, 0.52); end end
 end
 
+-- Every action keeps its full localized label but renders only what fits
+-- its actual button. This is especially important for Cyrillic and longer
+-- German/Portuguese translations. The UTF-8 ellipsis never splits characters.
 local function setLabel(b, label)
-	b.baseLabel = label;
+	b.baseLabel = label or "";
+	local width = (b.GetWidth and b:GetWidth() or 100) - 14;
+	local display = fitText(b.baseLabel, math.max(16, width), 15);
+	b.displayLabel = display;
+	local original = b.baseLabel;
+	b.baseLabel = display;
 	paint(b);
+	b.baseLabel = original;
 end
 
 local function enable(b, on)
@@ -653,9 +662,9 @@ function UI:RefreshLibrary()
 		setLabel(b, label .. (name == filter and " *" or ""));
 		setShown(b, not st.trashMode);
 	end
-	lib.classCycle.label:SetText(L("Class:") .. " " .. (st.classFilter and c:ClassName(st.classFilter) or L("All classes")));
+	lib.classCycle.label:SetText(fitText(L("Class:") .. " " .. (st.classFilter and c:ClassName(st.classFilter) or L("All classes")), 180, 13));
 	local sortNames = { name = L("Name"), used = L("Last used"), modified = L("Last modified") };
-	lib.sortCycle.label:SetText(L("Sort:") .. " " .. sortNames[c:Sort()]);
+	lib.sortCycle.label:SetText(fitText(L("Sort:") .. " " .. sortNames[c:Sort()], 180, 13));
 	setShown(lib.sortCycle.prev, not st.trashMode); setShown(lib.sortCycle.next, not st.trashMode); setShown(lib.sortCycle.label, not st.trashMode);
 	local rows, off, max = c:LibView();
 	lib.area.sync(off, max);
@@ -916,7 +925,7 @@ function UI:RefreshEditor()
 	local pv = c:PlanView();
 	-- spells
 	ed.spellHead:SetText(string.format(L("Spells to acquire, by priority (%d/%d)"), #pv.spells, BM.LIMITS.spells));
-	ed.summary:SetText(string.format(L("%d keep / %d banish after (max %d)"), pv.keepCount, pv.afterCount, BM.LIMITS.banishAfter));
+	ed.summary:SetText(fitText(string.format(L("%d keep / %d banish after (max %d)"), pv.keepCount, pv.afterCount, BM.LIMITS.banishAfter), 270, 13));
 	if pv.afterCount > 0 then ed.summary:SetTextColor(GOLD[1], GOLD[2], GOLD[3]); else ed.summary:SetTextColor(0.7, 0.72, 0.78); end
 	local insp = c.state.inspect;
 	for i, r in ipairs(ed.spells) do
