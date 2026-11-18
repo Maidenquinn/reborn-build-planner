@@ -92,7 +92,7 @@ return function(H)
 		eq(e.c:TooltipData("jewel", "accuria").sections, nil);
 		source.items.accuria = { slot = "ring", behavior = "damage", base = 0.17 };
 		local report = e.c:TooltipData("jewel", "accuria");
-		ok(report.sections and #report.sections == 3, "local metadata shown");
+		ok(report.sections and #report.sections == 2, "plain benefit and source, no duplicate technical percentage");
 		local joined = plain(report.sections);
 		ok(joined:find("Damage", 1, true), joined);
 		ok(joined:find("17%", 1, true), joined);
