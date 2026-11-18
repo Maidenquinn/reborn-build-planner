@@ -198,7 +198,7 @@ function T.Window(parent, w, h, name)
 		for i, place in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
 			local tex = f:CreateTexture(nil, "BORDER");
 			tex:SetTexture(M("ultimate_corner"));
-			tex:SetWidth(64); tex:SetHeight(64);
+			tex:SetWidth(42); tex:SetHeight(42);
 			tex:SetPoint(place, f, place, 0, 0);
 			if i == 2 then tex:SetTexCoord(1, 0, 0, 1);
 			elseif i == 3 then tex:SetTexCoord(0, 1, 1, 0);
@@ -222,14 +222,14 @@ function T.Text(parent, font, color, x, y, w, h, justify)
 	return fs;
 end
 
--- section title: gold text, then the ornamented separator texture under it (not a 1 px line)
+-- Section title uses a quiet steel label and subtle fading divider.
 function T.SectionTitle(parent, label, x, y, w)
-	local fs = T.Text(parent, T.FONT.section, C.gold, x, y, w, 16);
+	local fs = T.Text(parent, T.FONT.section, C.mute, x, y, w, 16);
 	fs:SetText(label);
 	local sep = parent:CreateTexture(nil, "ARTWORK");
 	sep:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -(y + 17));
 	sep:SetWidth(w);
-	sep:SetHeight(8);
+	sep:SetHeight(5);
 	if T.mode == "backdrop" then sep:SetTexture(0.35, 0.28, 0.17, 1); sep:SetHeight(1); else sep:SetTexture(M("separator")); end
 	fs.rule = sep;
 	return fs;
@@ -250,10 +250,10 @@ function T.TitleBar(parent, label, x, y, w, h)
 		art:SetTexture(M("ultimate_titlebar")); art:SetAllPoints(bar);
 		local crest = bar:CreateTexture(nil, "ARTWORK");
 		crest:SetTexture(M("ultimate_crest"));
-		crest:SetWidth(38); crest:SetHeight(38); -- keep decorative texture inside title bar bounds
-		crest:SetPoint("LEFT", bar, "LEFT", 6, 0);
+		crest:SetWidth(28); crest:SetHeight(28); -- restrained small emblem, not a giant RPG crest
+		crest:SetPoint("LEFT", bar, "LEFT", 8, 0);
 	end
-	bar.title = T.Text(bar, T.FONT.window, C.ivory, 50, math.floor(((h or 34) - 16) / 2), w - 60, 18, "CENTER");
+	bar.title = T.Text(bar, T.FONT.window, C.ivory, 43, math.floor(((h or 34) - 16) / 2), w - 52, 18, "LEFT");
 	bar.title:SetText(label or "");
 	return bar;
 end
