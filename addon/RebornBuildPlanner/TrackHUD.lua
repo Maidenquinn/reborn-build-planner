@@ -309,7 +309,7 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
   };
   local activeExtras=0;
   for _,g in ipairs(extras) do if #g.items>0 then activeExtras=activeExtras+1 end end
-  local height=(compact and COMPACT_HEIGHT or HEIGHT)+activeExtras*23;
+  local height=(compact and COMPACT_HEIGHT or HEIGHT)+activeExtras*34;
   if f:GetHeight()~=height then f:SetHeight(height) end
   rim(f,theme);
   local assetRoot=fieldkitPath();
@@ -435,7 +435,7 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
   for g,src in ipairs(extras) do
     local panel=f.extra[g];
     local show=#src.items>0;
-    local y=base+visibleExtra*23;
+    local y=base+4+visibleExtra*34;
     if show then visibleExtra=visibleExtra+1 end
     if show then
       panel.label:ClearAllPoints();
