@@ -68,6 +68,13 @@ return function(H)
 		eq(cat:Name("spell", "whirlwind", "deDE"), (cat.i18n.deDE or {})["Whirlwind"] or "Whirlwind");
 	end);
 
+	test("Unicode catalogue search normalizes Cyrillic and European uppercase text", function()
+		eq(ns.Utf8.CaseFold("ПРИВЕТ ЁЛКА"), "привет ёлка");
+		eq(ns.Utf8.CaseFold("КЛАСС: ОХОТНИК"), "класс: охотник");
+		eq(ns.Utf8.CaseFold("ZAŻÓŁĆ"), "zażółć");
+		eq(ns.Utf8.CaseFold("ÄÖÜ ČŠ Ž"), "äöü čš ž");
+	end);
+
 	test("official Russian, German and Polish names are embedded for spells and jewelry", function()
 		for _, lang in ipairs({ "ruRU", "deDE", "plPL", "esES", "ptBR" }) do
 			local tr = cat.i18n[lang];
