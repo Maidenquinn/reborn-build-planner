@@ -41,6 +41,7 @@ function ns.Start(existingDb, now)
 		RebornBuildPlannerDB = h.db;
 	end
 	ns.Commands.Register(ns.ui, ns.controller);
+	if ns.Runtime then ns.Runtime.Start() end
 	return h;
 end
 
