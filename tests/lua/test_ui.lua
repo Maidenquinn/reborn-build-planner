@@ -320,7 +320,7 @@ return function(H)
 		local row = e.ui.ed.spells[1];
 		ok(row.afterMark:IsShown(), "editor red strip shown");
 		eq(row.tog.role, "danger", "red banish-after action");
-		ok(row.bg.texture, "editor keeps a visible background");
+		ok(row.bg and row.bg:IsShown(), "editor keeps a visible background");
 		local found;
 		for _, r in ipairs(e.ui.bs.rows) do
 			if r.tipKey == spell then found = r; break end
