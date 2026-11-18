@@ -1,10 +1,11 @@
-"""Original ornamental UI textures for Reborn (development-only Pillow dependency).
-No game assets, fonts, external catalogues or player data are consumed.
+"""Generate Reborn UI textures (development-only Pillow dependency).
+Ornaments are original; the two class icons reproduce user-provided WoW art.
+Private-project assets only: rights/provenance must be reviewed before release.
 Outputs uncompressed 32-bit TGA files; no runtime network dependency.
 """
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
-import random, math, struct, sys
+import random, math, struct, sys, base64, io
 
 G=(128,190,226,255); L=(210,241,255,255); B=(40,93,151,255)
 
@@ -113,28 +114,20 @@ def favorite(filled):
         d.line(path + [path[0]], fill=(174, 199, 221, 240), width=3, joint="curve")
     return im
 
-def class_symbol(kind):
-    """Original readable small-class icons, independent of legacy WoW class atlas.
-    Transparent margins preserve the 26px class icon silhouette.
+def supplied_class_icon(kind):
+    """Decode the user's actual game-class artwork; no reinterpretation or redraw.
+
+    The JPEG references are shipped only in this private development repository.
+    Do not publish them or include them in an unlicensed public source release.
     """
-    im = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    d.ellipse((3, 3, 60, 60), fill=(11, 24, 40, 245),
-              outline=(91, 161, 192, 240), width=3)
-    if kind == "monk":
-        # A jade circle and intertwined flowing palm shapes.
-        d.arc((13, 12, 51, 51), 35, 312, fill=(58, 231, 166, 255), width=6)
-        d.arc((21, 20, 45, 44), 185, 515, fill=(182, 255, 212, 255), width=4)
-        d.ellipse((26, 25, 37, 36), fill=(11, 50, 42, 255))
-        d.line([(17, 50), (32, 44), (47, 50)], fill=(60, 171, 117, 245), width=3)
-    else:
-        # Two mirrored fel-green glaives, recognizable at 24-26px.
-        d.arc((9, 12, 45, 53), 94, 268, fill=(168, 77, 219, 255), width=6)
-        d.arc((19, 12, 55, 53), 274, 450, fill=(116, 240, 104, 255), width=6)
-        d.line([(16, 46), (46, 18)], fill=(224, 236, 246, 255), width=4)
-        d.line([(48, 47), (18, 18)], fill=(224, 236, 246, 255), width=4)
-        d.ellipse((28, 28, 36, 36), fill=(67, 195, 107, 255))
+    name = "monk" if kind == "monk" else "dh"
+    path = Path(__file__).with_name("official_icons_" + name + ".b64")
+    data = base64.b64decode(path.read_text(encoding="ascii").strip(), validate=True)
+    im = Image.open(io.BytesIO(data)).convert("RGBA")
+    if im.size != (64, 64):
+        raise ValueError("Official class image must be 64x64: " + str(path))
     return im
+
 
 def tga_bytes(im):
     """WoW-compatible 18-byte header, uncompressed bottom-left BGRA rows."""
@@ -152,9 +145,9 @@ def main(out):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     textures={"ultimate_corner":corner(),"ultimate_crest":crest(),"ultimate_titlebar":title(),"ultimate_panel":panel(),
               "ultimate_fav_on":favorite(True),"ultimate_fav_off":favorite(False),
-              "ultimate_class_monk":class_symbol("monk"),"ultimate_class_dh":class_symbol("demonhunter")}
+              "ultimate_class_monk":supplied_class_icon("monk"),"ultimate_class_dh":supplied_class_icon("demonhunter")}
     for name,im in textures.items():(out/(name+".tga")).write_bytes(tga_bytes(im))
-    print("Generated",len(textures),"original textures in",out)
+    print("Generated",len(textures),"textures (6 original + 2 supplied game-class artworks) in",out)
 
 if __name__=="__main__":
     if len(sys.argv)!=2:raise SystemExit("Usage: python tools/make_ultimate_art.py <Media directory>")
