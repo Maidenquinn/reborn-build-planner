@@ -38,6 +38,16 @@ if (!(Test-Path -LiteralPath $venv)) {
   if ($LASTEXITCODE -ne 0) { throw "lupa installation failed" }
 }
 if (!(Test-Path -LiteralPath $venv)) { throw "venv not ready" }
+# Existing venvs created for earlier lots may have lupa but not Pillow.
+# Verify both libraries every time before generating textures; install only missing ones.
+& $venv -I -c "import lupa; from PIL import Image"
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Installing missing isolated Lua/Pillow build dependencies" -ForegroundColor Cyan
+  & $venv -m pip install "lupa==2.8" "Pillow"
+  if ($LASTEXITCODE -ne 0) { throw "Unable to install required Python build dependencies" }
+  & $venv -I -c "import lupa; from PIL import Image"
+  if ($LASTEXITCODE -ne 0) { throw "Lua/Pillow verification failed after installation" }
+}
 $python = $venv
 Write-Host "Retrieving official public Reborn data into the ignored .local folder" -ForegroundColor Cyan
 $catalog = Join-Path $root ".local\catalog\public-preview"
