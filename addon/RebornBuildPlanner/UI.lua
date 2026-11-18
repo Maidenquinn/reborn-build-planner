@@ -107,6 +107,7 @@ local function header(parent, x, y, w)
 	rule:SetHeight(1);
 	rule:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -(y + 17));
 	rule:SetTexture(BRASS[1], BRASS[2], BRASS[3], 0.7);
+	fs.rule = rule;
 	return fs;
 end
 
@@ -205,6 +206,10 @@ end
 
 local function setShown(f, on)
 	if on then f:Show(); else f:Hide(); end
+	-- Section dividers are independent textures; hiding only the label left
+	-- its ornament floating in the empty editor.
+	local rule = f.rule or f.separator;
+	if rule then if on then rule:Show(); else rule:Hide(); end end
 end
 
 -- invisible button over the icon + name of a row: carries hover and click without capturing the row's real buttons
@@ -899,7 +904,11 @@ function UI:RefreshEditor()
 	if not on then
 		ed.empty:SetText(L("Pick a build in the library, or create one."));
 		for _, r in ipairs(ed.spells) do r.frame:Hide(); end
-		for _, g in pairs(ed.groups) do g.label:Hide(); for _, cell in ipairs(g.cells) do cell:Hide(); end end
+		for _, g in pairs(ed.groups) do
+			g.label:Hide();
+			g.sep:Hide(); -- independent vertical divider, not a child of any cell
+			for _, cell in ipairs(g.cells) do cell:Hide(); end
+		end
 		for _, b in ipairs(ed.phaseTabs) do b:Hide(); end
 		for _, w in ipairs({ ed.nt.labelLabel, ed.nt.label }) do w:Hide(); end
 		for _, r in ipairs(ed.nt.avoid) do r.frame:Hide(); end
