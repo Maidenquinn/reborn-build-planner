@@ -33,3 +33,19 @@ jobs:
         run: .devtools/venv/bin/python -I tools/run_lua_tests.py test_standalone
       - name: Compile Python tools
         run: .devtools/venv/bin/python -m compileall -q tools tests/py
+      - name: Verify Windows PowerShell 5.1 recipe scripts
+        shell: pwsh
+        run: |
+          foreach ($file in @("tools/recette_ultimate_windows.ps1", "tools/build_local_equipment_recipe.ps1")) {
+            $source = [IO.File]::ReadAllText((Resolve-Path $file).Path)
+            if ($source.ToCharArray() | Where-Object { [int][char]$_ -gt 127 }) {
+              throw "Non-ASCII source can break Windows PowerShell 5.1: $file"
+            }
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file).Path, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              throw "PowerShell parse failure in $file : $($errors | Out-String)"
+            }
+          }
+
