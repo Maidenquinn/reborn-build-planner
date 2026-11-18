@@ -88,7 +88,7 @@ function R.SetTheme(theme)
 end
 function R.ToggleHud()
   if not ns.storage or ns.storage.readOnly then return false end
-  local value=not ns.storage:GetSetting("trackerEnabled");
+  local value=(ns.storage:GetSetting("trackerEnabled") == false);
   ns.storage:SetSetting("trackerEnabled",value);
   R.Refresh();
   return value;
