@@ -42,7 +42,8 @@ function E.MetadataStatus()
     end
   end
   local runtime = type(AZS_GEN) == "table" and type(AZS_GEN.jewels) == "table" or false
-  return n, runtime
+  local expected = ns.GeneratedJewelryMechanics and ns.GeneratedJewelryMechanics.expected
+  return n, runtime, (type(expected) == "number" and expected >= n) and expected or nil
 end
 function E.Lookup(key, slot)
   if type(key) ~= "string" or type(slot) ~= "string" then return nil end
