@@ -163,18 +163,37 @@ local function paint(b)
 	if b.fs and b.fs.SetTextColor then if enabled then b.fs:SetTextColor(1, 1, 1); else b.fs:SetTextColor(0.45, 0.46, 0.52); end end
 end
 
--- Every action keeps its full localized label but renders only what fits
--- its actual button. This is especially important for Cyrillic and longer
--- German/Portuguese translations. The UTF-8 ellipsis never splits characters.
+-- Ask the native font renderer to measure text instead of guessing width from
+-- the number of letters. A typical Cyrillic glyph and a Latin letter may take
+-- different widths depending on the client's chosen font.
+local function fittedButtonText(b, full)
+	local available = math.max(16, (b.GetWidth and b:GetWidth() or 100) - 10);
+	local fs = b.fs or b.label;
+	if not fs or not fs.SetText or not fs.GetStringWidth then
+		return fitText(full, available, 13);
+	end
+	fs:SetText(full);
+	if fs:GetStringWidth() <= available then return full; end
+	local ellipse = "...";
+	fs:SetText(ellipse);
+	local measured = fs:GetStringWidth();
+	local last, index = "", 1;
+	while index <= #full do
+		local byte = string.byte(full, index);
+		local length = byte < 0x80 and 1 or (byte < 0xE0 and 2 or (byte < 0xF0 and 3 or 4));
+		local nextText = last .. string.sub(full, index, index + length - 1);
+		fs:SetText(nextText .. ellipse);
+		if fs:GetStringWidth() > available then break; end
+		last = nextText;
+		index = index + length;
+	end
+	return (last ~= "" and last or "") .. ellipse;
+end
+
 local function setLabel(b, label)
 	b.baseLabel = label or "";
-	local width = (b.GetWidth and b:GetWidth() or 100) - 14;
-	local display = fitText(b.baseLabel, math.max(16, width), 15);
-	b.displayLabel = display;
-	local original = b.baseLabel;
-	b.baseLabel = display;
+	b.displayLabel = fittedButtonText(b, b.baseLabel);
 	paint(b);
-	b.baseLabel = original;
 end
 
 local function enable(b, on)
