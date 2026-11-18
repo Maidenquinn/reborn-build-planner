@@ -182,6 +182,7 @@ register("ruRU", {
   ["Nothing to save"]="Нечего сохранять",
   ["Changes discarded"]="Изменения отменены",
   ["Save and close"]="Сохранить и закрыть",
+  ["Created"]="Создано", ["Not followed"]="Не отслеживается",
   ["Choose your next build"]="Выберите сборку",
   ["Select a saved build on the left, or create a new one."]="Выберите сборку слева или создайте новую.",
 })
