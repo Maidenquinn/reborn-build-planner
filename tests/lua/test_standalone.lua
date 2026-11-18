@@ -63,10 +63,14 @@ return function(H)
 			blackhand = { slot = "trinket", behavior = "crit_damage", base = 0.195 }
 		} };
 		local item = assert(j.JewelryEffects.Sections("accuria", "ring", true));
-		eq(item[2].lines[1].text, "17 %", "share shown as BASE percentage");
+		eq(item[1].lines[1].text, "17 % de degats supplementaires.", "effect first in plain language");
+		eq(item[2].lines[1].text, "Degats : 17 %", "reference value accurately labelled");
 		ok(item[2].lines[2].text:find("Ce n'est pas", 1, true), "not represented as an actual run value");
 		eq(j.JewelryEffects.Sections("accuria", "trinket", true), nil, "wrong slot cannot match");
 		eq(j.JewelryEffects.Sections("none", "ring", true), nil, "unknown must stay unavailable");
+		j.GeneratedJewelryMechanics.items.blooddrinker = { slot = "ring", behavior = "lifesteal", base = 0.01 };
+		local blood = j.JewelryEffects.Sections("blooddrinker", "ring", true);
+		eq(blood[1].lines[1].text, "1 % des degats que tu infliges te soignent.", "lifesteal is explained in concrete gameplay language");
 	end);
 
 	test("jewelry: supplementary passive and conditional effects remain sourced and labelled", function()
