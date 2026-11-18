@@ -60,6 +60,44 @@ return function(H)
 		ok(f ~= nil, "the loader frame unregistered ADDON_LOADED");
 	end);
 
+	test("Lot4: real event subscriptions drive compact HUD and native card overlay without actions", function()
+		local events={};
+		local e=boot({preset={
+			AZS={On=function(event,fn) events[event]=fn end},
+			AZS_RUN={ph="playing"}, AZS_ZONE={hub=0,run="run-a"},
+			AZS_SPELLS={{key="whirlwind",rank=1}}, AZS_GEAR={},
+			AZS_CARDS={kind="spell",cards={{key="whirlwind"},{key="execute"},{key="rend"}}}
+		}});
+		ok(e.ns.Runtime.ready,"live API available");
+		ok(type(events.AZSSPELLS)=="function" and type(events.AZSCARDS)=="function");
+		local h=e.h();local id=assert(h:Create({name="Warrior plan",class="warrior"}));
+		local b=assert(e.ns.BuildModel.AddSpell(h:Get(id),1,"whirlwind",nil,e.ns.catalog));
+		b=assert(e.ns.BuildModel.AddSpell(b,1,"execute",nil,e.ns.catalog));
+		b=assert(e.ns.BuildModel.SetBanishAfter(b,1,"execute",true,e.ns.catalog));
+		ok(h:Update(id,b));ok(e.c:Activate(id));
+		eq(e.ns.Runtime.progress.achieved,1);
+		ok(e.ns.Runtime.hud:IsShown(),"compact tracker visible in a real run");
+		local cardRoot=e.G.CreateFrame("Frame","AZSCardsFrame",e.G.UIParent);
+		cardRoot:Show();
+		for i=1,3 do e.G.CreateFrame("Frame","AZSCard"..i,cardRoot); end
+		events.AZSCARDS();
+		ok(e.ns.TrackHUD.marks[1] and e.ns.TrackHUD.marks[1]:IsShown(),"wanted card outlined");
+		ok(e.ns.TrackHUD.marks[2] and e.ns.TrackHUD.marks[2]:IsShown(),"unowned banish-after remains wanted");
+		ok(e.ns.TrackHUD.marks[1].mouse==false,"overlay cannot capture card clicks");
+		e.G.AZS_SPELLS[2]={key="execute",rank=1};events.AZSSPELLS();
+		ok(e.ns.Runtime.progress.spells[2].remindAfter);
+		ok(e.ns.TrackHUD.marks[2].note.text:find("BANNIR",1,true),"after-acquisition indicator turns red");
+		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
+		eq(h:GetSetting("trackerTheme"),"elwynn");
+		eq(e.ns.Runtime.ToggleHud(),false);
+		no(e.ns.Runtime.hud:IsShown(),"HUD can be disabled separately");
+		ok(e.ns.TrackHUD.marks[1]:IsShown(),"card marks remain informational when HUD hidden");
+		e.G.AZS_ZONE.hub=1;events.AZSZONE();
+		no(e.ns.Runtime.hud:IsShown(),"no phantom tracker in hub");
+		no(e.ns.TrackHUD.marks[1]:IsShown(),"stale proposed cards cleared in hub");
+		eq(h:Get(id).name,"Warrior plan","tracking does not edit build data");
+	end);
+
 	test("3A: only the planned globals are written; nothing foreign is read", function()
 		local e = boot();
 		e.open();
