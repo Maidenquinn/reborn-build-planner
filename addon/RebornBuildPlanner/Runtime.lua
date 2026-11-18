@@ -36,6 +36,38 @@ function R.Capture()
     runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or nil
   };
 end
+function R.PlayerClass()
+  if not ns.catalog or type(UnitClass)~="function" then return nil end
+  local _,token=UnitClass("player");
+  return ns.catalog:NormalizeClass(token);
+end
+function R.BuildOptions()
+  if not ns.storage then return {} end
+  local cls=R.PlayerClass();if not cls then return {} end
+  local active=ns.storage:GetActive(cls);
+  local out={};
+  for _,record in ipairs(ns.storage:List(cls)) do
+    if record.clean then
+      out[#out+1]={id=record.id,name=record.name,active=record.id==active};
+    end
+  end
+  return out;
+end
+function R.SelectBuild(id)
+  if not ns.storage or ns.storage.readOnly then return false end
+  local cls=R.PlayerClass();
+  if not cls then return false end
+  local ok=ns.storage:SetActive(cls,id);
+  if ok then R.Refresh() end
+  return ok and true or false;
+end
+function R.ToggleCompact()
+  if not ns.storage or ns.storage.readOnly then return false end
+  local nextValue=ns.storage:GetSetting("trackerCompact")~=true;
+  local ok=ns.storage:SetSetting("trackerCompact",nextValue);
+  if ok then R.Refresh() end
+  return ok and nextValue or false;
+end
 function R.Active()
   local cat=ns.catalog;local h=ns.storage;
   if not cat or not h or type(UnitClass)~="function" then return nil end
@@ -68,6 +100,8 @@ function R.Refresh()
   local progress=build and ns.LiveTracker.Evaluate(build,phase,snapshot) or nil;
   if progress then progress.stage=phase; progress.stageMax=4 end
   local theme=ns.storage:GetSetting("trackerTheme") or "standard";
+  ns.TrackHUD.compact=ns.storage:GetSetting("trackerCompact")==true;
+  ns.TrackHUD.SetBuildOptions(ns.TrackHUD,R.BuildOptions());
   if ns.TrackHUD and R.hud then
     if ns.storage:GetSetting("trackerEnabled") ~= false then
       ns.TrackHUD.Refresh(ns.TrackHUD,build,progress,ns.catalog,ns.Locale.lang,theme);
@@ -106,7 +140,8 @@ end
 function R.Start()
   if R.ready then return true end
   if type(AZS)~="table" or type(AZS.On)~="function" then return false end
-  R.hud=ns.TrackHUD.New(function()R.ToggleTheme()end,function()R.CycleStage()end);
+  R.hud=ns.TrackHUD.New(function()R.ToggleTheme()end,function()R.CycleStage()end,
+    function(id)R.SelectBuild(id)end,function()R.ToggleCompact()end);
   if not R.hud then return false end
   R.ready=true;
   -- One explicit subscription to each documented API event.
