@@ -442,6 +442,24 @@ function UI.New(controller, env)
 	return self;
 end
 
+function UI:HideLanguageMenu()
+	self.languageMenuOpen = false;
+	if self.languageMenu then self.languageMenu:Hide(); end
+end
+
+function UI:ShowLanguageMenu()
+	if not self.languageMenu or self.c:ReadOnly() then return; end
+	self.languageMenuOpen = true;
+	local current = ns.Locale.Selection();
+	for i, item in ipairs(ns.Locale.LANGUAGES) do
+		local row = self.languageMenu.buttons[i];
+		local selected = item.code == current;
+		row.role = selected and "selected" or "quiet";
+		setLabel(row, (selected and "  >  " or "      ") .. item.label);
+	end
+	self.languageMenu:Show();
+end
+
 function UI:Frame() return self.root; end
 function UI:IsShown() return self.root ~= nil and self.root:IsShown(); end
 
@@ -467,7 +485,7 @@ function UI:Build()
 	root:RegisterForDrag("LeftButton");
 	root:SetScript("OnDragStart", function(f) f:StartMoving(); end);
 	root:SetScript("OnDragStop", function(f) f:StopMovingOrSizing(); self:SavePosition(); end);
-	root:SetScript("OnHide", function() self:HideTip(); self:SyncEscape(); end);
+	root:SetScript("OnHide", function() self:HideTip(); self:HideLanguageMenu(); self:SyncEscape(); end);
 	root:Hide();
 
 	if THEME then
@@ -488,18 +506,35 @@ function UI:Build()
 			elseif c.state.export then c:SetView("export"); end
 		end),
 	};
-	-- Reborn Planner supports French and English translations just like FieldKit/Stats.
-	-- Keep the choice in its own saved settings, never in a build record.
-	self.languageButton = button(root, "", 150, 24, 546, 8, function()
-		local h = c:Handle();
-		if not h or h.readOnly then return; end
-		local nextLang = c:Lang() == "frFR" and "enUS" or "frFR";
-		if h:SetSetting("lang", nextLang) then
-			ns.Locale.SetLang(nextLang);
-			c:Notify();
-		end
+	-- Dropdown matches the Reborn locale list. Missing locale dictionaries fall back
+	-- per string to English; a selection never implies a completed translation.
+	self.languageMenuOpen = false;
+	self.languageButton = button(root, "", 184, 24, 546, 8, function()
+		if self.languageMenuOpen then self:HideLanguageMenu(); else self:ShowLanguageMenu(); end
 	end);
 	self.languageButton.role = "quiet";
+	local locales = ns.Locale.LANGUAGES;
+	self.languageMenu = panel(root, "RebornBuildPlannerLanguageMenu", 546, 35, 244, #locales * 24 + 16);
+	self.languageMenu:SetFrameStrata("FULLSCREEN_DIALOG");
+	self.languageMenu:SetFrameLevel(139);
+	self.languageMenu:EnableMouse(true);
+	self.languageMenu.buttons = {};
+	for index, item in ipairs(locales) do
+		local code = item.code;
+		local row = button(self.languageMenu, item.label, 224, 22, 10, 8 + (index - 1) * 24, function()
+			local h = c:Handle();
+			if not h or h.readOnly then return; end
+			if h:SetSetting("lang", code) then
+				ns.Locale.SetLang(code);
+				self:HideLanguageMenu();
+				c:Notify();
+			end
+		end);
+		row.role = "quiet";
+		row:SetFrameLevel(145);
+		self.languageMenu.buttons[index] = row;
+	end
+	self.languageMenu:Hide();
 	self.sizeMinus = button(root, "", 84, 24, 1026, 8, function() self:Rescale(-0.1); end);
 	self.sizePlus = button(root, "", 84, 24, 1114, 8, function() self:Rescale(0.1); end);
 	self.banner = text(root, 20, 38, 1180, "GameFontNormal", "LEFT");
@@ -1561,6 +1596,7 @@ end
 --          validate = fn(index, value, class) -> error text | nil (keeps the dialog open),
 --          onChoose = fn(index, value, class), cancelIndex, dangerFirst }
 function UI:ShowModal(spec)
+	self:HideLanguageMenu();
 	self:Build();
 	local m = self.modal;
 	m.spec, m.value, m.class = spec, spec.edit, spec.class;
@@ -1790,7 +1826,9 @@ function UI:Refresh()
 	local st = c.state;
 	self:HideTip();       -- list / view / data may have changed under the pointer
 	self.title:SetText("Reborn Build Planner");
-	setLabel(self.languageButton, L("Language") .. ": " .. (c:Lang() == "frFR" and "FR" or "EN"));
+	local choice = ns.Locale.Selection();
+	setLabel(self.languageButton, ns.Locale.Label(choice) .. "  v");
+	if self.languageMenuOpen then self:ShowLanguageMenu(); end
 	enable(self.languageButton, not c:ReadOnly());
 	setLabel(self.nav.import, L("Import"));
 	setLabel(self.nav.export, L("Export"));
