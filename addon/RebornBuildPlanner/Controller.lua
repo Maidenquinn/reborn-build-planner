@@ -951,10 +951,10 @@ function Controller:TooltipData(kind, key)
 		local localSections = ns.JewelryEffects and ns.JewelryEffects.Sections(key, entry.slot, lang == "frFR") or nil;
 		local liveSections = ns.JewelryEffects and ns.JewelryEffects.LiveSections(cat, key, entry.slot, lang == "frFR") or nil;
 		if liveSections then
+			-- Native equipped-item text is the player's actual benefit in this run.
+			-- Never stack an unscaled base coefficient beside a different rarity value:
+			-- that looked contradictory (e.g. 1% vs 1.5% lifesteal).
 			d.sections = liveSections;
-			if localSections then
-				for _, section in ipairs(localSections) do d.sections[#d.sections + 1] = section; end
-			end
 			d.sourceKind = "jewelry_live";
 		else
 			d.sections = localSections;
