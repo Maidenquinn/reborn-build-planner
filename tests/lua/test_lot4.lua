@@ -31,6 +31,27 @@ return function(H)
       gear={{key="ring_a"}}})
     eq(good.jewelry[1].state,"EQUIPPED")
   end)
+  test("lot4: jewelry offers use exact keys for jewel/ring/trinket/amulet", function()
+    local gearBuild={phases={{spells={},banish={},
+      rings={"ring_a","ring_b","ring_alt"},
+      trinkets={"trinket_a","trinket_b"},
+      amulets={"amulet_a","amulet_alt"}}}
+    local function hint(kind,key,slot)
+      local snap={inRun=true,cards={kind=kind}}
+      return T.CardHint(gearBuild,1,snap,{key=key,slot=slot})
+    end
+    eq(hint("jewel","ring_a","ring"),"wanted")
+    eq(hint("jewel","ring_alt","ring"),"alternative")
+    eq(hint("ring","ring_a"),"wanted")
+    eq(hint("trinket","trinket_a"),"wanted")
+    eq(hint("amulet","amulet_a"),"wanted")
+    eq(hint("amulet","amulet_alt"),"alternative")
+    eq(hint("ring","trinket_a"),nil)
+    eq(hint("trinket","ring_a"),nil)
+    eq(hint("jewel","ring_a","trinket"),nil)
+    eq(hint("ring","unknown"),nil)
+    eq(T.CardHint(gearBuild,1,{inRun=true,cards={kind="ring"}},{name="ring_a"}),nil)
+  end)
   test("lot4: banish-after waits for spell synchronization", function()
     local unknown={inRun=true,spellsKnown=false,cards={kind="spell"},spells={}}
     eq(T.CardHint(build,1,unknown,{key="whirlwind"}),nil)
