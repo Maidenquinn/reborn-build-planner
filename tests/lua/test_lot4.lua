@@ -85,6 +85,36 @@ return function(H)
     eq(#p.outsideSpells,0)
     eq(#p.outsideJewelry,0)
   end)
+  test("lot4: legendary amulet offered and equipped with official title variants", function()
+    local cat={data={jewelry={},amulets={},legends={{
+      key="legend_am",name="Ultimate Amulet",head="Ultimate Amulet",spell="whirlwind",
+      class="hunter"
+    }}}}
+    function cat:Get(kind,key)
+      if kind=="spell" and key=="whirlwind" then return {key=key,name="Aimed Shot"} end
+      if kind=="amulet" and key=="legend_am" then return self.data.legends[1] end
+    end
+    function cat:Name(kind,key,lang)
+      if kind=="spell" then return "Visée" end
+      if kind=="amulet" then return "Amulette ultime : Visée" end
+      return key
+    end
+    function cat:CheckKey(list,key,class)
+      if list=="amulets" and class=="hunter" and key=="legend_am" then return "ok" end
+      return "wrongclass"
+    end
+    local b={class="hunter",phases={{spells={},rings={},trinkets={},amulets={"legend_am"}}}}
+    local offer={inRun=true,cards={kind="jewel",cards={{slot="amulet",name="Ultimate Amulet · Aimed Shot"}}}}
+    eq(T.CardHint(b,1,offer,offer.cards.cards[1],cat,"frFR"),"wanted")
+    eq(T.OfferHasGoal(b,1,offer,cat,"frFR"),true)
+    local state={inRun=true,gearKnown=true,gear={{slot="amulet",name="Ultimate Amulet: Aimed Shot"}}}
+    local p=T.Evaluate(b,1,state,cat,"frFR")
+    eq(p.jewelry[1].state,"EQUIPPED")
+    eq(p.jewelry[1].equippedRow.name,"Ultimate Amulet: Aimed Shot")
+    state.gear={{slot="amulet",name="Another amulet"}}
+    p=T.Evaluate(b,1,state,cat,"frFR")
+    eq(p.jewelry[1].state,"UNKNOWN")
+  end)
   test("lot4: jewelry offers use exact keys for jewel/ring/trinket/amulet", function()
     local gearBuild={phases={{spells={},banish={},
       rings={"ring_a","ring_b","ring_alt"},
