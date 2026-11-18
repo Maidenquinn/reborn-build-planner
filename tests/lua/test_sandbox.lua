@@ -12,7 +12,7 @@ return function(H)
 		ok(toc:find("## Interface: 30300", 1, true));
 		ok(toc:find("## Dependencies: AzerothSurvivors, AzerothSurvivorsAPI", 1, true));
 		ok(toc:find("## SavedVariables: RebornBuildPlannerDB", 1, true));
-		eq(files(), { "Util.lua", "Locale.lua", "GeneratedCatalog.lua", "GeneratedJewelryMechanics.lua", "Glossary.lua", "Catalog.lua", "Describe.lua", "JewelryEffects.lua", "Theme.lua", "BuildModel.lua", "Storage.lua", "Utf8.lua", "Base64Url.lua", "Json.lua", "PlannerCodec.lua", "UIStrings.lua", "Controller.lua", "UI.lua", "Commands.lua", "Core.lua" });
+		eq(files(), { "Util.lua", "Locale.lua", "GeneratedCatalog.lua", "GeneratedJewelryMechanics.lua", "Glossary.lua", "Catalog.lua", "Describe.lua", "JewelryEffects.lua", "Theme.lua", "BuildModel.lua", "Storage.lua", "Utf8.lua", "Base64Url.lua", "Json.lua", "PlannerCodec.lua", "UIStrings.lua", "AdditionalLocales.lua", "Controller.lua", "UI.lua", "Commands.lua", "Core.lua" });
 		for _, f in ipairs(files()) do
 			ok(#H.readFile(H.root .. "/addon/RebornBuildPlanner/" .. f) > 0, f);
 		end
