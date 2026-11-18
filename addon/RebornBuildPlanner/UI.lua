@@ -597,9 +597,9 @@ function UI:BuildLibrary(v)
 	lib.searchLabel = text(v, 8, 12, 90, "GameFontNormal");
 	lib.search = edit(v, 146, 98, 8, function(t) c:SetLibSearch(t); end, "RebornBuildPlannerLibSearch");
 	lib.filters = {
-		all = button(v, "", 56, 22, 8, 36, function() c:SetFilter("all"); end),
-		favorites = button(v, "", 104, 22, 68, 36, function() c:SetFilter("favorites"); end),
-		recent = button(v, "", 68, 22, 176, 36, function() c:SetFilter("recent"); end),
+		all = button(v, "", 55, 22, 8, 36, function() c:SetFilter("all"); end),
+		favorites = button(v, "", 88, 22, 63, 36, function() c:SetFilter("favorites"); end),
+		recent = button(v, "", 93, 22, 151, 36, function() c:SetFilter("recent"); end),
 	};
 	lib.classCycle = cycler(v, 8, 64, 236, function() c:CycleClassFilter(-1); end, function() c:CycleClassFilter(1); end, "GameFontNormalSmall");
 	lib.sortCycle = cycler(v, 8, 90, 236, function() c:CycleSort(-1); end, function() c:CycleSort(1); end, "GameFontNormalSmall");
@@ -742,8 +742,8 @@ function UI:BuildEditor(v)
 	self.ed = ed;
 	ed.empty = wrapped(v, 40, 200, EW - 60, 80, "GameFontNormalLarge");
 	-- header: name, class, favourite, status, actions
-	ed.nameLabel = text(v, 8, 12, 50, "GameFontNormal");
-	ed.name = edit(v, 230, 58, 8, function(t) c:SetName(t); end, "RebornBuildPlannerName");
+	ed.nameLabel = text(v, 8, 12, 80, "GameFontNormal");
+	ed.name = edit(v, 196, 94, 8, function(t) c:SetName(t); end, "RebornBuildPlannerName");
 	ed.class = text(v, 294, 13, 130, "GameFontNormal");
 	ed.fav = button(v, "", 132, 24, 430, 7, function() local e = c:Editor(); if e then c:ToggleFavorite(e.id); end end);
 	ed.save = button(v, "", 96, 24, 8, 36, function() c:Save(); end);
@@ -1271,10 +1271,10 @@ function UI:BuildBrowser(v)
 	self.bs = bs;
 	bs.head = header(v, 8, 8, RP_W - 16);
 	bs.kinds = {
-		spells = button(v, "", 78, 22, 8, 34, function() c:SetCatalog("spells"); end),
-		rings = button(v, "", 82, 22, 90, 34, function() c:SetCatalog("rings"); end),
-		trinkets = button(v, "", 88, 22, 176, 34, function() c:SetCatalog("trinkets"); end),
-		amulets = button(v, "", 92, 22, 268, 34, function() c:SetCatalog("amulets"); end),
+		spells = button(v, "", 90, 22, 8, 34, function() c:SetCatalog("spells"); end),
+		rings = button(v, "", 77, 22, 98, 34, function() c:SetCatalog("rings"); end),
+		trinkets = button(v, "", 100, 22, 175, 34, function() c:SetCatalog("trinkets"); end),
+		amulets = button(v, "", 85, 22, 275, 34, function() c:SetCatalog("amulets"); end),
 	};
 	bs.searchLabel = text(v, 8, 66, 80, "GameFontNormalSmall");
 	bs.search = edit(v, 262, 92, 62, function(t) c:SetSearch(t); end, "RebornBuildPlannerSearch");
