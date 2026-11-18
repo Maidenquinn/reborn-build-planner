@@ -103,7 +103,7 @@ return function(H)
 		ok(menu and menu.options and #menu.options==2,"tracked build selector populated");
 		eq(e.ns.Runtime.ToggleCompact(),true);
 		eq(h:GetSetting("trackerCompact"),true);
-		eq(e.ns.TrackHUD.frame:GetHeight(),69);
+		eq(e.ns.TrackHUD.frame:GetHeight(),112);
 		eq(e.ns.Runtime.ToggleCompact(),false);
 		eq(e.ns.TrackHUD.frame:GetHeight(),224);
 		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
