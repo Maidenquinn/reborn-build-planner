@@ -860,6 +860,13 @@ return function(H)
 		end);
 	end
 
+	test("layout lint Russian: translated labels remain inside controls", function()
+		local e = boot({ width = 1365, height = 768, locale = "ruRU" }); e.open();
+		eq(e.ns.Locale.lang, "ruRU");
+		local problems = tour(e);
+		eq(problems, {}, "Russian full client workflow, 1365x768");
+	end);
+
 	test("layout lint: another UI scale and a moved window", function()
 		local e = boot({ width = 1365, height = 768, locale = "frFR" }); e.open();
 		e.h():SetSetting("scale", 1.5);
