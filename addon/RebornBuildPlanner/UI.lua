@@ -167,7 +167,7 @@ end
 -- the number of letters. A typical Cyrillic glyph and a Latin letter may take
 -- different widths depending on the client's chosen font.
 local function fittedButtonText(b, full)
-	local available = math.max(16, (b.GetWidth and b:GetWidth() or 100) - 10);
+	local available = math.max(16, (b.GetWidth and b:GetWidth() or 100) - 14);
 	local fs = b.fs or b.label;
 	if not fs or not fs.SetText or not fs.GetStringWidth then
 		return fitText(full, available, 13);
@@ -616,9 +616,9 @@ function UI:BuildLibrary(v)
 	lib.searchLabel = text(v, 8, 12, 90, "GameFontNormal");
 	lib.search = edit(v, 146, 98, 8, function(t) c:SetLibSearch(t); end, "RebornBuildPlannerLibSearch");
 	lib.filters = {
-		all = button(v, "", 55, 22, 8, 36, function() c:SetFilter("all"); end),
-		favorites = button(v, "", 88, 22, 63, 36, function() c:SetFilter("favorites"); end),
-		recent = button(v, "", 93, 22, 151, 36, function() c:SetFilter("recent"); end),
+		all = button(v, "", 62, 22, 8, 36, function() c:SetFilter("all"); end),
+		favorites = button(v, "", 92, 22, 70, 36, function() c:SetFilter("favorites"); end),
+		recent = button(v, "", 82, 22, 162, 36, function() c:SetFilter("recent"); end),
 	};
 	lib.classCycle = cycler(v, 8, 64, 236, function() c:CycleClassFilter(-1); end, function() c:CycleClassFilter(1); end, "GameFontNormalSmall");
 	lib.sortCycle = cycler(v, 8, 90, 236, function() c:CycleSort(-1); end, function() c:CycleSort(1); end, "GameFontNormalSmall");
