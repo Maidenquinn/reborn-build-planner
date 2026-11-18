@@ -6,6 +6,8 @@ assert(ns.Locale, "RebornBuildPlanner: Locale.lua must load before UIStrings.lua
 
 ns.Locale.Register({
 	["Language"] = "Langue",
+	["Choose your next build"] = "Choisissez votre prochain build",
+	["Select a saved build on the left, or create a new one."] = "Sélectionnez un build à gauche ou créez-en un nouveau.",
 	["Storage unavailable"] = "Stockage indisponible",
 	["Read only: the saved data comes from a newer version"] = "Lecture seule : les données enregistrées viennent d'une version plus récente",
 	["Read only: the saved data could not be repaired safely"] = "Lecture seule : les données enregistrées n'ont pas pu être réparées sans risque",
