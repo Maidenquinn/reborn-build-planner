@@ -39,7 +39,8 @@ local function rim(frame,theme)
       local cuts={0,12/512,500/512,1};
       for y=1,3 do for x=1,3 do
         local t=frame:CreateTexture(nil,"BORDER");
-        t:SetTexCoord(cuts[x],cuts[x+1],cuts[y==1 and 3 or y],cuts[y==1 and 4 or y+1]);
+        local row=(x==2 and y==1) and 3 or y;
+        t:SetTexCoord(cuts[x],cuts[x+1],cuts[row],cuts[row+1]);
         frame.rim[#frame.rim+1]={texture=t,x=x,y=y};
       end end
     end
@@ -215,8 +216,8 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
     phaseName=ns.Locale.T(ns.BuildModel.DEFAULT_LABELS[stage] or "Stage");
   end
   f.stageButton.text:SetText((fr and "Étape " or "Stage ")..stage.."/4 · "..trunc(phaseName,22).." >");
-  f.stageButton:SetShown(not compact);f.rule:SetShown(not compact);
-  f.gear:SetShown(not compact);f.gearCount:SetShown(not compact);
+  if compact then f.stageButton:Hide();f.rule:Hide();f.gear:Hide();f.gearCount:Hide()
+  else f.stageButton:Show();f.rule:Show();f.gear:Show();f.gearCount:Show() end
   f.stageButton.text:SetTextColor(unpack(c.gold));
   for i,r in ipairs(f.rows) do
     local spell=progress.spells and progress.spells[i];
