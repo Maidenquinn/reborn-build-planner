@@ -557,7 +557,7 @@ local function createCardMark(card)
   for _,point in ipairs({"TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
     local tex=mark:CreateTexture(nil,"OVERLAY");
     tex:SetTexture("Interface\\Buttons\\UI-ActionButton-Border");
-    tex:SetBlendMode("ADD");
+    if tex.SetBlendMode then tex:SetBlendMode("ADD") end;
     tex:SetSize(84,84);
     tex:SetPoint(point,mark,point,0,0);
     tex:SetAlpha(.55);
