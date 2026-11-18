@@ -144,7 +144,7 @@ return function(H)
 		ok(t:find("Damage: 15%", 1, true), t);
 		ok(t:find("(rank 5: 37.8%)", 1, true), t);
 		ok(t:find("Growth 0.6: x1.60 at rank 2", 1, true), t);
-		ok(t:find("Official rule", 1, true));
+		ok(t:find("affected effects become stronger", 1, true), "growth explained without raw formula");
 		ok(t:find("Classes: every class", 1, true) and t:find("World: every world", 1, true), t);
 		-- a special with a share, a special without number, a world, a heal requirement
 		local seen = {};
