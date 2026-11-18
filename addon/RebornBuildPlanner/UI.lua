@@ -973,7 +973,7 @@ end
 -- ------------------------------------------------------------------ DetailPane (centre, bottom)
 -- A fixed inspector: icon, full name, type line, then SECTIONS (In this build / Description / Information / Effects /
 -- Growth / Availability / Source) in a scrollable pool of 8 wrapped rows (wheel or slider); actions on the right.
-local DET_ROWS, DET_CHARS = 8, 47;
+local DET_ROWS, DET_CHARS = 8, 70; -- all available width for real effect descriptions
 
 -- word wrap by character budget (a deterministic estimate; long words are cut)
 local function wrapText(textIn, max)
@@ -1006,14 +1006,15 @@ function UI:BuildDetail(v)
 	det.title = text(v, 52, 454, 340, "GameFontNormalLarge", "LEFT", 18);
 	det.type = text(v, 52, 474, 340, "GameFontNormalSmall");
 	det.type:SetTextColor(0.66, 0.68, 0.74);
-	det.area = scrollArea(v, 8, 496, 372, DET_ROWS * 15, function(d) self:ScrollDetail(d); end, function(o) self:SetDetailOffset(o); end);
+	det.area = scrollArea(v, 8, 496, 548, DET_ROWS * 15, function(d) self:ScrollDetail(d); end, function(o) self:SetDetailOffset(o); end);
 	det.rows = {};
 	for i = 1, DET_ROWS do
-		det.rows[i] = text(det.area.hold, 0, (i - 1) * 15, 372, "GameFontHighlight");
+		det.rows[i] = text(det.area.hold, 0, (i - 1) * 15, 530, "GameFontHighlight");
 	end
 	det.body = det.rows[1];        -- first row (kept for tests and callers that only want "the text")
-	det.source = wrapped(v, 400, 520, 162, 96, "GameFontNormalSmall");
+	det.source = wrapped(v, 8, 626, 540, 16, "GameFontNormalSmall");
 	det.source:SetTextColor(0.62, 0.64, 0.70);
+	det.source:Hide(); -- source metadata is appended to the scrollable full-width text
 	det.act1 = button(v, "", 166, 26, 396, 454, function() self:DetailAct(1); end);
 	det.act2 = button(v, "", 166, 24, 396, 484, function() self:DetailAct(2); end);
 	det.act1.role = "primary";
@@ -1103,7 +1104,8 @@ function UI:RefreshDetail()
 	local c, det = self.c, self.det;
 	local e = c:Editor();
 	local show = e ~= nil and not e.adv;
-	for _, w in ipairs({ det.head, det.title, det.type, det.source, det.act1, det.act2 }) do setShown(w, show); end
+	for _, w in ipairs({ det.head, det.title, det.type, det.act1, det.act2 }) do setShown(w, show); end
+	det.source:Hide();
 	setShown(det.area.hold, show);
 	if not show then det.icon:Hide(); det.area.slider:Hide(); return; end
 	local ro = c:ReadOnly();
@@ -1140,7 +1142,15 @@ function UI:RefreshDetail()
 		"Source : mécaniques locales du client Reborn (valeurs de base, non actuelles)." or
 		"Source: local Reborn client mechanics (base values, not current stats).");
 	elseif d.sections then source = L("Source: published game data (azreborn.com/data/v1), rank 1 values and the official growth rule."); end
-	det.source:SetText(source);
+	det.source:SetText(source); -- retained for diagnostics and tests
+	-- Source is full-width and scrollable instead of cropped to 162px.
+	if source and source ~= "" then
+		det.lines[#det.lines + 1] = { text = "", rgb = TONE_RGB.dim };
+		for _, w in ipairs(wrapText(source, DET_CHARS)) do
+			det.lines[#det.lines + 1] = { text = w, rgb = TONE_RGB.dim };
+		end
+		self:SetDetailOffset(det.offset);
+	end
 	-- actions
 	if st.spell then
 		det.act1.role = st.spell.wanted and "quiet" or "primary";
