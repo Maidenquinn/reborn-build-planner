@@ -23,8 +23,8 @@ local THEMES = {
   elwynn = { bg={0.035,0.075,0.055,0.96}, edge={0.76,0.56,0.24,1}, gold={1,0.82,0.41}, mute={0.78,0.83,0.70},
     art="elwynn_card_body_v9.tga" },
 };
-local WIDTH, HEIGHT = 204, 236;
-local COMPACT_HEIGHT = 128;
+local WIDTH, HEIGHT = 220, 245;
+local COMPACT_HEIGHT = 140;
 local function label(parent, font, size, x, y, width)
   local f=parent:CreateFontString(nil,"OVERLAY",font or "GameFontHighlightSmall");
   f:SetPoint("TOPLEFT",parent,"TOPLEFT",x,-y);
@@ -124,23 +124,24 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f:EnableMouse(true);f:RegisterForDrag("LeftButton");
   f:SetScript("OnDragStart",function(self)self:StartMoving()end);
   f:SetScript("OnDragStop",function(self)self:StopMovingOrSizing()end);
-  f.titleButton=CreateFrame("Button",nil,f);f.titleButton:SetSize(125,19);
+  f.titleButton=CreateFrame("Button",nil,f);f.titleButton:SetSize(137,19);
   f.titleButton:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=7,insets={left=2,right=2,top=2,bottom=2}});
   f.titleButton:SetBackdropColor(.055,.13,.085,.95);f.titleButton:SetBackdropBorderColor(.75,.56,.24,1);
   f.titleButton:SetPoint("TOPLEFT",f,"TOPLEFT",12,-7);
-  f.title=label(f.titleButton,"GameFontNormal",10,5,3,112);
+  f.title=label(f.titleButton,"GameFontNormal",10,5,3,125);
   f.titleButton:SetScript("OnClick",function()H.ToggleBuildMenu(H)end);
-  f.counter=label(f,"GameFontHighlightSmall",9,142,12,27);
+  f.counter=label(f,"GameFontHighlightSmall",9,155,12,28);
   f.counter:SetJustifyH("RIGHT");
   f.themeButton=CreateFrame("Button",nil,f);
-  f.themeButton:SetSize(26,16);
-  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-13,-28);
-  f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",9,1,2,27);
+  f.themeButton:SetSize(47,16);
+  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-12,-28);
+  f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",9,1,2,45);
+  f.themeButton.text:SetJustifyH("RIGHT");
   f.themeButton:SetScript("OnClick",function()if onTheme then onTheme()end end);
   f.collapseButton=CreateFrame("Button",nil,f);f.collapseButton:SetSize(23,18);
   f.collapseButton:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=7,insets={left=2,right=2,top=2,bottom=2}});
   f.collapseButton:SetBackdropColor(.12,.17,.09,.98);f.collapseButton:SetBackdropBorderColor(.8,.64,.31,1);
-  f.collapseButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-10,-7);
+  f.collapseButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-11,-7);
   f.collapseButton:SetScript("OnEnter",function(self)
     if GameTooltip then GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText("Réduire / Agrandir le suivi");GameTooltip:Show() end
   end);
@@ -154,7 +155,7 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f.stageButton=CreateFrame("Button",nil,f);
   f.stageButton:SetSize(WIDTH-12,15);
   f.stageButton:SetPoint("TOPLEFT",f,"TOPLEFT",12,-29);
-  f.stageButton.text=label(f.stageButton,"GameFontHighlightSmall",9,1,1,145);
+  f.stageButton.text=label(f.stageButton,"GameFontHighlightSmall",9,1,1,150);
   f.stageButton:SetScript("OnClick",function()if onStage then onStage()end end);
   f.rule=f:CreateTexture(nil,"ARTWORK");f.rule:SetTexture(WHITE);
   f.rule:SetHeight(1);
@@ -162,29 +163,38 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f.rule:SetPoint("TOPRIGHT",f,"TOPRIGHT",-12,-46);
   f.rows={};
   for i=1,6 do f.rows[i]=row(f,49+(i-1)*16,false) end
-  f.gear=label(f,"GameFontNormalSmall",9,10,149,152);
-  f.gearCount=label(f,"GameFontHighlightSmall",9,153,149,41);
+  f.gear=label(f,"GameFontNormalSmall",9,12,149,159);
+  f.gearCount=label(f,"GameFontHighlightSmall",9,176,149,27);
   f.gearCount:SetJustifyH("RIGHT");
   f.jewels={};
   for i=1,5 do f.jewels[i]=row(f,162+(i-1)*13,true) end
   -- Bottom line reserved as padding: no message below the fifth jewel row.
   f.mini={};
-  f.miniSpellLabel=label(f,"GameFontNormalSmall",9,13,44,130);
-  f.miniGearLabel=label(f,"GameFontNormalSmall",9,13,84,130);
-  f.miniGearCount=label(f,"GameFontHighlightSmall",9,157,84,26);
+  f.miniSpellLabel=label(f,"GameFontNormalSmall",9,14,48,130);
+  f.miniGearLabel=label(f,"GameFontNormalSmall",9,14,91,130);
+  f.miniGearCount=label(f,"GameFontHighlightSmall",9,180,91,27);
   for i=1,11 do
     local cell=CreateFrame("Frame",nil,f);
     cell:SetSize(22,22);
     local row=i<=6 and 0 or 1;
     local col=row==0 and (i-1) or (i-7);
-    cell:SetPoint("TOPLEFT",f,"TOPLEFT",13+col*29,-57-row*40);
+    cell:SetPoint("TOPLEFT",f,"TOPLEFT",14+col*31,-64-row*43);
     cell.bg=cell:CreateTexture(nil,"BACKGROUND");cell.bg:SetAllPoints(cell);
     cell.bg:SetTexture(WHITE);cell.bg:SetVertexColor(.04,.075,.064,.95);
-    cell.ring=cell:CreateTexture(nil,"ARTWORK");cell.ring:SetTexture(WHITE);
-    cell.ring:SetPoint("TOPLEFT",cell,"TOPLEFT",-1,1);
-    cell.ring:SetPoint("BOTTOMRIGHT",cell,"BOTTOMRIGHT",1,-1);
-    cell.ring:SetVertexColor(.43,.35,.20,1);
-    local t=cell:CreateTexture(nil,"OVERLAY");t:SetSize(20,20);
+    -- Thin four-sided status outline, never an opaque coloured square.
+    cell.edges={};
+    for _,side in ipairs({"TOP","BOTTOM","LEFT","RIGHT"}) do
+      local edge=cell:CreateTexture(nil,"OVERLAY");edge:SetTexture(WHITE);
+      if side=="TOP" or side=="BOTTOM" then
+        edge:SetHeight(2);edge:SetPoint(side.."LEFT",cell,side.."LEFT",0,0);
+        edge:SetPoint(side.."RIGHT",cell,side.."RIGHT",0,0);
+      else
+        edge:SetWidth(2);edge:SetPoint("TOP"..side,cell,"TOP"..side,0,0);
+        edge:SetPoint("BOTTOM"..side,cell,"BOTTOM"..side,0,0);
+      end
+      cell.edges[#cell.edges+1]=edge;
+    end
+    local t=cell:CreateTexture(nil,"ARTWORK");t:SetSize(20,20);
     t:SetPoint("CENTER",cell,"CENTER",0,0);
     cell:Hide();f.mini[i]={icon=t,cell=cell};
   end
@@ -323,11 +333,13 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
       local state=i<=6 and item.status or item.state;
       -- Keep game icons in their original colours: status lives in the rim.
       t:SetVertexColor(1,1,1,1);
-      if i<=6 and item.remindAfter then m.cell.ring:SetVertexColor(.96,.30,.34,1)
-      elseif state=="ACHIEVED" or state=="EQUIPPED" then m.cell.ring:SetVertexColor(.30,.88,.49,1)
-      elseif state=="ALTERNATIVE" then m.cell.ring:SetVertexColor(.45,.72,1,1)
-      elseif state=="UNKNOWN" then m.cell.ring:SetVertexColor(.52,.56,.59,1)
-      else m.cell.ring:SetVertexColor(.94,.66,.28,1) end
+      local rgb;
+      if i<=6 and item.remindAfter then rgb={.96,.30,.34}
+      elseif state=="ACHIEVED" or state=="EQUIPPED" then rgb={.30,.88,.49}
+      elseif state=="ALTERNATIVE" then rgb={.45,.72,1}
+      elseif state=="UNKNOWN" then rgb={.52,.56,.59}
+      else rgb={.94,.66,.28} end
+      for _,edge in ipairs(m.cell.edges) do edge:SetVertexColor(unpack(rgb)) end
       m.cell:Show()
     else m.cell:Hide() end
   end
