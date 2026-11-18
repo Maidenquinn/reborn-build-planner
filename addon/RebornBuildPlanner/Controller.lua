@@ -137,7 +137,7 @@ function Controller:SetSort(sort)
 end
 
 function Controller:CycleSort(dir)
-	local order, cur = { "name", "used", "modified" }, self:Sort();
+	local order, cur = { "name", "created", "modified", "used", "class" }, self:Sort();
 	local i = (Util.IndexOf(order, cur) or 1) + dir;
 	if i < 1 then i = #order; end
 	if i > #order then i = 1; end
@@ -218,7 +218,7 @@ function Controller:Rows()
 		end
 		if keep then
 			out[#out + 1] = { id = e.id, name = e.name, class = e.class, className = self:ClassName(e.class), revision = e.revision,
-				clean = e.clean, active = h:GetActive(e.class) == e.id, fav = meta.fav, used = meta.used, modified = meta.modified,
+				clean = e.clean, active = h:GetActive(e.class) == e.id, fav = meta.fav, used = meta.used, modified = meta.modified, created = meta.created,
 				lname = ns.Utf8.CaseFold(e.name or "") };
 		end
 	end
@@ -242,6 +242,14 @@ function Controller:Rows()
 			return x.id < y.id;
 		end);
 		while #out > Controller.RECENT_MAX do out[#out] = nil; end
+	elseif sort == "class" then
+		table.sort(out, function(x, y)
+			if x.fav ~= y.fav then return x.fav; end
+			local a, b = ns.Utf8.CaseFold(x.className), ns.Utf8.CaseFold(y.className)
+			if a ~= b then return a < b; end
+			if x.lname ~= y.lname then return x.lname < y.lname; end
+			return x.id < y.id;
+		end);
 	elseif sort == "name" then
 		table.sort(out, function(x, y)
 			if x.fav ~= y.fav then return x.fav; end
@@ -249,7 +257,7 @@ function Controller:Rows()
 			return x.id < y.id;
 		end);
 	else
-		table.sort(out, newer(sort == "used" and "used" or "modified"));
+		table.sort(out, newer((sort == "used" or sort == "created") and sort or "modified"));
 	end
 	return out;
 end
