@@ -114,7 +114,8 @@ function H.UpdateCards(self, build, snapshot, phase, theme)
     end
   end
   if not self.cardRoot then return end
-  local showing=snapshot and snapshot.cards and snapshot.cards.kind=="spell" and
+  local showing=snapshot and snapshot.cards and
+    (snapshot.cards.kind=="spell" or snapshot.cards.kind=="jewel" or snapshot.cards.kind=="amulet") and
     AZSCardsFrame and AZSCardsFrame.IsShown and AZSCardsFrame:IsShown();
   local c=THEMES[theme] or THEMES.standard;
   for i=1,8 do
@@ -144,8 +145,9 @@ function H.UpdateCards(self, build, snapshot, phase, theme)
       if hint then
         local rgb=hint=="wanted" and {0.22,0.97,0.63} or hint=="avoid" and {1,0.27,0.31} or {1,0.57,0.24};
         for _,t in ipairs(mark.border)do t:SetVertexColor(unpack(rgb));end
-        mark.note:SetText(hint=="wanted" and (theme=="elwynn" and "★ BUILD" or "BUILD") or
-          hint=="avoid" and "ÉVITER" or "BANNIR APRÈS");
+        mark.note:SetText(hint=="wanted" and "BUILD" or hint=="alternative" and "ALT." or
+          hint=="avoid" and (ns.Locale.lang=="frFR" and "ÉVITER" or "AVOID") or
+          (ns.Locale.lang=="frFR" and "BANNIR APRÈS" or "BANISH LATER"));
         mark.note:SetTextColor(unpack(rgb));mark:Show();
       else mark:Hide();end
     end
