@@ -1,4 +1,4 @@
-# Reborn Build Planner — Windows recipe (never modifies the game installation).
+# Reborn Build Planner - Windows recipe (never modifies the game installation).
 # Usage:
 # powershell -ExecutionPolicy Bypass -File tools\recette_ultimate_windows.ps1 -GameExe "X:\...\Game.exe" -CatalogDir "X:\...\data\v1"
 [CmdletBinding()]
@@ -19,7 +19,7 @@ if (!(Test-Path -LiteralPath (Join-Path $CatalogDir "index.json") -PathType Leaf
 $venv = Join-Path $root ".devtools\venv\Scripts\python.exe"
 $python = $venv
 if (!(Test-Path -LiteralPath $venv)) { throw "Lua 5.1 venv missing. See README.md: python -m venv .devtools\venv; .devtools\venv\Scripts\python.exe -m pip install lupa" }
-if (!$OutputDir) { $OutputDir = Join-Path $root "dist\ultimate-0.4.5-recette" }
+if (!$OutputDir) { $OutputDir = Join-Path $root "dist\ultimate-0.4.7-local" }
 $outFull = [IO.Path]::GetFullPath($OutputDir)
 $rootFull = [IO.Path]::GetFullPath($root)
 if (!$outFull.StartsWith($rootFull + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
@@ -84,7 +84,7 @@ try {
 } finally { $archive.Dispose() }
 Write-Host "4/4 Writing an honest recette manifest" -ForegroundColor Cyan
 $manifest = @(
-  "# Ultimate UI recette — local generated package"
+  "# Ultimate UI recette - local generated package"
   ""
   "Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz')"
   "Git HEAD: $(git rev-parse HEAD)"
