@@ -660,12 +660,12 @@ function UI:BuildLibrary(v)
 		lib.classOptions[#lib.classOptions + 1] = opt;
 	end
 	lib.classMenu:Hide();
-	lib.sortMenu = panel(v, nil, 8, 114, 236, 12 + 3 * 24);
+	lib.sortMenu = panel(v, nil, 8, 114, 236, 12 + 5 * 24);
 	lib.sortMenu:SetFrameStrata("FULLSCREEN_DIALOG");
 	lib.sortMenu:SetFrameLevel(140);
 	lib.sortMenu:EnableMouse(true);
 	lib.sortOptions = {};
-	for i, key in ipairs({ "name", "used", "modified" }) do
+	for i, key in ipairs({ "name", "created", "modified", "used", "class" }) do
 		local sortKey = key;
 		local opt = button(lib.sortMenu, "", 220, 22, 8, 6 + (i - 1) * 24, function()
 			self:HideLibraryMenu();
@@ -755,7 +755,7 @@ function UI:ToggleLibraryMenu(kind)
 		end
 		lib.classMenu:Show();
 	elseif kind == "sort" then
-		local labels = { name = L("Name"), used = L("Last used"), modified = L("Last modified") };
+		local labels = { name = L("Name"), created = L("Created"), modified = L("Last modified"), used = L("Last used"), class = L("Class") };
 		for _, opt in ipairs(lib.sortOptions) do
 			local on = opt.sortKey == c:Sort();
 			opt.role = on and "warn" or "quiet";
