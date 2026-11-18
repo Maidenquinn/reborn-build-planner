@@ -2,7 +2,7 @@
 -- no SendAddonMessage or any automated card interaction.
 local ADDON, ns = ...;
 ns = ns or {};
-local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false }, runKey=nil };
+local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false, cards=false }, runKey=nil };
 ns.Runtime = R;
 local EVENTS = { "AZSSPELLS", "AZSSPELLTIP", "AZSGEAR", "AZSCARDS",
   "AZSCARDTIP", "AZSRUN", "AZSZONE", "AZSEND" };
@@ -14,10 +14,11 @@ function R.Note(event)
     (type(AZS_ZONE)=="table" and AZS_ZONE.run or nil);
   if runKey ~= R.runKey then
     R.runKey=runKey;
-    R.received={ spells=false, gear=false };
+    R.received={ spells=false, gear=false, cards=false };
   end
   if event=="AZSSPELLS" then R.received.spells=true end
   if event=="AZSGEAR" then R.received.gear=true end
+  if event=="AZSCARDS" then R.received.cards=true end
 end
 function R.Capture()
   local phase = type(AZS_GetPhase)=="function" and AZS_GetPhase() or
@@ -31,7 +32,7 @@ function R.Capture()
     spellsKnown=running and R.received.spells and type(AZS_SPELLS)=="table" or false,
     gear=running and type(AZS_GEAR)=="table" and AZS_GEAR or nil,
     gearKnown=running and R.received.gear and type(AZS_GEAR)=="table" or false,
-    cards=running and type(AZS_CARDS)=="table" and AZS_CARDS or nil,
+    cards=running and R.received.cards and type(AZS_CARDS)=="table" and AZS_CARDS or nil,
     runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or nil
   };
 end
