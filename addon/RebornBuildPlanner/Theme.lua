@@ -57,6 +57,7 @@ T.Mid = mid;
 -- texture files of the theme: name -> { pixel size, corner (nine-slice only) }; mirrored by the generator and the tests
 T.FILES = {
 	ultimate_panel = { 256, 20 }, ultimate_corner = { 128 }, ultimate_crest = { 128 }, ultimate_titlebar = { 512 },
+	ultimate_fav_off = { 64 }, ultimate_fav_on = { 64 },
 	panel_nine = { 64, 16 }, window_nine = { 128, 28 }, inset_nine = { 32, 6 }, titlebar_nine = { 64, 12, 32 }, tooltip_nine = { 64, 14 },
 	slot_normal_nine = { 32, 8 }, slot_selected_nine = { 32, 8 }, slot_empty_nine = { 32, 8 },
 	button_primary_nine = { 32, 8 }, button_secondary_nine = { 32, 8 }, button_danger_nine = { 32, 8 }, button_selected_nine = { 32, 8 },
