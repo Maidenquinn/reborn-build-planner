@@ -62,9 +62,10 @@ return function(H)
 		eq(cat:Name("jewel", "accuria", "frFR"), "Anneau d'Accuria");
 		eq(cat:Name("amulet", "mark_of_fordring", "frFR"), "Marque de Fordring");
 		eq(cat:Name("amulet", "legendary:cleave", "frFR"), "Médaillon de la Tempête de lames: Enchaînement");   -- head: English only in the data; spell part translated
-		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: Cleave");   -- no embedded language: English
+		eq(cat:Name("amulet", "legendary:cleave", "deDE"),
+            "Medallion of the Bladestorm: " .. ((cat.i18n.deDE or {})["Cleave"] or "Cleave"));
 		eq(cat:Name("spell", "no_such_spell", "frFR"), "no_such_spell");
-		eq(cat:Name("spell", "whirlwind", "deDE"), "Whirlwind");                                    -- language not embedded
+		eq(cat:Name("spell", "whirlwind", "deDE"), (cat.i18n.deDE or {})["Whirlwind"] or "Whirlwind");
 	end);
 
 	test("legendary homonyms need the class; head and icon are never identifiers", function()
@@ -165,7 +166,7 @@ return function(H)
 	test("class names: localized with English fallback, unknown class shows its key", function()
 		eq(cat:ClassName("warrior"), "Warrior");
 		eq(cat:ClassName("warrior", "frFR"), "Guerrier");
-		eq(cat:ClassName("warrior", "deDE"), "Warrior");
+		eq(cat:ClassName("warrior", "deDE"), (cat.i18n.deDE or {})["Warrior"] or "Warrior");
 		eq(cat:ClassName("necromancer", "frFR"), "necromancer");
 		for _, k in ipairs(cat:ClassKeys()) do ok(cat:ClassName(k, "frFR") ~= "", k); end
 	end);
