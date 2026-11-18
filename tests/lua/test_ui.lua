@@ -101,7 +101,7 @@ return function(H)
 		ok(goldMark.shineEnabled,"recommended card enables glow animation");
 		ok(goldMark.shine[1].texture:find("WHITE8X8",1,true)~=nil,
 		  "external glow is a seamless edge strip, not an internal square stamp");
-		eq(goldMark.shine[1].height,8,"top external glow has thin strip geometry");
+		eq(goldMark.shine[1]:GetHeight(),8,"top external glow has thin strip geometry");
 
 		cardRoot:Hide();
 		no(e.ns.TrackHUD.marks[1]:IsShown(),"native OnHide immediately clears highlight");
