@@ -79,7 +79,7 @@ return function(H)
 		eq(e.ns.Runtime.progress.achieved,1);
 		ok(e.ns.Runtime.hud:IsShown(),"compact tracker visible in a real run");
 		ok(e.ns.TrackHUD.frame.openButton,"HUD has a dedicated planner button");
-		e.ns.TrackHUD.frame.openButton:Click();
+		e.world.click(e.ns.TrackHUD.frame.openButton);
 		ok(e.ns.ui:IsShown(),"planner opens directly from the live HUD");
 
 		eq(e.ns.TrackHUD.frame.rows[1].state.text,"R1","acquired spell shows its actual rank");
