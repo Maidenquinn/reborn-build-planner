@@ -1698,6 +1698,10 @@ function UI:ShowModal(spec)
 	m.dim:Show();
 	m:Show();
 	m.footer:Show();
+	if spec.edit ~= nil then
+		-- Focus only after all high-level modal layers are visible in Reborn.
+		m.edit:SetFocus();
+	end
 	for i = 1, 3 do
 		local label = spec.buttons[i];
 		m.b[i].role = (i == 1 and spec.dangerFirst) and "danger" or (i == 1 and "primary" or "quiet");
