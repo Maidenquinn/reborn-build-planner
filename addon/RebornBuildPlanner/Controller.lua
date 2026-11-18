@@ -432,6 +432,7 @@ function Controller:Activate(id)
 	if not ok then self:Say("error", explain(err)); return false; end
 	h:Touch(id);
 	self:Say("info", L("Active build for this class"));
+	if ns.Runtime then ns.Runtime.Refresh() end
 	return true;
 end
 
@@ -441,6 +442,7 @@ function Controller:Deactivate(id)
 	if not b then return false; end
 	h:ClearActive(b.class);
 	self:Say("info", L("No active build for this class"));
+	if ns.Runtime then ns.Runtime.Refresh() end
 	return true;
 end
 
