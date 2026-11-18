@@ -483,6 +483,7 @@ function UI:HideLanguageMenu()
 end
 
 function UI:ShowLanguageMenu()
+	self:HideLibraryMenu();
 	if not self.languageMenu or self.c:ReadOnly() then return; end
 	self.languageMenuOpen = true;
 	local current = ns.Locale.Selection();
@@ -521,7 +522,7 @@ function UI:Build()
 	root:RegisterForDrag("LeftButton");
 	root:SetScript("OnDragStart", function(f) f:StartMoving(); end);
 	root:SetScript("OnDragStop", function(f) f:StopMovingOrSizing(); self:SavePosition(); end);
-	root:SetScript("OnHide", function() self:HideTip(); self:HideLanguageMenu(); self:SyncEscape(); end);
+	root:SetScript("OnHide", function() self:HideTip(); self:HideLanguageMenu(); self:HideLibraryMenu(); self:SyncEscape(); end);
 	root:Hide();
 
 	if THEME then
@@ -705,6 +706,16 @@ function UI:BuildLibrary(v)
 		r.star:SetScript("OnClick", function() local id = r.rowId; if id then c:ToggleFavorite(id); end end);
 		r:SetScript("OnClick", function(f) if f.rowId then self:ClickRow(f); end end);
 		self:Hover(r.star, function() return helpData(self, "star"); end);
+		self:Hover(r, function()
+			local d = r.rowData;
+			if not d then return nil end
+			local details = {
+				{ text = d.className },
+				{ text = dateText(d.modified) and (L("Last modified") .. ": " .. dateText(d.modified)) or "" },
+				{ text = d.active and L("Active") or (d.fav and L("Favourite") or L("Not followed")) },
+			};
+			return { title = d.name, lines = details, kind = "help", moreHint = false };
+		end);
 		lib.rows[i] = r;
 	end
 	lib.empty = wrapped(v, 12, 160, 212, 80, "GameFontNormal");
@@ -800,7 +811,7 @@ function UI:RefreshLibrary()
 	for i, r in ipairs(lib.rows) do
 		local d = rows[i];
 		if d then
-			r.rowId, r.trashed = d.id, d.trashed;
+			r.rowId, r.trashed, r.rowData = d.id, d.trashed, d;
 			local path, l, right, top, bottom = ns.ClassVisual.Icon(d.class, c:Catalog());
 			r.classIcon:SetTexture(path);
 			r.classIcon:SetTexCoord(l, right, top, bottom);
@@ -825,7 +836,7 @@ function UI:RefreshLibrary()
 			if d.id == sel or d.id == edId then r.bg:Show(); else r.bg:Hide(); end
 			r:Show();
 		else
-			r.rowId = nil;
+			r.rowId, r.rowData = nil, nil;
 			r:Hide();
 		end
 	end
@@ -1787,6 +1798,7 @@ end
 --          onChoose = fn(index, value, class), cancelIndex, dangerFirst }
 function UI:ShowModal(spec)
 	self:HideLanguageMenu();
+	self:HideLibraryMenu();
 	self:Build();
 	local m = self.modal;
 	m.spec, m.value, m.class = spec, spec.edit, spec.class;
