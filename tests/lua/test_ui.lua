@@ -78,6 +78,10 @@ return function(H)
 		events.AZSSPELLS();
 		eq(e.ns.Runtime.progress.achieved,1);
 		ok(e.ns.Runtime.hud:IsShown(),"compact tracker visible in a real run");
+		ok(e.ns.TrackHUD.frame.openButton,"HUD has a dedicated planner button");
+		e.ns.TrackHUD.frame.openButton:Click();
+		ok(e.ns.ui:IsShown(),"planner opens directly from the live HUD");
+
 		eq(e.ns.TrackHUD.frame.rows[1].state.text,"R1","acquired spell shows its actual rank");
 		e.G.AZS_SPELLTIPS={whirlwind="Hits the nearest enemy for 175 arcane damage."};
 		events.AZSSPELLTIP();
@@ -157,9 +161,9 @@ return function(H)
 		ok(menu and menu.options and #menu.options==2,"tracked build selector populated");
 		eq(e.ns.Runtime.ToggleCompact(),true);
 		eq(h:GetSetting("trackerCompact"),true);
-		eq(e.ns.TrackHUD.frame:GetHeight(),140);
+		eq(e.ns.TrackHUD.frame:GetHeight(),167);
 		eq(e.ns.Runtime.ToggleCompact(),false);
-		eq(e.ns.TrackHUD.frame:GetHeight(),245);
+		eq(e.ns.TrackHUD.frame:GetHeight(),272);
 		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
 		eq(h:GetSetting("trackerTheme"),"elwynn");
 		eq(e.ns.Runtime.CycleStage(),2,"HUD moves to next manually selected phase");
