@@ -7,15 +7,24 @@ local H = {};
 ns.TrackHUD = H;
 local WHITE = "Interface\\Buttons\\WHITE8X8";
 local EDGE = "Interface\\Tooltips\\UI-Tooltip-Border";
-local FIELDKIT = "Interface\\AddOns\\AzerothFieldKit\\media\\ReferenceHUD\\";
+local function fieldkitPath()
+  if type(IsAddOnLoaded)~="function" then return nil end
+  if IsAddOnLoaded("AzerothFieldKitReborn") then
+    return "Interface\\\\AddOns\\\\AzerothFieldKitReborn\\\\media\\\\ReferenceHUD\\\\"
+  end
+  if IsAddOnLoaded("AzerothFieldKit") then
+    return "Interface\\\\AddOns\\\\AzerothFieldKit\\\\media\\\\ReferenceHUD\\\\"
+  end
+  return nil
+end
 local THEMES = {
   standard = { bg={0.025,0.045,0.065,0.96}, edge={0.39,0.55,0.64,1}, gold={0.77,0.87,0.91}, mute={0.65,0.73,0.78},
     art="naxx_card_body_v9.tga" },
   elwynn = { bg={0.035,0.075,0.055,0.96}, edge={0.76,0.56,0.24,1}, gold={1,0.82,0.41}, mute={0.78,0.83,0.70},
     art="elwynn_card_body_v9.tga" },
 };
-local WIDTH, HEIGHT = 204, 224;
-local COMPACT_HEIGHT = 112;
+local WIDTH, HEIGHT = 204, 236;
+local COMPACT_HEIGHT = 128;
 local function label(parent, font, size, x, y, width)
   local f=parent:CreateFontString(nil,"OVERLAY",font or "GameFontHighlightSmall");
   f:SetPoint("TOPLEFT",parent,"TOPLEFT",x,-y);
@@ -31,14 +40,15 @@ end
 -- or the generic 12px material. Its source tile is 361x244 in a 512x256 atlas.
 -- Nine slices keep the actual decorated corners at their native proportions.
 local function rim(frame,theme)
-  local fk=type(IsAddOnLoaded)=="function" and IsAddOnLoaded("AzerothFieldKit");
+  local assetRoot=fieldkitPath();
+  local fk=assetRoot~=nil;
   local c=THEMES[theme] or THEMES.standard;
   if fk then
     frame:SetBackdrop({});
     if not frame.rim then
       frame.rim={};
-      local xs={0,27/512,334/512,361/512};
-      local ys={0,27/256,217/256,244/256};
+      local xs={0,12/512,500/512,1};
+      local ys={0,12/512,500/512,1};
       for y=1,3 do for x=1,3 do
         local t=frame:CreateTexture(nil,"BORDER");
         t:SetTexCoord(xs[x],xs[x+1],ys[y],ys[y+1]);
@@ -46,11 +56,14 @@ local function rim(frame,theme)
       end end
     end
     local w,h=frame:GetWidth(),frame:GetHeight();
-    local cap=22;local xs={0,cap,w-cap};local ys={0,cap,h-cap};
-    local asset=FIELDKIT..theme.."_complete_Accessories_1_frame.tga";
+    local cap=12;local xs={0,cap,w-cap};local ys={0,cap,h-cap};
+    local asset=assetRoot..theme.."_material_v3.tga";
     for _,p in ipairs(frame.rim) do
       local t=p.texture;
       t:SetTexture(asset);t:SetVertexColor(1,1,1,1);
+      if p.x==2 and p.y==2 then
+        t:SetTexture(WHITE);t:SetVertexColor(c.bg[1],c.bg[2],c.bg[3],1);
+      end
       t:ClearAllPoints();t:SetPoint("TOPLEFT",frame,"TOPLEFT",xs[p.x],-ys[p.y]);
       t:SetSize(p.x==2 and math.max(1,w-2*cap) or cap,p.y==2 and math.max(1,h-2*cap) or cap);
       t:Show();
@@ -111,48 +124,60 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f:EnableMouse(true);f:RegisterForDrag("LeftButton");
   f:SetScript("OnDragStart",function(self)self:StartMoving()end);
   f:SetScript("OnDragStop",function(self)self:StopMovingOrSizing()end);
-  f.title=label(f,"GameFontNormal",10,12,10,95);
-  f.titleButton=CreateFrame("Button",nil,f);f.titleButton:SetSize(98,17);
-  f.titleButton:SetPoint("TOPLEFT",f,"TOPLEFT",9,-7);
+  f.title=label(f,"GameFontNormal",10,16,11,116);
+  f.titleButton=CreateFrame("Button",nil,f);f.titleButton:SetSize(125,19);
+  f.titleButton:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=7,insets={left=2,right=2,top=2,bottom=2}});
+  f.titleButton:SetBackdropColor(.055,.13,.085,.95);f.titleButton:SetBackdropBorderColor(.75,.56,.24,1);
+  f.titleButton:SetPoint("TOPLEFT",f,"TOPLEFT",12,-7);
   f.titleButton:SetScript("OnClick",function()H.ToggleBuildMenu(H)end);
-  f.counter=label(f,"GameFontHighlightSmall",9,110,11,31);
+  f.counter=label(f,"GameFontHighlightSmall",9,142,12,27);
   f.counter:SetJustifyH("RIGHT");
   f.themeButton=CreateFrame("Button",nil,f);
   f.themeButton:SetSize(26,16);
-  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-30,-7);
+  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-26,-27);
   f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",9,1,2,27);
   f.themeButton:SetScript("OnClick",function()if onTheme then onTheme()end end);
-  f.collapseButton=CreateFrame("Button",nil,f);f.collapseButton:SetSize(18,16);
-  f.collapseButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-11,-7);
+  f.collapseButton=CreateFrame("Button",nil,f);f.collapseButton:SetSize(23,18);
+  f.collapseButton:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=7,insets={left=2,right=2,top=2,bottom=2}});
+  f.collapseButton:SetBackdropColor(.12,.17,.09,.98);f.collapseButton:SetBackdropBorderColor(.8,.64,.31,1);
+  f.collapseButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-10,-7);
+  f.collapseButton:SetScript("OnEnter",function(self)
+    if GameTooltip then GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText("Réduire / Agrandir le suivi");GameTooltip:Show() end
+  end);
+  f.collapseButton:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end);
+  f.titleButton:SetScript("OnEnter",function(self)
+    if GameTooltip then GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText("Choisir le build suivi");GameTooltip:Show() end
+  end);
+  f.titleButton:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end);
   f.collapseButton.text=label(f.collapseButton,"GameFontNormalSmall",10,3,1,14);
   f.collapseButton:SetScript("OnClick",function()if onCollapse then onCollapse()end end);
   f.stageButton=CreateFrame("Button",nil,f);
   f.stageButton:SetSize(WIDTH-12,15);
-  f.stageButton:SetPoint("TOPLEFT",f,"TOPLEFT",6,-20);
+  f.stageButton:SetPoint("TOPLEFT",f,"TOPLEFT",12,-29);
   f.stageButton.text=label(f.stageButton,"GameFontHighlightSmall",9,1,1,WIDTH-15);
   f.stageButton:SetScript("OnClick",function()if onStage then onStage()end end);
   f.rule=f:CreateTexture(nil,"ARTWORK");f.rule:SetTexture(WHITE);
   f.rule:SetHeight(1);
-  f.rule:SetPoint("TOPLEFT",f,"TOPLEFT",7,-37);
-  f.rule:SetPoint("TOPRIGHT",f,"TOPRIGHT",-7,-37);
+  f.rule:SetPoint("TOPLEFT",f,"TOPLEFT",12,-46);
+  f.rule:SetPoint("TOPRIGHT",f,"TOPRIGHT",-12,-46);
   f.rows={};
-  for i=1,6 do f.rows[i]=row(f,40+(i-1)*16,false) end
-  f.gear=label(f,"GameFontNormalSmall",9,8,139,152);
-  f.gearCount=label(f,"GameFontHighlightSmall",9,153,139,41);
+  for i=1,6 do f.rows[i]=row(f,49+(i-1)*16,false) end
+  f.gear=label(f,"GameFontNormalSmall",9,10,149,152);
+  f.gearCount=label(f,"GameFontHighlightSmall",9,153,149,41);
   f.gearCount:SetJustifyH("RIGHT");
   f.jewels={};
-  for i=1,5 do f.jewels[i]=row(f,153+(i-1)*13,true) end
+  for i=1,5 do f.jewels[i]=row(f,162+(i-1)*13,true) end
   -- Bottom line reserved as padding: no message below the fifth jewel row.
   f.mini={};
-  f.miniSpellLabel=label(f,"GameFontNormalSmall",9,13,29,130);
-  f.miniGearLabel=label(f,"GameFontNormalSmall",9,13,69,130);
-  f.miniGearCount=label(f,"GameFontHighlightSmall",9,157,69,26);
+  f.miniSpellLabel=label(f,"GameFontNormalSmall",9,13,44,130);
+  f.miniGearLabel=label(f,"GameFontNormalSmall",9,13,84,130);
+  f.miniGearCount=label(f,"GameFontHighlightSmall",9,157,84,26);
   for i=1,11 do
     local cell=CreateFrame("Frame",nil,f);
     cell:SetSize(22,22);
     local row=i<=6 and 0 or 1;
     local col=row==0 and (i-1) or (i-7);
-    cell:SetPoint("TOPLEFT",f,"TOPLEFT",13+col*29,-42-row*40);
+    cell:SetPoint("TOPLEFT",f,"TOPLEFT",13+col*29,-57-row*40);
     cell.bg=cell:CreateTexture(nil,"BACKGROUND");cell.bg:SetAllPoints(cell);
     cell.bg:SetTexture(WHITE);cell.bg:SetVertexColor(.04,.075,.064,.95);
     cell.ring=cell:CreateTexture(nil,"ARTWORK");cell.ring:SetTexture(WHITE);
@@ -217,19 +242,20 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
   local height=compact and COMPACT_HEIGHT or HEIGHT;
   if f:GetHeight()~=height then f:SetHeight(height) end
   rim(f,theme);
-  if type(IsAddOnLoaded)=="function" and IsAddOnLoaded("AzerothFieldKit") then
-    f.art:SetTexture(FIELDKIT..c.art);
+  local assetRoot=fieldkitPath();
+  if assetRoot then
+    f.art:SetTexture(assetRoot..c.art);
     f.art:SetAlpha(0.65);
   else
     f.art:SetTexture(ns.Theme.Media("ultimate_panel"));
     f.art:SetAlpha(0.22);
   end
   f.rule:SetVertexColor(unpack(c.edge));
-  f.title:SetText(trunc(build.name,12).." v");f.title:SetTextColor(unpack(c.gold));
+  f.title:SetText(trunc(build.name,13).."  ▼");f.title:SetTextColor(unpack(c.gold));
   f.counter:SetText(tostring(progress.achieved or 0).."/"..tostring(progress.total or 0));
   f.counter:SetTextColor(unpack(c.mute));
   f.themeButton.text:SetText(theme=="elwynn" and "ELW" or "STD");
-  f.collapseButton.text:SetText(compact and "+" or "-");
+  f.collapseButton.text:SetText(compact and "▣" or "▤");
   f.themeButton.text:SetTextColor(unpack(c.gold));
   local fr=lang=="frFR";
   local stage=progress.stage or 1;
