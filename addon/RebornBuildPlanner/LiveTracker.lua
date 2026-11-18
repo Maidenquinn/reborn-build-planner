@@ -83,10 +83,29 @@ end
 -- "banishAfter" means wanted until acquired, never immediate avoidance.
 function M.CardHint(build, phaseIndex, snapshot, card)
   if not build or not snapshot or snapshot.inRun ~= true then return nil end
-  if not snapshot.cards or snapshot.cards.kind ~= "spell" then return nil end
+  if not snapshot.cards then return nil end
   if type(card) ~= "table" or type(card.key) ~= "string" then return nil end
   local ph = build.phases and build.phases[phaseIndex or 1];
   if not ph then return nil end
+  local kind = snapshot.cards.kind;
+  if kind == "jewel" or kind == "amulet" then
+    -- Only exact stable keys. Absence of a card key is not interpreted.
+    for _, listName in ipairs({ "rings", "trinkets", "amulets" }) do
+      local list = ph[listName] or {};
+      local main = listName == "amulets" and 1 or 2;
+      for i, key in ipairs(list) do
+        if card.key == key and key ~= "" then
+          local slot = listName == "rings" and "ring" or
+            (listName == "trinkets" and "trinket" or "amulet");
+          if card.slot == nil or card.slot == slot then
+            return i <= main and "wanted" or "alternative", i
+          end
+        end
+      end
+    end
+    return nil
+  end
+  if kind ~= "spell" then return nil end
   if has(ph.banish, card.key) then return "avoid" end
   local wanted;
   for i, goal in ipairs(ph.spells or {}) do
