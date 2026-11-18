@@ -5,6 +5,51 @@ return function(H)
 	local ns = H.loadAddon({ only = { "Util.lua", "Locale.lua", "Utf8.lua", "Base64Url.lua", "Json.lua" } });
 	local J, B64, Utf8 = ns.Json, ns.Base64Url, ns.Utf8;
 	local PREFIX = "azsb1:";
+	-- First Lot 4 checks run without the proprietary game and without a catalogue.
+	local trackNS = H.loadAddon({ only = { "Util.lua", "BuildModel.lua", "LiveTracker.lua" } });
+	local tracking = trackNS.LiveTracker;
+	local trackedBuild = { phases = { {
+		spells = { {key="auto_shot",mode="acquire"}, {key="aimed_shot",mode="rank",rank=3},
+			{key="rapid_fire",mode="acquire"} },
+		banish = { "serpent_sting" },
+		banishAfter = { "rapid_fire" },
+		rings = {"blooddrinker", "accuria", "quick_strike", "" },
+		trinkets = {"blackhand","","",""}, amulets = {"darkmoon","","",""}
+	} } };
+
+	test("Lot4: unknown state never reports missing, incomplete or acquired",function()
+		local state=tracking.Evaluate(trackedBuild,1,{ inRun=true, spellsKnown=false,gearKnown=false });
+		eq(state.spells[1].status,"UNKNOWN");
+		eq(state.spells[2].status,"UNKNOWN");
+		eq(state.spells[3].status,"UNKNOWN");
+		eq(state.jewelry[1].state,"UNKNOWN");
+		eq(state.achieved,0);
+		eq(state.total,3);
+	end);
+	test("Lot4: ranks, known acquisitions, banish-after and stable gear keys",function()
+		local snap={inRun=true,spellsKnown=true,gearKnown=true,
+			spells={{key="auto_shot",rank=1},{key="aimed_shot",rank=2},{key="rapid_fire",rank=1}},
+			gear={{key="blooddrinker",slot="ring"},{key="quick_strike",slot="ring"}}};
+		local state=tracking.Evaluate(trackedBuild,1,snap);
+		eq(state.spells[1].status,"ACHIEVED");eq(state.spells[2].status,"PENDING");
+		eq(state.spells[3].status,"ACHIEVED");
+		ok(state.spells[3].remindAfter);eq(state.achieved,2);eq(state.total,3);
+		eq(state.jewelry[1].state,"EQUIPPED");
+		eq(state.jewelry[2].state,"ALTERNATIVE");
+		eq(state.jewelry[3].state,"MISSING");
+	end);
+	test("Lot4: cards are suggestions only; first-acquire and avoid remain distinct",function()
+		local snap={inRun=true,spellsKnown=true,spells={{key="auto_shot",rank=1}},cards={kind="spell"}};
+		eq(tracking.CardHint(trackedBuild,1,snap,{key="rapid_fire"}),"wanted");
+		eq(tracking.CardHint(trackedBuild,1,snap,{key="serpent_sting"}),"avoid");
+		local nextSnap={inRun=true,spellsKnown=true,spells={{key="rapid_fire",rank=1}},cards={kind="spell"}};
+		eq(tracking.CardHint(trackedBuild,1,nextSnap,{key="rapid_fire"}),"banish_after");
+		eq(tracking.CardHint(trackedBuild,1,nextSnap,{key="unknown"}),nil);
+		local noOffer={inRun=true,spellsKnown=true,spells={},cards={kind="jewel"}};
+		eq(tracking.CardHint(trackedBuild,1,noOffer,{key="rapid_fire"}),nil);
+		eq(tracking.CardHint(trackedBuild,1,{inRun=false,cards={kind="spell"}},{key="serpent_sting"}),nil);
+	end);
+
 
 	local golden = assert(J.Decode(H.readFile(H.root .. "/tests/fixtures/codec/golden.json"), { maxBytes = 8000000, maxDepth = 12, maxNodes = 3000000 }));
 	local codes = {};
