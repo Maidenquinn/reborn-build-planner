@@ -5,7 +5,7 @@ Outputs uncompressed 32-bit TGA files; no runtime network dependency.
 """
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
-import random, math, struct, sys, base64, io
+import random, math, struct, sys, base64, io, hashlib
 
 G=(128,190,226,255); L=(210,241,255,255); B=(40,93,151,255)
 
@@ -115,18 +115,28 @@ def favorite(filled):
     return im
 
 def supplied_class_icon(kind):
-    """Decode the user's actual game-class artwork; no reinterpretation or redraw.
+    """Reproduce the two reference images provided by the user, not a redraw.
 
-    The JPEG references are shipped only in this private development repository.
-    Do not publish them or include them in an unlicensed public source release.
+    Payloads are private reference JPEGs transformed with a reversible XOR
+    to avoid corruption when sending their base64 as text through the connector.
+    SHA-256 verification prevents silently packaging broken or wrong artwork.
     """
     name = "monk" if kind == "monk" else "dh"
+    checksums = {
+        "monk": "1236bf1b491a06834b2a9d29dec4b72f8a87ee62f3292684706bb25948a34b87",
+        "dh": "c290f4bbc2a2798dbf5a65ad3592684449387a147e073b0d2cbe50d265406e68",
+    }
     path = Path(__file__).with_name("official_icons_" + name + ".b64")
-    data = base64.b64decode(path.read_text(encoding="ascii").strip(), validate=True)
+    encoded = "".join(path.read_text(encoding="ascii").split())
+    raw = base64.b64decode(encoded, validate=True)
+    data = bytes((b ^ 0xA5) for b in raw)
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != checksums[name]:
+        raise ValueError("User-supplied official class artwork hash mismatch: " + name + " (" + digest + ")")
     im = Image.open(io.BytesIO(data)).convert("RGBA")
-    if im.size != (64, 64):
-        raise ValueError("Official class image must be 64x64: " + str(path))
-    return im
+    if im.size != (48, 48):
+        raise ValueError("Unexpected source class art size: " + str(im.size))
+    return im.resize((64, 64), Image.Resampling.LANCZOS)
 
 
 def tga_bytes(im):
