@@ -103,9 +103,9 @@ return function(H)
 		ok(menu and menu.options and #menu.options==2,"tracked build selector populated");
 		eq(e.ns.Runtime.ToggleCompact(),true);
 		eq(h:GetSetting("trackerCompact"),true);
-		eq(e.ns.TrackHUD.frame:GetHeight(),112);
+		eq(e.ns.TrackHUD.frame:GetHeight(),128);
 		eq(e.ns.Runtime.ToggleCompact(),false);
-		eq(e.ns.TrackHUD.frame:GetHeight(),224);
+		eq(e.ns.TrackHUD.frame:GetHeight(),236);
 		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
 		eq(h:GetSetting("trackerTheme"),"elwynn");
 		eq(e.ns.Runtime.CycleStage(),2,"HUD moves to next manually selected phase");
