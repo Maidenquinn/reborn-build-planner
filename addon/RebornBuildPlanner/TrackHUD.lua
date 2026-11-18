@@ -15,7 +15,7 @@ local THEMES = {
     art="elwynn_card_body_v9.tga" },
 };
 local WIDTH, HEIGHT = 204, 224;
-local COMPACT_HEIGHT = 69;
+local COMPACT_HEIGHT = 112;
 local function label(parent, font, size, x, y, width)
   local f=parent:CreateFontString(nil,"OVERLAY",font or "GameFontHighlightSmall");
   f:SetPoint("TOPLEFT",parent,"TOPLEFT",x,-y);
@@ -27,8 +27,9 @@ local function trunc(s,n)
   if #s<=n then return s end
   return string.sub(s,1,n-3).."...";
 end
--- FieldKit's exact nine-slice material coordinates, scoped to our own frame.
--- A body tile alone cannot display the ornate, cut-corner gold frame.
+-- Reuse the approved FieldKit COMPLETE card frame matte, not its plain interior
+-- or the generic 12px material. Its source tile is 361x244 in a 512x256 atlas.
+-- Nine slices keep the actual decorated corners at their native proportions.
 local function rim(frame,theme)
   local fk=type(IsAddOnLoaded)=="function" and IsAddOnLoaded("AzerothFieldKit");
   local c=THEMES[theme] or THEMES.standard;
@@ -36,28 +37,35 @@ local function rim(frame,theme)
     frame:SetBackdrop({});
     if not frame.rim then
       frame.rim={};
-      local cuts={0,12/512,500/512,1};
+      local xs={0,27/512,334/512,361/512};
+      local ys={0,27/256,217/256,244/256};
       for y=1,3 do for x=1,3 do
         local t=frame:CreateTexture(nil,"BORDER");
-        local row=(x==2 and y==1) and 3 or y;
-        t:SetTexCoord(cuts[x],cuts[x+1],cuts[row],cuts[row+1]);
+        t:SetTexCoord(xs[x],xs[x+1],ys[y],ys[y+1]);
         frame.rim[#frame.rim+1]={texture=t,x=x,y=y};
       end end
     end
     local w,h=frame:GetWidth(),frame:GetHeight();
-    local cap=12;local xs={0,cap,w-cap};local ys={0,cap,h-cap};
-    local asset=FIELDKIT..theme.."_material_v3.tga";
+    local cap=22;local xs={0,cap,w-cap};local ys={0,cap,h-cap};
+    local asset=FIELDKIT..theme.."_complete_Accessories_1_frame.tga";
     for _,p in ipairs(frame.rim) do
       local t=p.texture;
-      if p.x==2 and p.y==2 then
-        t:SetTexture(WHITE);t:SetVertexColor(c.bg[1],c.bg[2],c.bg[3],c.bg[4]);
-      else t:SetTexture(asset);t:SetVertexColor(1,1,1,1) end
+      t:SetTexture(asset);t:SetVertexColor(1,1,1,1);
       t:ClearAllPoints();t:SetPoint("TOPLEFT",frame,"TOPLEFT",xs[p.x],-ys[p.y]);
       t:SetSize(p.x==2 and math.max(1,w-2*cap) or cap,p.y==2 and math.max(1,h-2*cap) or cap);
       t:Show();
     end
+    if not frame.goldFill then
+      frame.goldFill=frame:CreateTexture(nil,"BACKGROUND");
+      frame.goldFill:SetTexture(WHITE);
+      frame.goldFill:SetPoint("TOPLEFT",frame,"TOPLEFT",12,-12);
+      frame.goldFill:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",-12,12);
+    end
+    frame.goldFill:SetVertexColor(c.bg[1],c.bg[2],c.bg[3],1);
+    frame.goldFill:Show();
   else
     if frame.rim then for _,p in ipairs(frame.rim) do p.texture:Hide() end end
+    if frame.goldFill then frame.goldFill:Hide() end
     frame:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=10,
       insets={left=2,right=2,top=2,bottom=2}});
     frame:SetBackdropColor(unpack(c.bg));frame:SetBackdropBorderColor(unpack(c.edge));
@@ -97,25 +105,25 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f:SetPoint("BOTTOMRIGHT",UIParent,"BOTTOMRIGHT",-26,180);
   f:SetClampedToScreen(true);f:SetMovable(true);
   f.art=f:CreateTexture(nil,"BACKGROUND");
-  f.art:SetPoint("TOPLEFT",f,"TOPLEFT",3,-3);
-  f.art:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-3,3);
+  f.art:SetPoint("TOPLEFT",f,"TOPLEFT",11,-11);
+  f.art:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-11,11);
   f.art:SetTexture(ns.Theme.Media("ultimate_panel"));f.art:SetAlpha(0.19);
   f:EnableMouse(true);f:RegisterForDrag("LeftButton");
   f:SetScript("OnDragStart",function(self)self:StartMoving()end);
   f:SetScript("OnDragStop",function(self)self:StopMovingOrSizing()end);
-  f.title=label(f,"GameFontNormal",10,8,6,111);
-  f.titleButton=CreateFrame("Button",nil,f);f.titleButton:SetSize(116,17);
-  f.titleButton:SetPoint("TOPLEFT",f,"TOPLEFT",5,-2);
+  f.title=label(f,"GameFontNormal",10,12,10,95);
+  f.titleButton=CreateFrame("Button",nil,f);f.titleButton:SetSize(98,17);
+  f.titleButton:SetPoint("TOPLEFT",f,"TOPLEFT",9,-7);
   f.titleButton:SetScript("OnClick",function()H.ToggleBuildMenu(H)end);
-  f.counter=label(f,"GameFontHighlightSmall",9,122,7,29);
+  f.counter=label(f,"GameFontHighlightSmall",9,110,11,31);
   f.counter:SetJustifyH("RIGHT");
   f.themeButton=CreateFrame("Button",nil,f);
   f.themeButton:SetSize(26,16);
-  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-24,-2);
+  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-30,-7);
   f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",9,1,2,27);
   f.themeButton:SetScript("OnClick",function()if onTheme then onTheme()end end);
   f.collapseButton=CreateFrame("Button",nil,f);f.collapseButton:SetSize(18,16);
-  f.collapseButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-4,-2);
+  f.collapseButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-11,-7);
   f.collapseButton.text=label(f.collapseButton,"GameFontNormalSmall",10,3,1,14);
   f.collapseButton:SetScript("OnClick",function()if onCollapse then onCollapse()end end);
   f.stageButton=CreateFrame("Button",nil,f);
@@ -136,10 +144,24 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   for i=1,5 do f.jewels[i]=row(f,153+(i-1)*13,true) end
   -- Bottom line reserved as padding: no message below the fifth jewel row.
   f.mini={};
+  f.miniSpellLabel=label(f,"GameFontNormalSmall",9,13,29,130);
+  f.miniGearLabel=label(f,"GameFontNormalSmall",9,13,69,130);
+  f.miniGearCount=label(f,"GameFontHighlightSmall",9,157,69,26);
   for i=1,11 do
-    local t=f:CreateTexture(nil,"ARTWORK");t:SetSize(13,13);
-    t:SetPoint("TOPLEFT",f,"TOPLEFT",8+((i-1)%6)*30,-22+math.floor((i-1)/6)*19);
-    t:Hide();f.mini[i]=t;
+    local cell=CreateFrame("Frame",nil,f);
+    cell:SetSize(22,22);
+    local row=i<=6 and 0 or 1;
+    local col=row==0 and (i-1) or (i-7);
+    cell:SetPoint("TOPLEFT",f,"TOPLEFT",13+col*29,-42-row*40);
+    cell.bg=cell:CreateTexture(nil,"BACKGROUND");cell.bg:SetAllPoints(cell);
+    cell.bg:SetTexture(WHITE);cell.bg:SetVertexColor(.04,.075,.064,.95);
+    cell.ring=cell:CreateTexture(nil,"ARTWORK");cell.ring:SetTexture(WHITE);
+    cell.ring:SetPoint("TOPLEFT",cell,"TOPLEFT",-1,1);
+    cell.ring:SetPoint("BOTTOMRIGHT",cell,"BOTTOMRIGHT",1,-1);
+    cell.ring:SetVertexColor(.43,.35,.20,1);
+    local t=cell:CreateTexture(nil,"OVERLAY");t:SetSize(20,20);
+    t:SetPoint("CENTER",cell,"CENTER",0,0);
+    cell:Hide();f.mini[i]={icon=t,cell=cell};
   end
   f.menu=CreateFrame("Frame",nil,f);f.menu:SetSize(225,184);
   f.menu:SetFrameStrata("DIALOG");f.menu:SetFrameLevel(f:GetFrameLevel()+30);
@@ -203,7 +225,7 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
     f.art:SetAlpha(0.22);
   end
   f.rule:SetVertexColor(unpack(c.edge));
-  f.title:SetText(trunc(build.name,15).." v");f.title:SetTextColor(unpack(c.gold));
+  f.title:SetText(trunc(build.name,12).." v");f.title:SetTextColor(unpack(c.gold));
   f.counter:SetText(tostring(progress.achieved or 0).."/"..tostring(progress.total or 0));
   f.counter:SetTextColor(unpack(c.mute));
   f.themeButton.text:SetText(theme=="elwynn" and "ELW" or "STD");
@@ -240,6 +262,12 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
     if item.state~="UNKNOWN" then known=known+1 end
     if item.state=="EQUIPPED" or item.state=="ALTERNATIVE" then have=have+1 end
   end
+  f.miniSpellLabel:SetText(fr and "SORTS" or "SPELLS");
+  f.miniGearLabel:SetText(fr and "BIJOUX" or "JEWELRY");
+  f.miniGearCount:SetText(tostring(have).."/"..tostring(#(progress.jewelry or {})));
+  for _,l in ipairs({f.miniSpellLabel,f.miniGearLabel,f.miniGearCount}) do
+    l:SetTextColor(unpack(c.gold));if compact then l:Show() else l:Hide() end
+  end
   f.gear:SetText(fr and "BIJOUX CONSEILLÉS" or "RECOMMENDED JEWELS");
   f.gear:SetTextColor(unpack(c.gold));
   f.gearCount:SetText(tostring(have).."/"..tostring(#(progress.jewelry or {})));
@@ -260,7 +288,8 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
     else r:Hide() end
     if compact then r:Hide() end
   end
-  for i,t in ipairs(f.mini) do
+  for i,m in ipairs(f.mini) do
+    local t=m.icon;
     local item=i<=6 and progress.spells and progress.spells[i] or progress.jewelry and progress.jewelry[i-6];
     if item and compact then
       local kind=i<=6 and "spell" or item.group=="amulets" and "amulet" or "jewel";
@@ -270,8 +299,9 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
       elseif state=="ACHIEVED" or state=="EQUIPPED" or state=="ALTERNATIVE" then t:SetVertexColor(.4,1,.62)
       elseif state=="UNKNOWN" then t:SetVertexColor(.7,.7,.7)
       else t:SetVertexColor(1,.75,.45) end
-      t:Show()
-    else t:Hide() end
+      m.cell.ring:SetVertexColor(.68,.54,.24,1);
+      m.cell:Show()
+    else m.cell:Hide() end
   end
   f:Show();
 end
