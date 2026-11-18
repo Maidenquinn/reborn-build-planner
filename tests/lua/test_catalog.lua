@@ -68,6 +68,21 @@ return function(H)
 		eq(cat:Name("spell", "whirlwind", "deDE"), (cat.i18n.deDE or {})["Whirlwind"] or "Whirlwind");
 	end);
 
+	test("official Russian, German and Polish names are embedded for spells and jewelry", function()
+		for _, lang in ipairs({ "ruRU", "deDE", "plPL", "esES", "ptBR" }) do
+			local tr = cat.i18n[lang];
+			ok(type(tr) == "table", "official translation dictionary missing: " .. lang);
+			local translated = 0;
+			for _, spell in ipairs(data.spells) do
+				if tr and tr[spell.name] and tr[spell.name] ~= spell.name then
+					translated = translated + 1;
+					eq(cat:Name("spell", spell.key, lang), tr[spell.name]);
+				end
+			end
+			ok(translated >= 30, "not enough translated spell names in " .. lang .. ": " .. translated);
+		end
+	end);
+
 	test("legendary homonyms need the class; head and icon are never identifiers", function()
 		local n = "Eye of the Splitting Sky: Death Coil";
 		eq(#cat:Homonyms(n), 2);
