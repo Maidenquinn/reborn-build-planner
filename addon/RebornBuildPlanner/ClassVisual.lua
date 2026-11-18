@@ -1,5 +1,5 @@
 -- Read-only class visuals for library rows: Blizzard class atlas when available,
--- original fallback to the official game catalogue spell icon for newer classes.
+-- user-supplied game-class artwork for Monk/Demon Hunter and catalogue fallback otherwise.
 -- Identifiers remain stable class keys, never localized display names.
 local ADDON, ns = ...
 local V = {}
@@ -25,7 +25,7 @@ function V.Color(key)
 end
 function V.Icon(key, catalog)
   -- Reborn's WoW 3.3.5 class atlas has no monk/demon-hunter tiles.
-  -- Use our two original assets before any atlas or unreliable spell fallback.
+  -- Use the two supplied game-class images before the older class atlas.
   if key == "monk" then
     return "Interface\\AddOns\\RebornBuildPlanner\\Media\\ultimate_class_monk",0.02,0.98,0.02,0.98
   elseif key == "demonhunter" then
