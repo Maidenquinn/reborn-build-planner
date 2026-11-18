@@ -73,6 +73,39 @@ return function(H)
 		eq(reads, {}, "non-client globals read");
 	end);
 
+	test("3A: French/English selector translates the UI immediately and persists across reload", function()
+		local e = boot({ locale = "frFR" }); e.open();
+		eq(e.ns.Locale.lang, "frFR");
+		ok(e.ui.languageButton:GetText():find("Langue", 1, true));
+		e.world.click(e.ui.languageButton);
+		eq(e.ns.Locale.lang, "enUS");
+		eq(e.h():GetSetting("lang"), "enUS");
+		ok(e.ui.languageButton:GetText():find("Language", 1, true));
+		local nextWorld = reload(e, { locale = "frFR" });
+		eq(nextWorld.ns.Locale.lang, "enUS", "explicit choice beats system language");
+		nextWorld.open();
+		nextWorld.world.click(nextWorld.ui.languageButton);
+		eq(nextWorld.ns.Locale.lang, "frFR");
+		eq(nextWorld.h():GetSetting("lang"), "frFR");
+	end);
+
+	test("3A: unsaved changes modal has explicit visible footer with 3 actions above main window", function()
+		local e = boot({ locale = "frFR" }); e.open();
+		e.ui:ShowModal({ title = "Modifications non enregistrées",
+			body = "Ce build a été modifié.", buttons = { "Enregistrer", "Ignorer", "Continuer" },
+			cancelIndex = 3, onChoose = function() end });
+		local m = e.ui.modal;
+		ok(m:IsShown() and m.footer and m.footer:IsShown());
+		ok(m.footer:GetFrameLevel() > e.root:GetFrameLevel(), "footer above planner");
+		for i = 1, 3 do
+			ok(m.b[i]:IsShown(), "action " .. i .. " visible");
+			ok(m.b[i]:GetFrameLevel() > m.footer:GetFrameLevel(), "action above footer");
+			ok(#m.b[i]:GetText() > 0, "action has a label");
+		end
+		e.ui:ModalCancel();
+		no(m:IsShown());
+	end);
+
 	test("3A: command collisions are left alone", function()
 		local e = boot({ noStart = true, preset = { SLASH_OTHER1 = "/rbp", SlashCmdList = { OTHER = function() end } } });
 		e.start();
