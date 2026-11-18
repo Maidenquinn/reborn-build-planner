@@ -104,6 +104,18 @@ return function(H)
 		e.G.AZS_RUN.gold=0;events.AZSRUN();
 		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false);
 		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),true,"skip highlighted when reroll unaffordable");
+		-- Even free rerolls are not suggested when the native control is off.
+		reroll.off=true;e.G.AZS_CARDS.rr=3;events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false,"disabled reroll is ignored");
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),true);
+		reroll.off=nil;
+		-- Jewelry offers use the same fallback rules as spell offers.
+		local firstJewel=e.ns.catalog.data.jewelry[1].key;
+		e.G.AZS_CARDS={kind="jewel",cards={{key=firstJewel}},rr=1,rc=200};
+		events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),true,"unwanted jewelry offers highlight reroll");
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),false);
+
 		e.G.AZS_CARDS={kind="spell",cards={{key="whirlwind"}},rr=2,rc=0};
 		events.AZSCARDS();
 		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false,"no fallback while wanted card offered");
