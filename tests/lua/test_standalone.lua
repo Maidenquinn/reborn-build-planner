@@ -69,6 +69,24 @@ return function(H)
 		eq(j.JewelryEffects.Sections("none", "ring", true), nil, "unknown must stay unavailable");
 	end);
 
+	test("jewelry: supplementary passive and conditional effects remain sourced and labelled", function()
+		local j = H.loadAddon({ only = { "JewelryEffects.lua" } });
+		j.GeneratedJewelryMechanics = { items = {
+			accuria = {
+				slot = "ring", behavior = "damage", base = 0.17,
+				effects = { { "crit", 0.04 }, { "regen", 2.5 } },
+				specials = { { "on_hit", 0.18 }, { "jump", 3 } }
+			}
+		} };
+		local e = j.JewelryEffects.Sections("accuria", "ring", true);
+		eq(e[3].title, "Autres effets déclarés");
+		eq(e[3].lines[1].text, "Chance de critique: 4 %");
+		eq(e[3].lines[2].text, "Régénération: 2,5");
+		eq(e[4].title, "Effets conditionnels");
+		eq(e[4].lines[1].text, "on_hit: 0,18");
+		ok(e[4].lines[3].text:find("interprétation dépend du jeu", 1, true));
+	end);
+
 	test("jewelry: live text is read only for an exact unique identity during an active run", function()
 		local snapshots = {
 			AZS_RUN = { ph = "playing" }, AZS_ZONE = { hub = 0 },
