@@ -262,10 +262,18 @@ return function(H)
 		local e = boot(); e.open();
 		local ids = populate(e);
 		ok(e.world.hasText("W one") and e.world.hasText("M one") and e.world.hasText("R one"));
-		e.world.click(e.ui.lib.classCycle.next);
+		e.world.click(e.ui.lib.classButton);
+		ok(e.ui.lib.classMenu:IsShown(), "class dropdown opens");
+		local keys = e.c:ClassKeys();
+		local warriorIndex = nil;
+		for i, key in ipairs(keys) do if key == "warrior" then warriorIndex = i + 1; end end
+		ok(warriorIndex, "warrior is selectable");
+		e.world.click(e.ui.lib.classOptions[warriorIndex]);
 		eq(e.c.state.classFilter, "warrior");
 		ok(e.world.hasText("W two") and not e.world.hasText("M one"), e.texts());
-		e.world.click(e.ui.lib.classCycle.prev);
+		no(e.ui.lib.classMenu:IsShown(), "class dropdown closes on selection");
+		e.world.click(e.ui.lib.classButton);
+		e.world.click(e.ui.lib.classOptions[1]);
 		eq(e.c.state.classFilter, nil);
 		for _ = 1, 20 do e.c:Create("many", "paladin"); end
 		e.c:SetView("library");
@@ -277,6 +285,45 @@ return function(H)
 		eq(e.c.state.libOffset, max, "clamped");
 		e.world.click(e.ui.lib.rows[1]);
 		eq(e.c.state.selectedId, e.ui.lib.rows[1].rowId);
+	end);
+
+	test("3B: class artwork, readable class colors and per-row favorite hearts", function()
+		local e = boot(); e.open();
+		local ids = populate(e);
+		local lib, visuals = e.ui.lib, e.ns.ClassVisual;
+		local first = lib.rows[1];
+		ok(first.classIcon and first.classIcon.texture, "class texture assigned to row");
+		ok(first.star.tex and first.star.tex.texture:find("ultimate_fav_off", 1, true),
+			"outline heart means not favourite");
+		local d = first.rowData;
+		local r, g, b = visuals.Color(d.class);
+		eq(first.name.color, { r, g, b }, "name uses appropriate class color");
+		local rowId = first.rowId;
+		e.world.click(first.star);
+		eq(e.h():Meta(rowId).fav, true, "heart toggles favourite without selecting build");
+		ok(e.ui.lib.rows[1].star.tex.texture:find("ultimate_fav_on", 1, true),
+			"filled heart is displayed after favorite click");
+		local path = visuals.Icon("demonhunter", e.c:Catalog());
+		ok(path:find("Interface", 1, true), "non-3.3.5 class has a safe icon fallback");
+	end);
+
+	test("3B: sort dropdown saves selection; all menu choices are direct and close on outside click", function()
+		local e = boot(); e.open(); populate(e);
+		local lib = e.ui.lib;
+		e.world.click(lib.sortButton);
+		ok(lib.sortMenu:IsShown() and lib.dismiss:IsShown());
+		eq(#lib.sortOptions, 5);
+		e.world.click(lib.sortOptions[5]); -- class
+		eq(e.c:Sort(), "class");
+		eq(e.h():GetSetting("libSort"), "class");
+		no(lib.sortMenu:IsShown());
+		e.world.click(lib.sortButton);
+		e.world.click(lib.dismiss);
+		no(lib.sortMenu:IsShown(), "outside click dismisses menu");
+		e.world.click(lib.sortButton);
+		e.world.click(lib.sortOptions[2]); -- created
+		eq(e.c:Sort(), "created");
+		eq(e.h():GetSetting("libSort"), "created");
 	end);
 
 	test("3B: duplicate, rename, activate / stop following, status shown", function()
