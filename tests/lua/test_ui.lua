@@ -92,6 +92,20 @@ return function(H)
 		e.G.AZS_SPELLS[2]={key="execute",rank=1};events.AZSSPELLS();
 		ok(e.ns.Runtime.progress.spells[2].remindAfter);
 		ok(e.ns.TrackHUD.marks[2].note.text:find("BANISH",1,true),"after-acquisition indicator is shown in English client");
+		-- In-game build selection must use the same validated active pointer as the planner.
+		local second=assert(h:Create({name="Second warrior plan",class="warrior"}));
+		ok(e.ns.Runtime.SelectBuild(second));
+		eq(h:GetActive("warrior"),second);
+		eq(e.ns.Runtime.Active().name,"Second warrior plan");
+		ok(e.ns.Runtime.SelectBuild(id));
+		eq(h:GetActive("warrior"),id);
+		local menu=e.ns.TrackHUD.frame.menu;
+		ok(menu and menu.options and #menu.options==2,"tracked build selector populated");
+		eq(e.ns.Runtime.ToggleCompact(),true);
+		eq(h:GetSetting("trackerCompact"),true);
+		eq(e.ns.TrackHUD.frame:GetHeight(),69);
+		eq(e.ns.Runtime.ToggleCompact(),false);
+		eq(e.ns.TrackHUD.frame:GetHeight(),224);
 		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
 		eq(h:GetSetting("trackerTheme"),"elwynn");
 		eq(e.ns.Runtime.CycleStage(),2,"HUD moves to next manually selected phase");
