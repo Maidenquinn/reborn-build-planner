@@ -55,7 +55,7 @@ local function equippedKey(item,catalog,lang,class)
 end
 
 function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
-  local output = { inRun = false, known = false, spells = {}, jewelry = {}, achieved = 0, total = 0, offered = {} };
+  local output = { inRun = false, known = false, spells = {}, jewelry = {}, outsideSpells = {}, outsideJewelry = {}, banishedSpells = {}, achieved = 0, total = 0, offered = {} };
   if type(build) ~= "table" or type(build.phases) ~= "table" then return output end
   local phase = build.phases[phaseIndex or 1];
   if type(phase) ~= "table" then return output end
@@ -63,32 +63,63 @@ function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
   output.inRun = snapshot.inRun == true;
   output.known = output.inRun and snapshot.spellsKnown == true;
   local state = { known = output.known, spells = spellMap(snapshot.spells) };
+  local wantedSpells={};
+  for _,goal in ipairs(phase.spells or {}) do if type(goal.key)=="string" then wantedSpells[goal.key]=true end end
   for _, goal in ipairs(phase.spells or {}) do
     local status, reason = BM.EvaluateGoal(goal, state);
     local later = has(phase.banishAfter, goal.key);
     local acquired = state.spells[goal.key] ~= nil and output.known;
+    local confirmedBan=snapshot.banned and snapshot.banned[goal.key]==true;
     output.spells[#output.spells + 1] = {
       key = goal.key, status = status, reason = reason, acquired = acquired,
-      after = later, remindAfter = later and acquired or false,
+      after = later, remindAfter = later and acquired and not confirmedBan or false, banished=confirmedBan,
       rank = type(state.spells[goal.key]) == "number" and state.spells[goal.key] or nil,
       targetRank = goal.mode=="rank" and goal.rank or nil
     };
     output.total = output.total + 1;
     if status == BM.STATUS.ACHIEVED then output.achieved = output.achieved + 1 end
   end
+  -- Ban status is confirmed only after the game acknowledges a ban command.
+  -- Ranks remain independent: a previously acquired spell can also be banned.
+  if output.inRun and snapshot.bannedKnown and type(snapshot.banned)=="table" then
+    for key,value in pairs(snapshot.banned) do
+      if value==true and type(key)=="string" then
+        output.banishedSpells[#output.banishedSpells+1]={key=key,rank=type(state.spells[key])=="number" and state.spells[key] or nil};
+      end
+    end
+    table.sort(output.banishedSpells,function(a,b)return a.key<b.key end);
+  end
+  if output.known then
+    for key,rank in pairs(state.spells) do
+      if not wantedSpells[key] and not (snapshot.banned and snapshot.banned[key]) then
+        output.outsideSpells[#output.outsideSpells+1]={key=key,rank=type(rank)=="number" and rank or nil};
+      end
+    end
+    table.sort(output.outsideSpells,function(a,b)return a.key<b.key end);
+  end
   -- Only an unambiguous stable catalog key permits an equipment match.
   -- AZS_GEAR can carry text/slot but not an identity: never guess by icon or display name.
   local equipped = {};
   local unidentified = false;
+  local wantedJewelry={};
+  for _,kind in ipairs({"rings","trinkets","amulets"}) do
+    for _,key in ipairs(phase[kind] or {}) do if type(key)=="string" and key~="" then wantedJewelry[key]=true end end
+  end
   if output.inRun and snapshot.gearKnown then
     for _, item in ipairs(snapshot.gear or {}) do
       if type(item)=="table" then
         local key=equippedKey(item,catalog,lang,build.class);
-        if key then equipped[key]=true
+        if key then
+          equipped[key]=true;
+          if not wantedJewelry[key] then
+            local kind=(catalog and catalog:Get("amulet",key)) and "amulet" or "jewel";
+            output.outsideJewelry[#output.outsideJewelry+1]={key=key,kind=kind};
+          end
         else unidentified=true end -- never infer absence from unidentified game rows
       end
     end
   end
+  table.sort(output.outsideJewelry,function(a,b)return a.key<b.key end);
   for _, kind in ipairs({ "rings", "trinkets", "amulets" }) do
     local values = phase[kind] or {};
     local main = kind == "amulets" and 1 or 2;
