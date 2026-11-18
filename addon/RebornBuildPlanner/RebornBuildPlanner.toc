@@ -1,6 +1,6 @@
 ## Interface: 30300
 ## Title: Reborn Build Planner
-## Notes: Reborn build planner, one-page editor, fantasy UI and local jewelry effects (alpha recipe; no live tracking).
+## Notes: Reborn build planner, one-page editor, fantasy UI and local jewelry effects (alpha recipe; live read-only tracker).
 ## Version: 0.4.15-alpha-classart
 ## Dependencies: AzerothSurvivors, AzerothSurvivorsAPI
 ## SavedVariables: RebornBuildPlannerDB
@@ -23,6 +23,9 @@ Json.lua
 PlannerCodec.lua
 UIStrings.lua
 AdditionalLocales.lua
+LiveTracker.lua
+TrackHUD.lua
+Runtime.lua
 Controller.lua
 UI.lua
 Commands.lua
