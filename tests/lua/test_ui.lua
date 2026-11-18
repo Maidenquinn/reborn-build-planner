@@ -202,6 +202,50 @@ return function(H)
 		eq(e.h():GetActive("mage"), nil, "creating never activates");
 	end);
 
+	test("3B: empty editor has no floating separators, hidden slots or inspector lines", function()
+		local e = boot(); e.open();
+		ok(e.ui.ed.empty:IsShown());
+		no(e.ui.ed.spellHead.rule:IsShown(), "spell line hidden with title");
+		no(e.ui.ed.equipHead.rule:IsShown(), "equipment line hidden with title");
+		no(e.ui.ed.nt.head.rule:IsShown(), "advanced section separator hidden");
+		no(e.ui.det.head.rule:IsShown(), "detail separator hidden");
+		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
+			no(e.ui.ed.groups[g].sep:IsShown(), g .. " vertical guide hidden");
+		end
+		local id = e.c:Create("Existing build", "warrior");
+		e.ui:OpenEditor(id);
+		ok(e.ui.ed.spellHead.rule:IsShown(), "spell line restored after opening build");
+		ok(e.ui.ed.equipHead.rule:IsShown(), "equipment line restored after opening build");
+		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
+			ok(e.ui.ed.groups[g].sep:IsShown(), g .. " vertical guide restored");
+		end
+		e.c:CloseEditor();
+		no(e.ui.ed.spellHead.rule:IsShown(), "spell divider hidden again");
+	end);
+
+	test("3B: new-build modal input and class arrows sit above the opaque window", function()
+		local e = boot({ classToken = "MAGE", className = "Mage" }); e.open();
+		e.ui:AskCreate();
+		local m = e.ui.modal;
+		ok(m.form and m.form:IsShown(), "separate high-level form exists");
+		ok(m.form:GetFrameLevel() > m:GetFrameLevel(), "form above opaque modal");
+		ok(m.edit:IsShown() and m.edit:GetFrameLevel() > m.form:GetFrameLevel(), "visible input above form");
+		ok(m.editSurface and m.editSurface:IsShown(), "visible inset behind input");
+		ok(m.editSurface:GetFrameLevel() < m.edit:GetFrameLevel(), "field in front of its inset");
+		ok(m.cycle.prev:IsShown() and m.cycle.next:IsShown(), "both class arrows available");
+		ok(m.cycle.prev:GetFrameLevel() > m.form:GetFrameLevel(), "previous arrow above surface");
+		ok(m.cycle.next:GetFrameLevel() > m.form:GetFrameLevel(), "next arrow above surface");
+		local starting = m.class;
+		e.world.click(m.cycle.next);
+		no(m.class == starting, "cycler changes class in create modal");
+		e.world.type(m.edit, "Mage test");
+		e.world.click(m.b[1]);
+		local created = e.c.state.selectedId;
+		ok(created ~= nil, "button submits entered name");
+		eq(e.h():Get(created).name, "Mage test");
+		eq(e.h():Get(created).class, m.class);
+	end);
+
 	local function populate(e)
 		local ids = {};
 		for _, spec in ipairs({ { "W one", "warrior" }, { "W two", "warrior" }, { "M one", "mage" }, { "R one", "rogue" } }) do
