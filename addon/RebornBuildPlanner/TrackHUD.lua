@@ -146,7 +146,7 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f.menu:SetPoint("TOPLEFT",f,"TOPLEFT",0,-19);
   f.menu:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=12,insets={left=3,right=3,top=3,bottom=3}});
   f.menu:SetBackdropColor(.025,.045,.04,.98);f.menu:SetBackdropBorderColor(.85,.65,.25,1);
-  f.menu.rows={};
+  f.menu.page=1;f.menu.options={};f.menu.rows={};
   for i=1,7 do
     local b=popupButton(f.menu,"",7,7+(i-1)*20,209,19,function()
       local option=f.menu.options and f.menu.options[(f.menu.page-1)*7+i];
@@ -165,7 +165,7 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
 end
 function H.DrawMenu(self)
   local f=self.frame;if not f or not f.menu then return end
-  local menu=f.menu;local opts=menu.options or {};
+  local menu=f.menu;menu.page=tonumber(menu.page) or 1;local opts=menu.options or {};
   local pages=math.max(1,math.ceil(#opts/7));
   if menu.page>pages then menu.page=pages end
   for i,b in ipairs(menu.rows) do
