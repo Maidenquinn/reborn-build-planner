@@ -2,7 +2,7 @@
 -- no SendAddonMessage or any automated card interaction.
 local ADDON, ns = ...;
 ns = ns or {};
-local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false, cards=false }, runKey=nil };
+local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false, cards=false }, runKey=nil, stage=1, stageRun=nil };
 ns.Runtime = R;
 local EVENTS = { "AZSSPELLS", "AZSSPELLTIP", "AZSGEAR", "AZSCARDS",
   "AZSCARDTIP", "AZSRUN", "AZSZONE", "AZSEND" };
@@ -50,8 +50,13 @@ function R.Refresh()
   local build=R.Active();
   local snapshot=R.Capture();
   R.last=snapshot;
-  local phase=1; -- Phase changes require verified gameplay mapping; do not guess.
+  if snapshot.runId and R.stageRun ~= tostring(snapshot.runId) then
+    R.stageRun=tostring(snapshot.runId);
+    R.stage=1; -- new run: do not carry last run's manually selected phase
+  end
+  local phase=R.stage or 1; -- explicit selection, no invented mapping from game phase
   local progress=build and ns.LiveTracker.Evaluate(build,phase,snapshot) or nil;
+  if progress then progress.stage=phase; progress.stageMax=4 end
   local theme=ns.storage:GetSetting("trackerTheme") or "standard";
   if ns.TrackHUD and R.hud then
     if ns.storage:GetSetting("trackerEnabled") ~= false then
@@ -60,6 +65,11 @@ function R.Refresh()
     ns.TrackHUD.UpdateCards(ns.TrackHUD,build,snapshot,phase,theme);
   end
   R.progress=progress;
+end
+function R.CycleStage()
+  R.stage=R.stage%4+1;
+  R.Refresh();
+  return R.stage;
 end
 function R.ToggleTheme()
   if not ns.storage or ns.storage.readOnly then return false end
@@ -86,7 +96,7 @@ end
 function R.Start()
   if R.ready then return true end
   if type(AZS)~="table" or type(AZS.On)~="function" then return false end
-  R.hud=ns.TrackHUD.New(function()R.ToggleTheme()end);
+  R.hud=ns.TrackHUD.New(function()R.ToggleTheme()end,function()R.CycleStage()end);
   if not R.hud then return false end
   R.ready=true;
   -- One explicit subscription to each documented API event.
