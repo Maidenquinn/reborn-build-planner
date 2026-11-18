@@ -926,6 +926,11 @@ function UI:BuildEditor(v)
 		r.frame:SetHeight(22);
 		r.frame:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -y);
 		r.bg = fill(r.frame, i % 2 == 0 and ROW_B or ROW_A);
+		r.afterMark = r.frame:CreateTexture(nil, "OVERLAY");
+		r.afterMark:SetWidth(3); r.afterMark:SetHeight(20);
+		r.afterMark:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 1, -1);
+		r.afterMark:SetTexture(0.92, 0.28, 0.33, 1);
+		r.afterMark:Hide();
 		r.num = text(r.frame, 6, 4, 20, "GameFontNormal");
 		r.num:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
 		r.icon = r.frame:CreateTexture(nil, "ARTWORK");
@@ -1091,7 +1096,7 @@ function UI:RefreshEditor()
 	-- spells
 	ed.spellHead:SetText(string.format(L("Spells to acquire, by priority (%d/%d)"), #pv.spells, BM.LIMITS.spells));
 	ed.summary:SetText(fitText(string.format(L("%d keep / %d banish after (max %d)"), pv.keepCount, pv.afterCount, BM.LIMITS.banishAfter), 270, 13));
-	if pv.afterCount > 0 then ed.summary:SetTextColor(GOLD[1], GOLD[2], GOLD[3]); else ed.summary:SetTextColor(0.7, 0.72, 0.78); end
+	if pv.afterCount > 0 then ed.summary:SetTextColor(1, 0.52, 0.56); else ed.summary:SetTextColor(0.7, 0.72, 0.78); end
 	local insp = c.state.inspect;
 	for i, r in ipairs(ed.spells) do
 		local it = pv.spells[i];
@@ -1106,8 +1111,11 @@ function UI:RefreshEditor()
 			r.name:SetText(fitText(nm, 258, 12));
 			setIcon(r.icon, it.icon);
 			r.name:Show(); r.hit:Show(); r.add:Hide();
-			r.tog.role = it.after and "warn" or "quiet";
+			r.tog.role = it.after and "danger" or "quiet";
 			setLabel(r.tog, it.after and L("Banish after") or L("Keep"));
+			setShown(r.afterMark, it.after);
+			if it.after then r.name:SetTextColor(1, 0.80, 0.82);
+			else r.name:SetTextColor(0.94, 0.96, 1); end
 			setLabel(r.up, "^"); setLabel(r.down, "v"); setLabel(r.del, "x");
 			r.tog:Show(); r.up:Show(); r.down:Show(); r.del:Show();
 			enable(r.tog, not ro);
@@ -1116,10 +1124,11 @@ function UI:RefreshEditor()
 			enable(r.del, not ro);
 			local picked = insp and insp.kind == "spell" and insp.key == it.key;
 			if picked then r.bg:SetTexture(ROW_SEL[1], ROW_SEL[2], ROW_SEL[3], 1);
-			elseif it.after then r.bg:SetTexture(0.20, 0.14, 0.09, 1);
+			elseif it.after then r.bg:SetTexture(0.20, 0.075, 0.095, 1);
 			else r.bg:SetTexture(base[1], base[2], base[3], 1); end
 		else
 			r.key = nil;
+			r.afterMark:Hide();
 			r.icon:Hide(); r.name:Hide(); r.hit:Hide();
 			r.tog:Hide(); r.up:Hide(); r.down:Hide(); r.del:Hide();
 			r.add.role = "quiet";
@@ -1454,6 +1463,11 @@ function UI:BuildBrowser(v)
 		r:SetHeight(34);
 		r:SetPoint("TOPLEFT", bs.area.hold, "TOPLEFT", 0, -((i - 1) * 36));
 		r.base = fill(r, i % 2 == 0 and ROW_B or ROW_A);
+		r.afterMark = r:CreateTexture(nil, "OVERLAY");
+		r.afterMark:SetWidth(3); r.afterMark:SetHeight(30);
+		r.afterMark:SetPoint("TOPLEFT", r, "TOPLEFT", 1, -2);
+		r.afterMark:SetTexture(0.92, 0.28, 0.33, 1);
+		r.afterMark:Hide();
 		r.sel = r:CreateTexture(nil, "BORDER");
 		r.sel:SetAllPoints(r);
 		r.sel:SetTexture(ROW_SEL[1], ROW_SEL[2], ROW_SEL[3], ROW_SEL[4]);
@@ -1513,6 +1527,7 @@ function UI:RefreshBrowser()
 		if en then
 			r.tipKind, r.tipKey = kind, en.key;
 			r.name:SetText(fitText(en.name, 228, 12));
+			local laterBanish = kind == "spell" and en.after;
 			local rcol = rarityRgb(en.legend and "legendary" or en.rarity);
 			if kind == "amulet" then r.name:SetTextColor(rcol[1], rcol[2], rcol[3]); else r.name:SetTextColor(1, 1, 1); end
 			setIcon(r.icon, en.icon);
@@ -1534,11 +1549,27 @@ function UI:RefreshBrowser()
 			end
 			r.sub:SetText(fitText(sub, 228, 10));
 				r.tag:SetText(fitFontText(r.tag, tag, 72));
-			r.tag:SetTextColor(en.here and 0.55 or 0.95, en.here and 0.9 or 0.78, en.here and 0.62 or 0.35);
+			r.afterMark:SetShown(laterBanish and true or false);
+			if laterBanish then
+				r.base:SetTexture(0.19, 0.07, 0.10, 1);
+				r.tag:SetTextColor(1, 0.45, 0.48);
+				r.name:SetTextColor(1, 0.78, 0.81);
+			elseif kind == "spell" and en.state == "banished" then
+				r.afterMark:Show();
+				r.base:SetTexture(0.13, 0.075, 0.085, 1);
+				r.tag:SetTextColor(1, 0.5, 0.5);
+				r.name:SetTextColor(0.78, 0.72, 0.74);
+			else
+				r.afterMark:Hide();
+				local base = i % 2 == 0 and ROW_B or ROW_A;
+				r.base:SetTexture(base[1],base[2],base[3],1);
+				r.tag:SetTextColor(en.here and 0.55 or 0.95, en.here and 0.9 or 0.78, en.here and 0.62 or 0.35);
+			end
 			if insp and insp.kind == kind and insp.key == en.key then r.sel:Show(); else r.sel:Hide(); end
 			r:Show();
 		else
 			r.tipKey = nil;
+			r.afterMark:Hide();
 			r:Hide();
 		end
 	end
