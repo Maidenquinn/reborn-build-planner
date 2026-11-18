@@ -445,6 +445,7 @@ end
 function UI:HideLanguageMenu()
 	self.languageMenuOpen = false;
 	if self.languageMenu then self.languageMenu:Hide(); end
+	if self.languageDismiss then self.languageDismiss:Hide(); end
 end
 
 function UI:ShowLanguageMenu()
@@ -457,6 +458,7 @@ function UI:ShowLanguageMenu()
 		row.role = selected and "selected" or "quiet";
 		setLabel(row, (selected and "  >  " or "      ") .. item.label);
 	end
+	if self.languageDismiss then self.languageDismiss:Show(); end
 	self.languageMenu:Show();
 end
 
@@ -535,6 +537,14 @@ function UI:Build()
 		self.languageMenu.buttons[index] = row;
 	end
 	self.languageMenu:Hide();
+	-- Capture clicks outside the dropdown without activating an unrelated control.
+	self.languageDismiss = CreateFrame("Frame", nil, root);
+	self.languageDismiss:SetAllPoints(root);
+	self.languageDismiss:SetFrameStrata("FULLSCREEN_DIALOG");
+	self.languageDismiss:SetFrameLevel(134);
+	self.languageDismiss:EnableMouse(true);
+	self.languageDismiss:SetScript("OnMouseDown", function() self:HideLanguageMenu(); end);
+	self.languageDismiss:Hide();
 	self.sizeMinus = button(root, "", 84, 24, 1026, 8, function() self:Rescale(-0.1); end);
 	self.sizePlus = button(root, "", 84, 24, 1114, 8, function() self:Rescale(0.1); end);
 	self.banner = text(root, 20, 38, 1180, "GameFontNormal", "LEFT");
