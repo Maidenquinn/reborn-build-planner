@@ -86,7 +86,7 @@ return function(H)
 		ok(e.ns.TrackHUD.marks[1].mouse==false,"overlay cannot capture card clicks");
 		e.G.AZS_SPELLS[2]={key="execute",rank=1};events.AZSSPELLS();
 		ok(e.ns.Runtime.progress.spells[2].remindAfter);
-		ok(e.ns.TrackHUD.marks[2].note.text:find("BANNIR",1,true),"after-acquisition indicator turns red");
+		ok(e.ns.TrackHUD.marks[2].note.text:find("BANISH",1,true),"after-acquisition indicator is shown in English client");
 		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
 		eq(h:GetSetting("trackerTheme"),"elwynn");
 		eq(e.ns.Runtime.ToggleHud(),false);
