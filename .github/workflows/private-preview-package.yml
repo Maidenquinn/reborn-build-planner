@@ -58,6 +58,8 @@ jobs:
                   "RebornBuildPlanner/Media/ultimate_crest.tga",
                   "RebornBuildPlanner/Media/ultimate_corner.tga",
                   "RebornBuildPlanner/Media/ultimate_titlebar.tga",
+                  "RebornBuildPlanner/Media/ultimate_fav_on.tga",
+                  "RebornBuildPlanner/Media/ultimate_fav_off.tga",
               }
               assert required <= names, required-names
           print("Private preview ZIP verified:",zips[0])
