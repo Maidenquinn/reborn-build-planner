@@ -1614,11 +1614,28 @@ function UI:BuildModal()
 		m.title:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
 	end
 	m.body = wrapped(m, 24, 58, 412, 64, "GameFontHighlight");
-	m.editLabel = text(m, 24, 118, 120, "GameFontNormal");
-	m.edit = edit(m, 288, 148, 114, function(t) m.value = t; end, "RebornBuildPlannerModalEdit");
-	m.cycleLabel = text(m, 24, 150, 120, "GameFontNormal");
-	m.cycle = cycler(m, 148, 146, 288, function() self:ModalClass(-1); end, function() self:ModalClass(1); end);
-	m.err = text(m, 24, 176, 412, "GameFontNormal");
+	-- The actual input/cycler must sit on a high frame, not directly on the
+	-- themed nine-slice window. The native client rendered both below the
+	-- opaque window while the bare class caption remained visible.
+	m.form = CreateFrame("Frame", nil, m);
+	m.form:SetAllPoints(m);
+	m.form:SetFrameStrata("FULLSCREEN_DIALOG");
+	m.form:SetFrameLevel(175);
+	m.editLabel = text(m.form, 24, 118, 120, "GameFontNormal");
+	if THEME then
+		m.editSurface = THEME.Frame(m.form, 294, 26, "inset");
+		m.editSurface:SetPoint("TOPLEFT", m.form, "TOPLEFT", 145, -112);
+		m.editSurface:SetFrameLevel(177);
+	end
+	m.edit = edit(m.form, 276, 154, 114, function(t) m.value = t; end, "RebornBuildPlannerModalEdit");
+	m.edit:SetFrameStrata("FULLSCREEN_DIALOG");
+	m.edit:SetFrameLevel(184);
+	m.edit:SetTextColor(0.94, 0.96, 1);
+	m.cycleLabel = text(m.form, 24, 150, 120, "GameFontNormal");
+	m.cycle = cycler(m.form, 148, 146, 288, function() self:ModalClass(-1); end, function() self:ModalClass(1); end);
+	m.cycle.prev:SetFrameLevel(184);
+	m.cycle.next:SetFrameLevel(184);
+	m.err = text(m.form, 24, 176, 412, "GameFontNormal");
 	m.err:SetTextColor(COLOR.error[1], COLOR.error[2], COLOR.error[3]);
 	-- Explicit high-level footer: the native client can otherwise place the
 	-- modal's low-level button textures behind its opaque window materials.
@@ -1653,6 +1670,7 @@ function UI:ShowModal(spec)
 	m.body:SetText(spec.body or "");
 	m.err:SetText("");
 	setShown(m.edit, spec.edit ~= nil);
+	if m.editSurface then setShown(m.editSurface, spec.edit ~= nil); end
 	setShown(m.editLabel, spec.edit ~= nil);
 	m.editLabel:SetText(spec.editLabel or "");
 	if spec.edit ~= nil then m.edit:SetText(spec.edit); end
