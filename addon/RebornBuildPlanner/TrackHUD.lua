@@ -366,53 +366,139 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
   end
   f:Show();
 end
+-- Pure presentation: no card click handlers or native card mutations.
+local CARD_STYLES={
+  wanted={color={0.98,0.79,0.34}, label="BUILD"},
+  alternative={color={0.75,0.66,0.46}, label="ALT."},
+  avoid={color={0.93,0.37,0.37}, label="AVOID"},
+  banish_after={color={1.00,0.56,0.26}, label="BANISH LATER"},
+};
+local function paint(t,rgb,alpha)
+  t:SetVertexColor(rgb[1],rgb[2],rgb[3],alpha or 1);
+end
+local function segment(parent,layer,x1,y1,x2,y2,w)
+  local t=parent:CreateTexture(nil,layer);
+  t:SetTexture(WHITE);
+  if y1==y2 then
+    t:SetHeight(w);t:SetPoint("TOPLEFT",parent,"TOPLEFT",x1,-y1);
+    t:SetPoint("TOPRIGHT",parent,"TOPRIGHT",x2,-y2);
+  else
+    t:SetWidth(w);t:SetPoint("TOPLEFT",parent,"TOPLEFT",x1,-y1);
+    t:SetPoint("BOTTOMLEFT",parent,"BOTTOMLEFT",x2,y2);
+  end
+  return t;
+end
+local function createCardMark(card)
+  local mark=CreateFrame("Frame",nil,card);
+  mark:SetFrameLevel(card:GetFrameLevel()+15);
+  mark:SetAllPoints(card);
+  mark:EnableMouse(false);
+  -- A slight gold haze inside the edge, not a solid filter over the card.
+  mark.tint=mark:CreateTexture(nil,"ARTWORK");
+  mark.tint:SetTexture(WHITE);
+  mark.tint:SetPoint("TOPLEFT",mark,"TOPLEFT",10,-35);
+  mark.tint:SetPoint("BOTTOMRIGHT",mark,"BOTTOMRIGHT",-10,38);
+  mark.border={};
+  mark.glow={};
+  -- Inset from the native metallic perimeter. Leave the top card category
+  -- and the bottom action caption unobstructed.
+  local coords={
+    {"h",10,35,-10,35},
+    {"h",10,-37,-10,-37},
+    {"v",10,35,10,37},
+    {"v",-10,35,-10,37},
+  };
+  for _,v in ipairs(coords) do
+    local horizontal=v[1]=="h";
+    local thin=mark:CreateTexture(nil,"OVERLAY");
+    thin:SetTexture(WHITE);
+    local haze=mark:CreateTexture(nil,"ARTWORK");
+    haze:SetTexture(WHITE);
+    if haze.SetBlendMode then haze:SetBlendMode("ADD") end
+    if horizontal then
+      thin:SetHeight(2);haze:SetHeight(9);
+      local anchor=v[2]==10 and "TOP" or "BOTTOM";
+      if v[3]<0 then anchor="BOTTOM" end
+      thin:SetPoint(anchor.."LEFT",mark,anchor.."LEFT",v[2],v[3]<0 and 37 or -35);
+      thin:SetPoint(anchor.."RIGHT",mark,anchor.."RIGHT",v[4],v[3]<0 and 37 or -35);
+      haze:SetPoint(anchor.."LEFT",mark,anchor.."LEFT",v[2],v[3]<0 and 37 or -35);
+      haze:SetPoint(anchor.."RIGHT",mark,anchor.."RIGHT",v[4],v[3]<0 and 37 or -35);
+    else
+      local right=v[2]<0;
+      thin:SetWidth(2);haze:SetWidth(9);
+      thin:SetPoint("TOP"..(right and "RIGHT" or "LEFT"),mark,"TOP"..(right and "RIGHT" or "LEFT"),v[2],-35);
+      thin:SetPoint("BOTTOM"..(right and "RIGHT" or "LEFT"),mark,"BOTTOM"..(right and "RIGHT" or "LEFT"),v[2],37);
+      haze:SetPoint("TOP"..(right and "RIGHT" or "LEFT"),mark,"TOP"..(right and "RIGHT" or "LEFT"),v[2],-35);
+      haze:SetPoint("BOTTOM"..(right and "RIGHT" or "LEFT"),mark,"BOTTOM"..(right and "RIGHT" or "LEFT"),v[2],37);
+    end
+    mark.border[#mark.border+1]=thin;
+    mark.glow[#mark.glow+1]=haze;
+  end
+  -- Decorative corner strokes make the outline feel like an enchanted frame.
+  mark.corners={};
+  for _,point in ipairs({"TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
+    local right=string.find(point,"RIGHT",1,true)~=nil;
+    local bottom=string.find(point,"BOTTOM",1,true)~=nil;
+    local horizontal=mark:CreateTexture(nil,"OVERLAY");
+    horizontal:SetTexture(WHITE);horizontal:SetSize(15,4);
+    horizontal:SetPoint(point,mark,point,right and -9 or 9,bottom and 36 or -34);
+    local vertical=mark:CreateTexture(nil,"OVERLAY");
+    vertical:SetTexture(WHITE);vertical:SetSize(4,15);
+    vertical:SetPoint(point,mark,point,right and -9 or 9,bottom and 36 or -34);
+    mark.corners[#mark.corners+1]=horizontal;
+    mark.corners[#mark.corners+1]=vertical;
+  end
+  -- Small label in the top-right free area; avoids the card number,
+  -- "NOUVEAU / AMÉLIORER" heading and icon portrait.
+  mark.badge=mark:CreateTexture(nil,"OVERLAY");
+  mark.badge:SetTexture(WHITE);
+  mark.badge:SetSize(111,19);
+  mark.badge:SetPoint("TOPRIGHT",mark,"TOPRIGHT",-17,-44);
+  mark.note=mark:CreateFontString(nil,"OVERLAY","GameFontNormalSmall");
+  mark.note:SetSize(105,16);
+  mark.note:SetPoint("CENTER",mark.badge,"CENTER",0,0);
+  mark.note:SetJustifyH("CENTER");
+  mark:Hide();
+  return mark;
+end
 function H.UpdateCards(self, build, snapshot, phase, theme)
   if not self.cardRoot and type(CreateFrame)=="function" and UIParent then
     self.cardRoot=CreateFrame("Frame","RBPCardHighlights",UIParent);
-    self.cardRoot:SetFrameStrata("FULLSCREEN_DIALOG");self.cardRoot:SetFrameLevel(130);
+    self.cardRoot:SetFrameStrata("FULLSCREEN_DIALOG");
+    self.cardRoot:SetFrameLevel(130);
     self.cardRoot:EnableMouse(false);self.marks={};
     if type(AZS_SetOnTopOfScreens)=="function" then
-      -- Optional API: a client mismatch must not break the rest of the HUD.
       pcall(AZS_SetOnTopOfScreens,"RBPCardHighlights",true);
     end
   end
   if not self.cardRoot then return end
-  local showing=snapshot and snapshot.cards and
-    (snapshot.cards.kind=="spell" or snapshot.cards.kind=="jewel" or snapshot.cards.kind=="amulet") and
+  local kinds={spell=true,jewel=true,amulet=true,ring=true,trinket=true};
+  local cards=snapshot and snapshot.cards;
+  local showing=cards and kinds[cards.kind] and
     AZSCardsFrame and AZSCardsFrame.IsShown and AZSCardsFrame:IsShown();
-  local c=THEMES[theme] or THEMES.standard;
   for i=1,8 do
     local card=_G and _G["AZSCard"..i];
-    local hint=showing and card and ns.LiveTracker.CardHint(build,phase,snapshot,snapshot.cards.cards and snapshot.cards.cards[i]);
+    local hint=showing and card and ns.LiveTracker.CardHint(
+      build,phase,snapshot,cards.cards and cards.cards[i]);
     local mark=self.marks[i];
-    if card and not mark then
-      mark=CreateFrame("Frame",nil,card);
-      mark:SetFrameLevel(card:GetFrameLevel()+15);mark:EnableMouse(false);
-      mark:SetAllPoints(card);
-      mark.border={};
-      for _,side in ipairs({"TOP","BOTTOM","LEFT","RIGHT"}) do
-        local t=mark:CreateTexture(nil,"OVERLAY");t:SetTexture(WHITE);
-        if side=="TOP" or side=="BOTTOM" then
-          t:SetHeight(3);t:SetPoint(side.."LEFT",mark,side.."LEFT",1,0);
-          t:SetPoint(side.."RIGHT",mark,side.."RIGHT",-1,0);
-        else
-          t:SetWidth(3);t:SetPoint("TOP"..side,mark,"TOP"..side,0,-3);
-          t:SetPoint("BOTTOM"..side,mark,"BOTTOM"..side,0,3);
-        end
-        mark.border[#mark.border+1]=t;
-      end
-      mark.note=label(mark,"GameFontNormal",12,6,8,150);
-      mark:Hide();self.marks[i]=mark;
-    end
+    if card and not mark then mark=createCardMark(card);self.marks[i]=mark end
     if mark then
-      if hint then
-        local rgb=hint=="wanted" and {0.22,0.97,0.63} or hint=="avoid" and {1,0.27,0.31} or {1,0.57,0.24};
-        for _,t in ipairs(mark.border)do t:SetVertexColor(unpack(rgb));end
-        mark.note:SetText(hint=="wanted" and "BUILD" or hint=="alternative" and "ALT." or
-          hint=="avoid" and (ns.Locale.lang=="frFR" and "ÉVITER" or "AVOID") or
-          (ns.Locale.lang=="frFR" and "BANNIR APRÈS" or "BANISH LATER"));
-        mark.note:SetTextColor(unpack(rgb));mark:Show();
-      else mark:Hide();end
+      local style=hint and CARD_STYLES[hint];
+      if style then
+        local rgb=style.color;
+        paint(mark.tint,rgb,0.025);
+        for _,t in ipairs(mark.border) do paint(t,rgb,0.87) end
+        for _,t in ipairs(mark.glow) do paint(t,rgb,0.14) end
+        for _,t in ipairs(mark.corners) do paint(t,rgb,1) end
+        paint(mark.badge,rgb,0.22);
+        local fr=ns.Locale and ns.Locale.lang=="frFR";
+        local caption=style.label;
+        if fr and hint=="avoid" then caption="ÉVITER" end
+        if fr and hint=="banish_after" then caption="BANNIR APRÈS" end
+        mark.note:SetText(caption);
+        mark.note:SetTextColor(rgb[1],rgb[2],rgb[3],1);
+        mark:Show();
+      else mark:Hide() end
     end
   end
   if showing then self.cardRoot:Show() else self.cardRoot:Hide() end
