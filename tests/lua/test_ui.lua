@@ -90,7 +90,8 @@ return function(H)
 		e.world.click(e.ui.languageButton);
 		e.world.click(e.ui.languageMenu.buttons[5]); -- German, not yet translated
 		eq(e.ns.Locale.lang, "deDE");
-		eq(e.ns.Locale.T("Search:"), "Search:", "untranslated German keys fall back to English");
+		eq(e.ns.Locale.T("Search:"), "Suchen:", "German navigation uses its starter dictionary");
+		eq(e.ns.Locale.T("Wanted spells, in priority order (%d/%d)"), "Wanted spells, in priority order (%d/%d)", "untranslated German keys fall back to English");
 		local nextWorld = reload(e, { locale = "frFR" });
 		eq(nextWorld.ns.Locale.lang, "deDE", "explicit locale remains selected");
 		nextWorld.open();
@@ -155,7 +156,8 @@ return function(H)
 		local en = boot({ locale = "enUS" }); en.open();
 		ok(en.world.hasText("Search:") and en.world.hasText("Create a build"));
 		local de = boot({ locale = "deDE" }); de.open();
-		ok(de.world.hasText("Search:"), "unsupported locale falls back to English");
+		ok(de.world.hasText("Suchen:"), "German has a starter translation");
+		ok(de.world.hasText("Create a build") == false, "translated navigation label is used");
 		-- the saved choice wins over the client locale
 		local e = boot({ locale = "frFR" });
 		e.h():SetSetting("lang", "enUS");
