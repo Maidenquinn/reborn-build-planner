@@ -2,23 +2,35 @@
 -- no SendAddonMessage or any automated card interaction.
 local ADDON, ns = ...;
 ns = ns or {};
-local R = { ready=false, last=nil, callbacks=0 };
+local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false }, runKey=nil };
 ns.Runtime = R;
 local EVENTS = { "AZSSPELLS", "AZSSPELLTIP", "AZSGEAR", "AZSCARDS",
   "AZSCARDTIP", "AZSRUN", "AZSZONE", "AZSEND" };
 
+-- The native globals start as empty tables. A table existing does NOT mean the
+-- server has supplied a snapshot (notably during /reload). Track actual packets.
+function R.Note(event)
+  local runKey = type(AZS_API_RunId)=="function" and AZS_API_RunId() or
+    (type(AZS_ZONE)=="table" and AZS_ZONE.run or nil);
+  if runKey ~= R.runKey then
+    R.runKey=runKey;
+    R.received={ spells=false, gear=false };
+  end
+  if event=="AZSSPELLS" then R.received.spells=true end
+  if event=="AZSGEAR" then R.received.gear=true end
+end
 function R.Capture()
   local phase = type(AZS_GetPhase)=="function" and AZS_GetPhase() or
     (type(AZS_RUN)=="table" and AZS_RUN.ph or nil);
   if type(AZS_ZONE)=="table" and tonumber(AZS_ZONE.hub)==1 then phase=nil end
-  local running = phase~=nil and phase~="ready" and phase~="hub";
+  local running = phase=="playing" or phase=="choosing" or phase=="paused";
   return {
     inRun=running,
     phase=phase,
     spells=running and type(AZS_SPELLS)=="table" and AZS_SPELLS or nil,
-    spellsKnown=running and type(AZS_SPELLS)=="table" or false,
+    spellsKnown=running and R.received.spells and type(AZS_SPELLS)=="table" or false,
     gear=running and type(AZS_GEAR)=="table" and AZS_GEAR or nil,
-    gearKnown=running and type(AZS_GEAR)=="table" or false,
+    gearKnown=running and R.received.gear and type(AZS_GEAR)=="table" or false,
     cards=running and type(AZS_CARDS)=="table" and AZS_CARDS or nil,
     runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or nil
   };
@@ -80,6 +92,7 @@ function R.Start()
   for _,event in ipairs(EVENTS) do
     AZS.On(event,function()
       R.callbacks=R.callbacks+1;
+      R.Note(event);
       R.Refresh();
     end);
   end
