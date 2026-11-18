@@ -765,7 +765,18 @@ function UI:BuildEditor(v)
 	local c = self.c;
 	local ed = {};
 	self.ed = ed;
-	ed.empty = wrapped(v, 40, 200, EW - 60, 80, "GameFontNormalLarge");
+	-- Dedicated empty state, not the editor's still-visible grid skeleton.
+	ed.emptyMark = v:CreateTexture(nil, "ARTWORK");
+	ed.emptyMark:SetTexture(THEME and THEME.Media("ultimate_crest") or "Interface\\Icons\\INV_Misc_Note_01");
+	ed.emptyMark:SetWidth(50); ed.emptyMark:SetHeight(50);
+	ed.emptyMark:SetPoint("TOP", v, "TOP", 0, -180);
+	ed.empty = wrapped(v, 58, 252, EW - 92, 52, "GameFontNormalLarge");
+	ed.empty:SetJustifyH("CENTER");
+	ed.emptyHint = wrapped(v, 72, 303, EW - 120, 48, "GameFontHighlight");
+	ed.emptyHint:SetJustifyH("CENTER");
+	ed.emptyHint:SetTextColor(0.65, 0.75, 0.84);
+	ed.emptyCreate = button(v, "", 188, 30, 196, 367, function() self:AskCreate(); end);
+	ed.emptyCreate.role = "primary";
 	-- header: name, class, favourite, status, actions
 	ed.nameLabel = text(v, 8, 12, 80, "GameFontNormal");
 	ed.name = edit(v, 196, 94, 8, function(t) c:SetName(t); end, "RebornBuildPlannerName");
@@ -898,11 +909,17 @@ function UI:RefreshEditor()
 		setShown(w, on);
 	end
 	setShown(ed.empty, not on);
+	setShown(ed.emptyMark, not on);
+	setShown(ed.emptyHint, not on);
+	setShown(ed.emptyCreate, not on);
 	local adv = on and e.adv;
 	for _, w in ipairs({ ed.nt.head, ed.nt.counter, ed.nt.notes.scroll, ed.nt.linkLabel, ed.nt.link, ed.nt.talentsLabel, ed.nt.talents,
 		ed.nt.warn, ed.nt.avoidHead, ed.nt.kept }) do setShown(w, adv); end
 	if not on then
-		ed.empty:SetText(L("Pick a build in the library, or create one."));
+		ed.empty:SetText(L("Choose your next build"));
+		ed.emptyHint:SetText(L("Select a saved build on the left, or create a new one."));
+		setLabel(ed.emptyCreate, L("Create a build"));
+		enable(ed.emptyCreate, not c:ReadOnly());
 		for _, r in ipairs(ed.spells) do r.frame:Hide(); end
 		for _, g in pairs(ed.groups) do
 			g.label:Hide();
