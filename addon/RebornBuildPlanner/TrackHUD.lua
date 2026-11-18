@@ -430,7 +430,80 @@ local function createCardMark(card)
   mark:Hide();
   return mark;
 end
-function H.UpdateCards(self, build, snapshot, phase, theme)
+-- Native button frames are only observed. The hint is a mouse-transparent
+-- child of the native control, so clicking reroll/skip remains the game's job.
+local function actionUsable(button)
+  if not button or not button.IsShown or not button:IsShown() or button.off then return false end
+  if button.IsEnabled and not button:IsEnabled() then return false end
+  return true
+end
+local function makeActionMark(button)
+  local target=button.text or button;
+  local f=CreateFrame("Frame",nil,button);
+  f:SetFrameLevel(button:GetFrameLevel()+5);
+  f:EnableMouse(false);
+  f:SetPoint("TOPLEFT",target,"TOPLEFT",-6,5);
+  f:SetPoint("BOTTOMRIGHT",target,"BOTTOMRIGHT",6,-5);
+  f.outline={};f.halo={};
+  for _,side in ipairs({"TOP","BOTTOM","LEFT","RIGHT"}) do
+    local border=f:CreateTexture(nil,"OVERLAY");border:SetTexture(WHITE);
+    local glow=f:CreateTexture(nil,"ARTWORK");glow:SetTexture(WHITE);
+    if glow.SetBlendMode then glow:SetBlendMode("ADD") end
+    if side=="TOP" or side=="BOTTOM" then
+      border:SetHeight(2);glow:SetHeight(7);
+      border:SetPoint(side.."LEFT",f,side.."LEFT",0,0);
+      border:SetPoint(side.."RIGHT",f,side.."RIGHT",0,0);
+      glow:SetPoint(side.."LEFT",f,side.."LEFT",0,0);
+      glow:SetPoint(side.."RIGHT",f,side.."RIGHT",0,0);
+    else
+      border:SetWidth(2);glow:SetWidth(7);
+      border:SetPoint("TOP"..side,f,"TOP"..side,0,0);
+      border:SetPoint("BOTTOM"..side,f,"BOTTOM"..side,0,0);
+      glow:SetPoint("TOP"..side,f,"TOP"..side,0,0);
+      glow:SetPoint("BOTTOM"..side,f,"BOTTOM"..side,0,0);
+    end
+    f.outline[#f.outline+1]=border;
+    f.halo[#f.halo+1]=glow;
+  end
+  f:Hide();return f;
+end
+function H.FallbackAction(self,build,snapshot,phase,catalog,lang,showing)
+  local fallback=nil;
+  if showing and ns.LiveTracker.OfferHasGoal(build,phase,snapshot,catalog,lang)==false then
+    local offer=snapshot.cards;
+    local reroll=_G and _G.AZSCardsReroll;
+    local free=tonumber(offer.rr) or 0;
+    local cost=tonumber(offer.rc);
+    local gold=tonumber(snapshot.gold);
+    if actionUsable(reroll) and
+      (free>0 or (cost and cost>=0 and gold and gold>=cost)) then
+      fallback="reroll";
+    else
+      local skip=_G and _G.AZSCardsSkip;
+      if actionUsable(skip) then fallback="skip" end
+    end
+  end
+  self.actions=self.actions or {};
+  for _,name in ipairs({"reroll","skip"}) do
+    local button=_G and _G[name=="reroll" and "AZSCardsReroll" or "AZSCardsSkip"];
+    local old=self.actions[name];
+    if old and old.button~=button then old.frame:Hide();self.actions[name]=nil;old=nil end
+    if button and not old then
+      old={button=button,frame=makeActionMark(button)};
+      self.actions[name]=old;
+    end
+    if old then
+      if name==fallback then
+        local rgb={0.98,0.79,0.34};
+        for _,t in ipairs(old.frame.outline) do paint(t,rgb,0.98) end
+        for _,t in ipairs(old.frame.halo) do paint(t,rgb,0.16) end
+        old.frame:Show();
+      else old.frame:Hide() end
+    end
+  end
+  return fallback
+end
+function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
   if not self.cardRoot and type(CreateFrame)=="function" and UIParent then
     self.cardRoot=CreateFrame("Frame","RBPCardHighlights",UIParent);
     self.cardRoot:SetFrameStrata("FULLSCREEN_DIALOG");
@@ -448,7 +521,7 @@ function H.UpdateCards(self, build, snapshot, phase, theme)
   for i=1,8 do
     local card=_G and _G["AZSCard"..i];
     local hint=showing and card and ns.LiveTracker.CardHint(
-      build,phase,snapshot,cards.cards and cards.cards[i]);
+      build,phase,snapshot,cards.cards and cards.cards[i],catalog,lang);
     local mark=self.marks[i];
     if card and not mark then mark=createCardMark(card);self.marks[i]=mark end
     if mark then
@@ -472,5 +545,6 @@ function H.UpdateCards(self, build, snapshot, phase, theme)
     end
   end
   if showing then self.cardRoot:Show() else self.cardRoot:Hide() end
+  self.FallbackAction(self,build,snapshot,phase,catalog,lang,showing);
 end
 return H;
