@@ -33,10 +33,17 @@ function Commands.Handle(ui, controller, msg)
 	elseif arg == "reset" then
 		ui:ResetPosition();
 		say(Locale.T("Window position and size reset."));
+	elseif arg == "hud" then
+		if ns.Runtime and ns.Runtime.ready then say("HUD " .. tostring(ns.Runtime.ToggleHud())); else say("Live API unavailable"); end
+	elseif arg == "theme" then
+		if ns.Runtime and ns.Runtime.ready then say("HUD theme: " .. tostring(ns.Runtime.ToggleTheme())); else say("Live API unavailable"); end
+	elseif arg == "theme standard" or arg == "theme elwynn" then
+		if ns.Runtime and ns.Runtime.ready then say("HUD theme: " .. tostring(ns.Runtime.SetTheme(arg:sub(7)))); else say("Live API unavailable"); end
 	elseif arg == "diag" then
 		local h = controller:Handle();
 		say(string.format("version %s, storage %s%s, catalogue %s (%s)", tostring(ns.VERSION), h and h.status or "none",
 			(h and h.readOnly) and " (read only)" or "", ns.catalog and ns.catalog:Content() or "none", tostring(ns.catalogStatus)));
+		say("Live tracker: " .. (ns.Runtime and ns.Runtime.ready and "events connected" or "API not connected"));
 		if ns.JewelryEffects then
 			local total, runtime, expected = ns.JewelryEffects.MetadataStatus();
 			say(string.format("bijoux : %d/%s mecanique(s) locale(s), AZS_GEN %s, effets live uniquement pour objets equipes et identifies", total, expected and tostring(expected) or "?", runtime and "present" or "absent"));
