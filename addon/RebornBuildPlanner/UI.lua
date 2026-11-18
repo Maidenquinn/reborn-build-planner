@@ -1549,7 +1549,7 @@ function UI:RefreshBrowser()
 			end
 			r.sub:SetText(fitText(sub, 228, 10));
 				r.tag:SetText(fitFontText(r.tag, tag, 72));
-			r.afterMark:SetShown(laterBanish and true or false);
+			setShown(r.afterMark, laterBanish and true or false);
 			if laterBanish then
 				r.base:SetTexture(0.19, 0.07, 0.10, 1);
 				r.tag:SetTextColor(1, 0.45, 0.48);
