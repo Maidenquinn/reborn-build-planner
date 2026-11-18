@@ -85,7 +85,7 @@ end
 
 function Controller:ClassName(key)
 	local cat = self:Catalog();
-	return cat and cat:ClassName(key, self:Lang() == "frFR" and "frFR" or nil) or tostring(key);
+	return cat and cat:ClassName(key, self:Lang()) or tostring(key);
 end
 
 -- dir = 1 / -1 cycles: all classes (nil) -> first class -> ... -> last -> all
@@ -678,7 +678,7 @@ function Controller:TargetInfo()
 	local list = e.draft.phases[e.phase][e.group];
 	local main = BM.MAIN_SLOTS[e.group];
 	local key = list[e.slot] or "";
-	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local lang = self:Lang();
 	local kind = e.group == "amulets" and "amulet" or "jewel";
 	return { group = e.group, slot = e.slot, main = e.slot <= main, altIndex = e.slot - main, key = key,
 		name = key ~= "" and (cat and cat:Get(kind, key) and cat:Name(kind, key, lang) or key) or "" };
@@ -740,7 +740,7 @@ function Controller:CatalogEntries()
 	local out = {};
 	if not e or not cat then return out; end
 	local class = e.draft.class;
-	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local lang = self:Lang();
 	local ph = e.draft.phases[e.phase];
 	local keys, kind = {}, "spell";
 	if e.cat == "spells" then
@@ -834,7 +834,7 @@ end
 -- display rows of the plan (wanted spells, banish, slot lists) with localized names; unknown keys shown raw
 function Controller:PlanView()
 	local e, cat = self.state.editor, self:Catalog();
-	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local lang = self:Lang();
 	local ph = e.draft.phases[e.phase];
 	local function nm(kind, k)
 		if k == "" then return ""; end
@@ -895,7 +895,7 @@ local RARITY = { common = "Common", uncommon = "Uncommon", rare = "Rare", epic =
 function Controller:TooltipData(kind, key)
 	local cat, e = self:Catalog(), self.state.editor;
 	if not cat or type(key) ~= "string" or key == "" then return nil; end
-	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local lang = self:Lang();
 	local entry = cat:Get(kind, key);
 	local ph = e and e.draft.phases[e.phase];
 	local d = { lines = {}, state = {}, facts = {} };
