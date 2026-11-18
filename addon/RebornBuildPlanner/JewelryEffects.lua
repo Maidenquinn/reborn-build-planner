@@ -115,15 +115,20 @@ function E.Sections(key, slot, french)
     or "Before rarity and upgrades. Not the actual in-run value."
   local simple = E.Simple(key, slot, fr)
   local result = {
-    { title = fr and "CE QUE FAIT CET OBJET" or "WHAT THIS ITEM DOES", lines = {
+    { title = fr and "BONUS DE L'OBJET" or "ITEM BONUS", lines = {
       { text = simple and simple.text or label, tone = "ok" },
       { text = simple and simple.note or caution, tone = "dim" }
     } },
-    { title = fr and "VALEUR DE REFERENCE" or "REFERENCE VALUE", lines = {
+  }
+  -- Avoid repeating "17% extra damage" as "Damage: 17%" immediately below.
+  -- Keep the raw numerical parameter only when there is no proven plain
+  -- percentage interpretation for this complex behaviour.
+  if not isShare then
+    result[#result + 1] = { title = fr and "DONNEE TECHNIQUE" or "TECHNICAL DATA", lines = {
       { text = label .. " : " .. value },
       { text = caution, tone = "dim" }
-    } },
-  }
+    } }
+  end
   local function appendPairs(input, title, isSpecial)
     if type(input) ~= "table" or #input == 0 then return end
     local lines = {}
