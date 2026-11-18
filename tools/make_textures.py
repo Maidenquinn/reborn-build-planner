@@ -135,29 +135,18 @@ def panel_nine():            # 64 x 64, corner 16: dark slate panel, bronze rule
     return g
 
 
-def window_nine():           # 128 x 128, corner 28: the main frame, double bronze rule and corner brackets
+def window_nine():
+    """Quiet outer shell: dark satin steel, 2px edge, beveled internal lip."""
     g = Img(128, 128)
-    g.vgrad(0, 0, 128, 128, (17, 21, 36), (8, 10, 18))
-    g.noise(3, 23)
-    g.frame(0, 0, 128, 128, INK, t=1)
-    g.frame(1, 1, 127, 127, BRONZE, t=2)
-    g.frame(3, 3, 125, 125, (10, 12, 20), t=2)
-    g.frame(5, 5, 123, 123, BRONZE_D, t=1)
-    g.rect(6, 6, 122, 7, (255, 255, 255), 14)
-    for (sx, sy, ex, ey) in ((1, 1, 1, 1), (1, 1, 1, 1)):
-        pass
-    # corner brackets: a bronze L and a gold diamond on each corner
-    for cx, cy, dx, dy in ((12, 12, 1, 1), (115, 12, -1, 1), (12, 115, 1, -1), (115, 115, -1, -1)):
-        for k in range(0, 15):
-            g.put(cx + dx * k, cy, GOLD if k < 3 else BRONZE)
-            g.put(cx, cy + dy * k, GOLD if k < 3 else BRONZE)
-            g.put(cx + dx * k, cy + dy, BRONZE_D)
-            g.put(cx + dx, cy + dy * k, BRONZE_D)
-        g.diamond(cx + dx * 4, cy + dy * 4, 3, GOLD)
-        g.diamond(cx + dx * 4, cy + dy * 4, 1, (255, 244, 200))
-    notch(g, 3)
+    g.vgrad(0, 0, 128, 128, (22, 38, 62), (8, 17, 34))
+    g.noise(2, 23)
+    g.frame(0, 0, 128, 128, (3, 9, 21))
+    g.frame(1, 1, 127, 127, (59, 112, 151))
+    g.frame(2, 2, 126, 126, (16, 44, 77))
+    g.frame(4, 4, 124, 124, (34, 69, 103))
+    g.rect(5, 5, 123, 6, (183, 223, 245), 40)
+    g.rect(5, 121, 123, 122, (3, 8, 18), 135)
     return g
-
 
 def inset_nine():            # 32 x 32, corner 6: sunken field / list well
     g = Img(32, 32)
@@ -182,21 +171,20 @@ ROLES = {
 }
 
 
-def button_nine(role):       # 32 x 32, corner 8: embossed button
+def button_nine(role):
+    """Clean raised controls: soft vertical gradient, slim rim, no clipped corners."""
     top, bottom, border = ROLES[role]
     g = Img(32, 32)
     g.vgrad(0, 0, 32, 32, top, bottom)
-    g.noise(2, 41)
-    g.frame(0, 0, 32, 32, INK)
+    g.noise(1, 41)
+    g.frame(0, 0, 32, 32, (5, 15, 31))
     g.frame(1, 1, 31, 31, border)
+    g.frame(2, 2, 30, 30, shade(border, 0.47))
     if role != 'disabled':
-        g.rect(2, 2, 30, 3, (255, 255, 255), 70)      # bevel: bright top line
-        g.rect(2, 3, 30, 4, (255, 255, 255), 24)
-        g.rect(2, 29, 30, 30, (0, 0, 0), 90)           # shadow line at the bottom
-        g.rect(2, 2, 3, 30, (255, 255, 255), 22)
-    notch(g, 2)
+        g.rect(3, 3, 29, 4, (210, 232, 250), 58)
+        g.rect(3, 27, 29, 28, (2, 9, 19), 115)
+        g.rect(3, 5, 4, 27, (150, 187, 229), 21)
     return g
-
 
 def veil_hover():            # 32 x 32: warm light veil over a hovered control (clearly visible)
     g = Img(32, 32)
@@ -228,17 +216,15 @@ def titlebar_nine():         # 64 x 32, corner 12: title bar, lighter bronze-sla
     return g
 
 
-def separator():             # 128 x 8: gold rule with a centre diamond, fading to both ends
+def separator():
+    """One soft horizontal division, no diamond ornaments at every section."""
     g = Img(128, 8)
     for x in range(128):
-        d = abs(x - 63.5) / 63.5
-        a = int(255 * (1 - d) ** 0.6)
-        g.put(x, 3, BRONZE, a)
-        g.put(x, 4, BRONZE_D, int(a * 0.7))
-    g.diamond(63, 3, 3, GOLD)
-    g.diamond(63, 3, 1, (255, 246, 210))
+        d = abs(x-63.5)/63.5
+        alpha = int(150*(1-d)**0.8)
+        g.put(x, 3, (81, 153, 202), alpha)
+        g.put(x, 4, (31, 88, 138), int(alpha*0.55))
     return g
-
 
 def icon_frame():            # 64 x 64: light bronze frame with a transparent centre; tinted by rarity in the UI
     g = Img(64, 64)
@@ -275,18 +261,15 @@ def slot_nine(kind):         # 32 x 32, corner 8: equipment cell background
     return g
 
 
-def tooltip_nine():          # 64 x 64, corner 14: dark opaque tooltip frame, gold corner studs
-    g = Img(64, 64)
-    g.vgrad(0, 0, 64, 64, (13, 15, 26), (7, 9, 16))
-    g.noise(2, 31)
-    g.frame(0, 0, 64, 64, INK)
-    g.frame(1, 1, 63, 63, GOLD, t=1)
-    g.frame(2, 2, 62, 62, BRONZE_D, t=1)
-    for (x, y) in ((5, 5), (58, 5), (5, 58), (58, 58)):
-        g.diamond(x, y, 2, GOLD)
-    notch(g, 2)
+def tooltip_nine():
+    g = Img(64,64)
+    g.vgrad(0,0,64,64,(25,42,67),(9,18,35))
+    g.noise(2,31)
+    g.frame(0,0,64,64,(4,13,27))
+    g.frame(1,1,63,63,(84,145,184))
+    g.frame(2,2,62,62,(25,63,102))
+    g.rect(3,3,61,4,(211,231,252),45)
     return g
-
 
 def row_sel():               # 16 x 32: selected list row, deep blue to blue-gold, gold bar on the left (stretched)
     g = Img(16, 32)
@@ -299,17 +282,14 @@ def row_sel():               # 16 x 32: selected list row, deep blue to blue-gol
     return g
 
 
-def thumb():                 # 16 x 32: scroll thumb
-    g = Img(16, 32)
-    g.vgrad(0, 0, 16, 32, (170, 134, 66), (98, 74, 36))
-    g.frame(0, 0, 16, 32, INK)
-    g.frame(1, 1, 15, 31, GOLD, a=150)
-    g.rect(2, 2, 14, 3, (255, 255, 255), 80)
-    for y in (13, 16, 19):
-        g.rect(4, y, 12, y + 1, (40, 30, 14), 200)
-    notch(g, 2)
+def thumb():
+    g = Img(16,32)
+    g.vgrad(0,0,16,32,(89,146,189),(35,76,121))
+    g.frame(0,0,16,32,(6,18,35))
+    g.frame(1,1,15,31,(102,174,220),a=200)
+    g.rect(2,2,14,3,(231,244,255),70)
+    for y in (14,17,20): g.rect(5,y,11,y+1,(11,39,66),150)
     return g
-
 
 def catalogue():
     out = {
