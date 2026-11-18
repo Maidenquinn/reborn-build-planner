@@ -81,12 +81,15 @@ return function(H)
 		ok(e.ui.languageButton:GetText():find("Automatic", 1, true));
 		e.world.click(e.ui.languageButton);
 		ok(e.ui.languageMenu:IsShown() and #e.ui.languageMenu.buttons == 15);
+		ok(e.ui.languageDismiss:IsShown(), "outside-click catcher is active when menu opens");
+		ok(e.ui.languageDismiss:GetFrameLevel() < e.ui.languageMenu:GetFrameLevel(), "menu above click-away catcher");
 		local en = e.ui.languageMenu.buttons[2];
 		e.world.click(en);
 		eq(e.ns.Locale.lang, "enUS");
 		eq(e.ns.Locale.Selection(), "enUS");
 		eq(e.h():GetSetting("lang"), "enUS");
 		no(e.ui.languageMenu:IsShown(), "menu closes after selection");
+		no(e.ui.languageDismiss:IsShown(), "click-away catcher removed after selection");
 		e.world.click(e.ui.languageButton);
 		e.world.click(e.ui.languageMenu.buttons[5]); -- German, not yet translated
 		eq(e.ns.Locale.lang, "deDE");
