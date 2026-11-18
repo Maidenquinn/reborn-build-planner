@@ -133,6 +133,18 @@ return function(H)
 		e.G.AZS_CARDS={kind="spell",cards={{key="whirlwind"},{key="execute"},{key="rend"}}};
 		events.AZSCARDS();
 
+		-- Ban confirmation is observational only: do not mark a spell until
+		-- the native offer acknowledges one consumed banishment.
+		e.G.AZS_CARDS={kind="spell",bn=3,cards={{key="execute"}}};
+		e.G.AZS_ZONE.run="run-a";
+		e.ns.Runtime.ObserveBanishCommand("AZS","banish 1");
+		eq(e.ns.Runtime.bans.execute,nil,"ban not yet acknowledged");
+		e.G.AZS_CARDS.bn=2;events.AZSCARDS();
+		eq(e.ns.Runtime.bans.execute,true,"native decrement confirms ban");
+		eq(#e.ns.Runtime.progress.banishedSpells,1);
+		e.G.AZS_ZONE.run="run-b";events.AZSZONE();
+		eq(e.ns.Runtime.bans.execute,nil,"next run clears previous bans");
+		e.G.AZS_ZONE.run="run-a";events.AZSZONE();
 		-- In-game build selection must use the same validated active pointer as the planner.
 		local second=assert(h:Create({name="Second warrior plan",class="warrior"}));
 		ok(e.ns.Runtime.SelectBuild(second));
