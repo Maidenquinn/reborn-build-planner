@@ -304,7 +304,33 @@ return function(H)
 		ok(e.ui.lib.rows[1].star.tex.texture:find("ultimate_fav_on", 1, true),
 			"filled heart is displayed after favorite click");
 		local path = visuals.Icon("demonhunter", e.c:Catalog());
-		ok(path:find("Interface", 1, true), "non-3.3.5 class has a safe icon fallback");
+		eq(path, "Interface\\AddOns\\RebornBuildPlanner\\Media\\ultimate_class_dh", "demon-hunter icon is bundled and deterministic");
+		local monk = visuals.Icon("monk", e.c:Catalog());
+		eq(monk, "Interface\\AddOns\\RebornBuildPlanner\\Media\\ultimate_class_monk", "monk icon is bundled and deterministic");
+	end);
+
+	test("3B: banish-after remains a requested spell with distinct red editor/browser treatment", function()
+		local e = boot(); e.open();
+		local id = e.c:Create("Later ban", "warrior");
+		e.ui:OpenEditor(id);
+		local spell = e.c:Catalog():SpellsOfClass("warrior")[1];
+		ok(spell, "class spell available");
+		e.c:AddSpell(spell);
+		e.c:ToggleBanishAfter(spell);
+		local row = e.ui.ed.spells[1];
+		ok(row.afterMark:IsShown(), "editor red strip shown");
+		eq(row.tog.role, "danger", "red banish-after action");
+		ok(row.bg.texture, "editor keeps a visible background");
+		local found;
+		for _, r in ipairs(e.ui.bs.rows) do
+			if r.tipKey == spell then found = r; break end
+		end
+		ok(found, "requested spell appears in browser");
+		ok(found.afterMark:IsShown(), "browser red strip shown");
+		ok(found.tag.text:find("Banish after", 1, true), "browser explicitly states banish after");
+		e.c:ToggleBanishAfter(spell);
+		no(row.afterMark:IsShown(), "editor strip removed after toggle");
+		no(found.afterMark:IsShown(), "browser strip removed after toggle");
 	end);
 
 	test("3B: sort dropdown saves selection; all menu choices are direct and close on outside click", function()
