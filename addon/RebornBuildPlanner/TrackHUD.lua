@@ -116,11 +116,37 @@ local function spellTooltip(owner,tip)
   end
   GameTooltip:Show();
 end
+-- Stats are sourced only from the equipped AZS_GEAR row, never invented.
+local function jewelryTooltip(owner,info)
+  if not info or not GameTooltip then return end
+  GameTooltip:SetOwner(owner,"ANCHOR_RIGHT");
+  GameTooltip:SetText(tostring(info.name or ""));
+  if not GameTooltip.AddLine then GameTooltip:Show();return end
+  local status=info.state=="EQUIPPED" and "Équipé" or
+    info.state=="ALTERNATIVE" and "Alternative équipée" or
+    info.state=="MISSING" and "Non obtenu" or
+    info.state=="OUTSIDE_BUILD" and "Équipé · hors build" or "État inconnu";
+  GameTooltip:AddLine(status,.94,.78,.40);
+  local equip=info.row;local shown=0;
+  if type(equip)=="table" then
+    for _,field in ipairs({"text","effect","note","description","bonus","value","value2"}) do
+      local v=equip[field];
+      if (type(v)=="string" and v~="") or type(v)=="number" then
+        GameTooltip:AddLine(tostring(v),.83,.92,1,true);shown=shown+1;
+      end
+    end
+  end
+  if shown==0 then GameTooltip:AddLine("Bonus détaillé non transmis par le jeu",.67,.67,.67,true) end
+  GameTooltip:Show();
+end
 local function row(parent, y, compact)
   local r=CreateFrame("Frame",nil,parent);
   r:SetSize(WIDTH-12,compact and 14 or 16);
   r:EnableMouse(true);
-  r:SetScript("OnEnter",function(self) if self.spellTip then spellTooltip(self,self.spellTip) end end);
+  r:SetScript("OnEnter",function(self)
+    if self.spellTip then spellTooltip(self,self.spellTip)
+    elseif self.jewelryTip then jewelryTooltip(self,self.jewelryTip) end
+  end);
   r:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end);
   r:SetPoint("TOPLEFT",parent,"TOPLEFT",6,-y);
   r.icon=r:CreateTexture(nil,"ARTWORK");
@@ -131,7 +157,7 @@ local function row(parent, y, compact)
   r.state:SetJustifyH("RIGHT");
   return r;
 end
-function H.New(onTheme,onStage,onSelect,onCollapse)
+function H.New(onTheme,onStage,onSelect,onCollapse,onOpen)
   if type(CreateFrame)~="function" or not UIParent then return nil end
   local f=CreateFrame("Frame","RBPTrackerHUD",UIParent);
   f:SetSize(WIDTH,HEIGHT);
@@ -206,6 +232,7 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
     cell:SetSize(22,22);cell:EnableMouse(true);
     cell:SetScript("OnEnter",function(self)
       if self.spellTip then spellTooltip(self,self.spellTip)
+      elseif self.jewelryTip then jewelryTooltip(self,self.jewelryTip)
       elseif GameTooltip and self.tip then
         GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(self.tip);GameTooltip:Show()
       end
@@ -233,16 +260,33 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
     t:SetPoint("CENTER",cell,"CENTER",0,0);
     cell:Hide();f.mini[i]={icon=t,cell=cell};
   end
+  f.openButton=CreateFrame("Button",nil,f);f.openButton:SetSize(106,19);
+  f.openButton:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-13,10);
+  f.openButton:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=7,
+    insets={left=2,right=2,top=2,bottom=2}});
+  f.openButton:SetBackdropColor(.07,.14,.11,.96);
+  f.openButton:SetBackdropBorderColor(.83,.67,.34,1);
+  f.openButton.text=label(f.openButton,"GameFontNormalSmall",10,7,3,95);
+  f.openButton.text:SetText("Open RBP");
+  f.openButton:SetScript("OnClick",function()if onOpen then onOpen() end end);
+  f.openButton:SetScript("OnEnter",function(self)
+    if GameTooltip then GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText("Ouvrir Reborn Build Planner");GameTooltip:Show() end
+  end);
+  f.openButton:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end);
   f.extra={};
   for g=1,3 do
     local group={icons={}};
+    group.rule=f:CreateTexture(nil,"ARTWORK");group.rule:SetTexture(WHITE);
+    group.rule:SetHeight(1);group.rule:Hide();
     group.label=label(f,"GameFontNormalSmall",9,13,1,97);
     for i=1,5 do
-      local cell=CreateFrame("Frame",nil,f);cell:SetSize(16,16);
+      local cell=CreateFrame("Frame",nil,f);cell:SetSize(20,20);
       cell:EnableMouse(true);
       cell.icon=cell:CreateTexture(nil,"ARTWORK");cell.icon:SetAllPoints(cell);
       cell:SetScript("OnEnter",function(self)
-        if GameTooltip and self.tip then
+        if self.jewelryTip then jewelryTooltip(self,self.jewelryTip)
+        elseif self.spellTip then spellTooltip(self,self.spellTip)
+        elseif GameTooltip and self.tip then
           GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(self.tip);GameTooltip:Show()
         end
       end);
@@ -309,7 +353,7 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
   };
   local activeExtras=0;
   for _,g in ipairs(extras) do if #g.items>0 then activeExtras=activeExtras+1 end end
-  local height=(compact and COMPACT_HEIGHT or HEIGHT)+activeExtras*34;
+  local height=(compact and COMPACT_HEIGHT or HEIGHT)+activeExtras*44+27;
   if f:GetHeight()~=height then f:SetHeight(height) end
   rim(f,theme);
   local assetRoot=fieldkitPath();
@@ -389,6 +433,9 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
       elseif item.state=="MISSING" then status=fr and "Manque" or "Missing";color={0.94,0.67,0.42};
       else status="?";color={0.74,0.77,0.82};end
       local obtained=item.state=="EQUIPPED" or item.state=="ALTERNATIVE";
+      r.jewelryTip={name=catalog and catalog:Name(kind,item.key,lang) or item.key,
+        state=item.state,row=item.equippedRow};
+      r.spellTip=nil;
       r.icon:SetAlpha(obtained and 1 or (item.state=="UNKNOWN" and .65 or .42));
       r.name:SetAlpha(obtained and 1 or (item.state=="UNKNOWN" and .73 or .55));
       r.state:SetText(status);r.state:SetTextColor(unpack(color));r:Show();
@@ -411,7 +458,8 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
       elseif state=="UNKNOWN" then status=fr and "État inconnu" or "Unknown"
       else status=fr and "Manquant" or "Missing" end
       m.cell.tip=tostring(name).." - "..status;
-      m.cell.spellTip=nil;
+      m.cell.spellTip=nil;m.cell.jewelryTip=nil;
+      if i>6 then m.cell.jewelryTip={name=name,state=item.state,row=item.equippedRow} end
       if i<=6 then
         local native=snapshot and snapshot.spellTipsKnown and snapshot.spellTips and snapshot.spellTips[item.key];
         m.cell.spellTip={name=name,rank=item.rank,targetRank=item.targetRank,native=native};
@@ -433,17 +481,20 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
   local base=compact and COMPACT_HEIGHT or HEIGHT;
   local visibleExtra=0;
   for g,src in ipairs(extras) do
-    local panel=f.extra[g];
-    local show=#src.items>0;
-    local y=base+4+visibleExtra*34;
+    local panel=f.extra[g];local show=#src.items>0;
+    local y=base+visibleExtra*44;
     if show then visibleExtra=visibleExtra+1 end
     if show then
+      panel.rule:ClearAllPoints();
+      panel.rule:SetPoint("TOPLEFT",f,"TOPLEFT",14,-y-2);
+      panel.rule:SetPoint("TOPRIGHT",f,"TOPRIGHT",-14,-y-2);
+      panel.rule:SetVertexColor(.55,.41,.18,.72);panel.rule:Show();
       panel.label:ClearAllPoints();
-      panel.label:SetPoint("TOPLEFT",f,"TOPLEFT",13,-y+1);
-      panel.label:SetText(src.label.." · "..#src.items);
-      panel.label:SetTextColor(.96,.73,.42);
+      panel.label:SetPoint("TOPLEFT",f,"TOPLEFT",14,-y-7);
+      panel.label:SetText(src.label.."  ("..#src.items..")");
+      panel.label:SetWidth(186);panel.label:SetTextColor(.96,.77,.44);
       panel.label:Show();
-    else panel.label:Hide() end
+    else panel.label:Hide();panel.rule:Hide() end
     for i,cell in ipairs(panel.icons) do
       local item=show and src.items[i];
       if item then
@@ -451,12 +502,20 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
         local name=catalog and catalog:Name(kind,item.key,lang) or item.key;
         cell.icon:SetTexture(iconTexture(catalog and catalog:Get(kind,item.key)));
         cell.tip=name..(item.rank and (" · R"..item.rank) or "");
-        cell:ClearAllPoints();cell:SetPoint("TOPLEFT",f,"TOPLEFT",110+(i-1)*19,-y+1);
+        cell.jewelryTip=nil;cell.spellTip=nil;
+        if kind~="spell" then
+          cell.jewelryTip={name=name,state="OUTSIDE_BUILD",row=item.equippedRow};
+        else
+          local native=snapshot and snapshot.spellTipsKnown and snapshot.spellTips and snapshot.spellTips[item.key];
+          cell.spellTip={name=name,rank=item.rank,native=native};
+        end
+        cell:ClearAllPoints();cell:SetPoint("TOPLEFT",f,"TOPLEFT",15+(i-1)*27,-y-19);
         cell:Show();
       else cell:Hide() end
     end
   end
-  if activeExtras>0 then rim(f,theme) end
+  f.openButton.text:SetText(fr and "Ouvrir RBP" or "Open RBP");
+  rim(f,theme);
   f:Show();
 end
 -- Pure presentation: no card click handlers or native card mutations.
