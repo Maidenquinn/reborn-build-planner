@@ -135,7 +135,8 @@ function H.UpdateCards(self, build, snapshot, phase, theme)
     self.cardRoot:SetFrameStrata("FULLSCREEN_DIALOG");self.cardRoot:SetFrameLevel(130);
     self.cardRoot:EnableMouse(false);self.marks={};
     if type(AZS_SetOnTopOfScreens)=="function" then
-      AZS_SetOnTopOfScreens("RBPCardHighlights",true);
+      -- Optional API: a client mismatch must not break the rest of the HUD.
+      pcall(AZS_SetOnTopOfScreens,"RBPCardHighlights",true);
     end
   end
   if not self.cardRoot then return end
