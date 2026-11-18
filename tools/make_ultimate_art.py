@@ -127,7 +127,8 @@ def tga_bytes(im):
 
 def main(out):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
-    textures={"ultimate_corner":corner(),"ultimate_crest":crest(),"ultimate_titlebar":title(),"ultimate_panel":panel(),\n              "ultimate_fav_on":favorite(True),"ultimate_fav_off":favorite(False)}
+    textures={"ultimate_corner":corner(),"ultimate_crest":crest(),"ultimate_titlebar":title(),"ultimate_panel":panel(),
+              "ultimate_fav_on":favorite(True),"ultimate_fav_off":favorite(False)}
     for name,im in textures.items():(out/(name+".tga")).write_bytes(tga_bytes(im))
     print("Generated",len(textures),"original textures in",out)
 
