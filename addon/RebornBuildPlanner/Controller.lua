@@ -202,7 +202,7 @@ function Controller:Rows()
 		return out;
 	end
 	local words = {};
-	for w in string.gmatch(string.lower(st.search or ""), "%S+") do words[#words + 1] = w; end
+	for w in string.gmatch(ns.Utf8.CaseFold(st.search or ""), "%S+") do words[#words + 1] = w; end
 	local filter = self:Filter();
 	local builds = h.db and type(h.db.builds) == "table" and h.db.builds or {};
 	for _, e in ipairs(h:List(st.classFilter)) do
@@ -211,7 +211,7 @@ function Controller:Rows()
 		if filter == "favorites" and not meta.fav then keep = false; end
 		if filter == "recent" and not meta.used then keep = false; end
 		if keep and #words > 0 then
-			local text = builds[e.id] and self:IndexOf(builds[e.id]) or string.lower(e.name or "");
+			local text = builds[e.id] and self:IndexOf(builds[e.id]) or ns.Utf8.CaseFold(e.name or "");
 			for _, w in ipairs(words) do
 				if not string.find(text, w, 1, true) then keep = false; break; end
 			end
@@ -219,7 +219,7 @@ function Controller:Rows()
 		if keep then
 			out[#out + 1] = { id = e.id, name = e.name, class = e.class, className = self:ClassName(e.class), revision = e.revision,
 				clean = e.clean, active = h:GetActive(e.class) == e.id, fav = meta.fav, used = meta.used, modified = meta.modified,
-				lname = string.lower(e.name or "") };
+				lname = ns.Utf8.CaseFold(e.name or "") };
 		end
 	end
 	local sort = self:Sort();
