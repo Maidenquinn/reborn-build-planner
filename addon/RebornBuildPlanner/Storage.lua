@@ -22,7 +22,7 @@ local type, pairs, ipairs, pcall, tostring, tonumber, string, table = type, pair
 S.LIMITS = { builds = 200, trash = 20, quarantine = 50, dbNodes = 400000, dbDepth = 12 };
 S.SETTING_DEFAULTS = { lang = "auto", advancedPhases = false, scale = 1, lastClass = "", libSort = "name", libFilter = "all" };
 local SETTING_CHECK = {
-	lang = function(v) return v == "auto" or v == "enUS" or v == "frFR"; end,
+	lang = function(v) return Locale.IsSupportedSelection(v); end,
 	advancedPhases = function(v) return type(v) == "boolean"; end,
 	scale = function(v) return type(v) == "number" and v >= 0.6 and v <= 1.5; end,
 	lastClass = function(v) return type(v) == "string" and #v <= 64; end,
