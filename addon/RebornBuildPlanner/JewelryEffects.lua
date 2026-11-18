@@ -58,6 +58,42 @@ function E.Lookup(key, slot)
     return row, "runtime"
   end
 end
+-- Player-first summary: plain meaning of a known base coefficient, never a guessed
+-- current rarity/rank stat. Unknown/conditional behaviors remain explicitly unresolved.
+local SUMMARY = {
+  lifesteal = { "des dégâts que tu infliges te soignent.", "of the damage you deal heals you." },
+  damage = { "de dégâts supplémentaires.", "extra damage." },
+  cooldown = { "de temps de recharge en moins.", "shorter cooldowns." },
+  crit_damage = { "de dégâts critiques supplémentaires.", "extra critical hit damage." },
+  crit = { "de chances de coup critique.", "critical strike chance." },
+  max_health = { "de points de vie maximum supplémentaires.", "extra maximum health." },
+  reduction = { "de dégâts reçus en moins.", "less incoming damage." },
+  speed = { "de vitesse supplémentaire.", "more speed." },
+  gold = { "d'or supplémentaire.", "more gold." },
+  luck = { "de chance supplémentaire.", "more luck." },
+  pickup = { "de rayon de ramassage supplémentaire.", "more pickup radius." },
+  area = { "de zone d'effet supplémentaire.", "larger area of effect." },
+}
+function E.Simple(key, slot, french)
+  local row = E.Lookup(key, slot)
+  if not row then return nil end
+  local fr = french == true
+  local desc = SUMMARY[row.behavior]
+  if desc and type(row.base) == "number" then
+    local pct = number(row.base * 100, fr) .. (fr and " %" or "%")
+    return {
+      text = pct .. " " .. desc[fr and 1 or 2],
+      note = fr and "Valeur de base : le bonus reel depend de la rarete et des ameliorations."
+        or "Base value: actual bonus depends on rarity and upgrades."
+    }
+  end
+  return {
+    text = fr and "Effet special : consulte la description dans le jeu."
+      or "Special effect: check the in-game description.",
+    note = fr and "Les donnees locales ne precisent pas la formule complete."
+      or "The local data does not specify the full formula."
+  }
+end
 function E.Sections(key, slot, french)
   local row, origin = E.Lookup(key, slot)
   if not row then return nil end
@@ -77,10 +113,14 @@ function E.Sections(key, slot, french)
   local caution = fr and
     "Avant rareté et améliorations. Ce n'est pas la valeur effective pendant une partie."
     or "Before rarity and upgrades. Not the actual in-run value."
+  local simple = E.Simple(key, slot, fr)
   local result = {
-    { title = fr and "Effet identifié" or "Identified effect", lines = { { text = label } } },
-    { title = amountLabel, lines = {
-      { text = value },
+    { title = fr and "CE QUE FAIT CET OBJET" or "WHAT THIS ITEM DOES", lines = {
+      { text = simple and simple.text or label, tone = "ok" },
+      { text = simple and simple.note or caution, tone = "dim" }
+    } },
+    { title = fr and "VALEUR DE REFERENCE" or "REFERENCE VALUE", lines = {
+      { text = label .. " : " .. value },
       { text = caution, tone = "dim" }
     } },
   }
@@ -143,8 +183,8 @@ function E.LiveSections(catalog, key, slot, french)
        type(worn.text) == "string" and worn.text ~= "" and
        #worn.text <= 2048 and matchUnique(catalog, key, slot, worn.name) then
       return {
-        { title = french and "Actuellement équipé (texte du jeu)" or "Currently equipped (game text)",
-          lines = { { text = worn.text } } }
+        { title = french and "BONUS ACTUEL DANS LA PARTIE" or "CURRENT BONUS IN THIS RUN",
+          lines = { { text = worn.text, tone = "ok" } } }
       }
     end
   end
