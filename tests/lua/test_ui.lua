@@ -78,6 +78,13 @@ return function(H)
 		events.AZSSPELLS();
 		eq(e.ns.Runtime.progress.achieved,1);
 		ok(e.ns.Runtime.hud:IsShown(),"compact tracker visible in a real run");
+		eq(e.ns.TrackHUD.frame.rows[1].state.text,"R1","acquired spell shows its actual rank");
+		e.G.AZS_SPELLTIPS={whirlwind="Hits the nearest enemy for 175 arcane damage."};
+		events.AZSSPELLTIP();
+		eq(e.ns.TrackHUD.frame.rows[1].spellTip.native,
+		"Hits the nearest enemy for 175 arcane damage.","tooltip uses authoritative AZSSPELLTIP");
+		ok(e.ns.TrackHUD.frame.rows[1].spellTip.rank==1);
+
 		local cardRoot=e.G.CreateFrame("Frame","AZSCardsFrame",e.G.UIParent);
 		cardRoot:Show();
 		for i=1,3 do e.G.CreateFrame("Frame","AZSCard"..i,cardRoot); end
