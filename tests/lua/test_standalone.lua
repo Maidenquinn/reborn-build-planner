@@ -53,6 +53,12 @@ return function(H)
 		eq(tracking.CardHint(trackedBuild,1,nextSnap,{key="unknown"}),nil);
 		local noOffer={inRun=true,spellsKnown=true,spells={},cards={kind="jewel"}};
 		eq(tracking.CardHint(trackedBuild,1,noOffer,{key="rapid_fire"}),nil);
+		local jewelry={inRun=true,cards={kind="jewel"}};
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{key="blooddrinker",slot="ring"}),"wanted");
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{key="quick_strike",slot="ring"}),"alternative");
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{key="blackhand",slot="trinket"}),"wanted");
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{key="blackhand",slot="ring"}),nil,"mismatched slot cannot highlight");
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{name="Blooddrinker's Band"}),nil,"never match by name alone");
 		eq(tracking.CardHint(trackedBuild,1,{inRun=false,cards={kind="spell"}},{key="serpent_sting"}),nil);
 	end);
 
