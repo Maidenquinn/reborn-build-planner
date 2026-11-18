@@ -96,6 +96,8 @@ return function(H)
 			cancelIndex = 3, onChoose = function() end });
 		local m = e.ui.modal;
 		ok(m:IsShown() and m.footer and m.footer:IsShown());
+		ok(m.dim and m.dim:IsShown(), "modal draws a focus scrim");
+		ok(m.dim:GetFrameLevel() < m:GetFrameLevel(), "scrim below dialog");
 		ok(m.footer:GetFrameLevel() > e.root:GetFrameLevel(), "footer above planner");
 		for i = 1, 3 do
 			ok(m.b[i]:IsShown(), "action " .. i .. " visible");
@@ -104,6 +106,7 @@ return function(H)
 		end
 		e.ui:ModalCancel();
 		no(m:IsShown());
+		no(m.dim:IsShown(), "focus scrim cleared after cancel");
 	end);
 
 	test("3A: command collisions are left alone", function()
