@@ -31,6 +31,28 @@ return function(H)
       gear={{key="ring_a"}}})
     eq(good.jewelry[1].state,"EQUIPPED")
   end)
+  test("lot4: unique official equipped jewelry name resolves and duplicate stays unknown", function()
+    local cat={data={jewelry={
+      {key="ring_a",slot="ring",name="Blooddrinker"},
+      {key="ring_b",slot="ring",name="Twin"},
+      {key="ring_c",slot="ring",name="Twin"}} ,amulets={},legends={}}}
+    function cat:Get(kind,key)
+      for _,v in ipairs(self.data.jewelry) do if v.key==key and kind=="jewel" then return v end end
+    end
+    function cat:Name(kind,key,lang)
+      local v=self:Get(kind,key);return v and v.name or key
+    end
+    function cat:CheckKey(list,key,class) return "ok" end
+    local b={class="hunter",phases={{spells={},rings={"ring_a","ring_b"},trinkets={},amulets={}}}}
+    local snap={inRun=true,gearKnown=true,gear={{slot="ring",name="Blooddrinker"}}}
+    local p=T.Evaluate(b,1,snap,cat,"enUS")
+    eq(p.jewelry[1].state,"EQUIPPED")
+    eq(p.jewelry[2].state,"MISSING")
+    snap.gear={{slot="ring",name="Twin"}}
+    p=T.Evaluate(b,1,snap,cat,"enUS")
+    eq(p.jewelry[1].state,"UNKNOWN")
+    eq(p.jewelry[2].state,"UNKNOWN")
+  end)
   test("lot4: jewelry offers use exact keys for jewel/ring/trinket/amulet", function()
     local gearBuild={phases={{spells={},banish={},
       rings={"ring_a","ring_b","ring_alt"},
