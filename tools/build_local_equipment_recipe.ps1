@@ -49,4 +49,4 @@ if ($LASTEXITCODE -ne 0) { throw "Catalogue generator refused current schema" }
 Write-Host "Running the full strict recipe (Lua tests, native contracts, local metadata)" -ForegroundColor Cyan
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "tools\recette_ultimate_windows.ps1") -GameExe $GameExe -CatalogDir $catalog -NativeRoot $native -OutputDir (Join-Path $root "dist\ultimate-0.4.7-local")
 if ($LASTEXITCODE -ne 0) { throw "Recipe refused; no verified build produced" }
-Write-Host "LOCAL 0.4.6 PACKAGE BUILT. Game files and SavedVariables unchanged." -ForegroundColor Green
+Write-Host "LOCAL 0.4.7 PACKAGE BUILT. Game files and SavedVariables unchanged." -ForegroundColor Green
