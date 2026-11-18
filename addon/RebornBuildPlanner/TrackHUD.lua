@@ -10,10 +10,10 @@ local EDGE = "Interface\\Tooltips\\UI-Tooltip-Border";
 local function fieldkitPath()
   if type(IsAddOnLoaded)~="function" then return nil end
   if IsAddOnLoaded("AzerothFieldKitReborn") then
-    return "Interface\\\\AddOns\\\\AzerothFieldKitReborn\\\\media\\\\ReferenceHUD\\\\"
+    return "Interface\\AddOns\\AzerothFieldKitReborn\\media\\ReferenceHUD\\"
   end
   if IsAddOnLoaded("AzerothFieldKit") then
-    return "Interface\\\\AddOns\\\\AzerothFieldKit\\\\media\\\\ReferenceHUD\\\\"
+    return "Interface\\AddOns\\AzerothFieldKit\\media\\ReferenceHUD\\"
   end
   return nil
 end
@@ -134,7 +134,7 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f.counter:SetJustifyH("RIGHT");
   f.themeButton=CreateFrame("Button",nil,f);
   f.themeButton:SetSize(26,16);
-  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-26,-27);
+  f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-13,-28);
   f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",9,1,2,27);
   f.themeButton:SetScript("OnClick",function()if onTheme then onTheme()end end);
   f.collapseButton=CreateFrame("Button",nil,f);f.collapseButton:SetSize(23,18);
@@ -154,7 +154,7 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f.stageButton=CreateFrame("Button",nil,f);
   f.stageButton:SetSize(WIDTH-12,15);
   f.stageButton:SetPoint("TOPLEFT",f,"TOPLEFT",12,-29);
-  f.stageButton.text=label(f.stageButton,"GameFontHighlightSmall",9,1,1,WIDTH-15);
+  f.stageButton.text=label(f.stageButton,"GameFontHighlightSmall",9,1,1,145);
   f.stageButton:SetScript("OnClick",function()if onStage then onStage()end end);
   f.rule=f:CreateTexture(nil,"ARTWORK");f.rule:SetTexture(WHITE);
   f.rule:SetHeight(1);
@@ -255,7 +255,7 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
   f.counter:SetText(tostring(progress.achieved or 0).."/"..tostring(progress.total or 0));
   f.counter:SetTextColor(unpack(c.mute));
   f.themeButton.text:SetText(theme=="elwynn" and "ELW" or "STD");
-  f.collapseButton.text:SetText(compact and "▣" or "▤");
+  f.collapseButton.text:SetText(compact and "+" or "−");
   f.themeButton.text:SetTextColor(unpack(c.gold));
   local fr=lang=="frFR";
   local stage=progress.stage or 1;
