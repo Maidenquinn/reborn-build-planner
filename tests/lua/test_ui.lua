@@ -205,6 +205,8 @@ return function(H)
 	test("3B: empty editor has no floating separators, hidden slots or inspector lines", function()
 		local e = boot(); e.open();
 		ok(e.ui.ed.empty:IsShown());
+		ok(e.ui.ed.emptyMark:IsShown() and e.ui.ed.emptyHint:IsShown(), "centered empty state present");
+		ok(e.ui.ed.emptyCreate:IsShown(), "central create build action available");
 		no(e.ui.ed.spellHead.rule:IsShown(), "spell line hidden with title");
 		no(e.ui.ed.equipHead.rule:IsShown(), "equipment line hidden with title");
 		no(e.ui.ed.nt.head.rule:IsShown(), "advanced section separator hidden");
@@ -214,6 +216,7 @@ return function(H)
 		end
 		local id = e.c:Create("Existing build", "warrior");
 		e.ui:OpenEditor(id);
+		no(e.ui.ed.emptyCreate:IsShown(), "empty-state CTA removed when editing");
 		ok(e.ui.ed.spellHead.rule:IsShown(), "spell line restored after opening build");
 		ok(e.ui.ed.equipHead.rule:IsShown(), "equipment line restored after opening build");
 		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
