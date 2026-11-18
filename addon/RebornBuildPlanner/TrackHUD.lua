@@ -376,15 +376,19 @@ local CARD_STYLES={
 local function paint(t,rgb,alpha)
   t:SetVertexColor(rgb[1],rgb[2],rgb[3],alpha or 1);
 end
-local function segment(parent,layer,x1,y1,x2,y2,w)
-  local t=parent:CreateTexture(nil,layer);
+-- Anchor the highlight to the actual card frame perimeter. The earlier
+-- 35px top / 37px bottom insets accidentally framed the card's contents.
+local function cardEdge(parent,side,thickness,offset,layer)
+  local t=parent:CreateTexture(nil,layer or "OVERLAY");
   t:SetTexture(WHITE);
-  if y1==y2 then
-    t:SetHeight(w);t:SetPoint("TOPLEFT",parent,"TOPLEFT",x1,-y1);
-    t:SetPoint("TOPRIGHT",parent,"TOPRIGHT",x2,-y2);
+  if side=="TOP" or side=="BOTTOM" then
+    t:SetHeight(thickness);
+    t:SetPoint(side.."LEFT",parent,side.."LEFT",-offset,0);
+    t:SetPoint(side.."RIGHT",parent,side.."RIGHT",offset,0);
   else
-    t:SetWidth(w);t:SetPoint("TOPLEFT",parent,"TOPLEFT",x1,-y1);
-    t:SetPoint("BOTTOMLEFT",parent,"BOTTOMLEFT",x2,y2);
+    t:SetWidth(thickness);
+    t:SetPoint("TOP"..side,parent,"TOP"..side,0,offset);
+    t:SetPoint("BOTTOM"..side,parent,"BOTTOM"..side,0,-offset);
   end
   return t;
 end
@@ -393,69 +397,34 @@ local function createCardMark(card)
   mark:SetFrameLevel(card:GetFrameLevel()+15);
   mark:SetAllPoints(card);
   mark:EnableMouse(false);
-  -- A slight gold haze inside the edge, not a solid filter over the card.
-  mark.tint=mark:CreateTexture(nil,"ARTWORK");
-  mark.tint:SetTexture(WHITE);
-  mark.tint:SetPoint("TOPLEFT",mark,"TOPLEFT",10,-35);
-  mark.tint:SetPoint("BOTTOMRIGHT",mark,"BOTTOMRIGHT",-10,38);
-  mark.border={};
-  mark.glow={};
-  -- Inset from the native metallic perimeter. Leave the top card category
-  -- and the bottom action caption unobstructed.
-  local coords={
-    {"h",10,35,-10,35},
-    {"h",10,-37,-10,-37},
-    {"v",10,35,10,37},
-    {"v",-10,35,-10,37},
-  };
-  for _,v in ipairs(coords) do
-    local horizontal=v[1]=="h";
-    local thin=mark:CreateTexture(nil,"OVERLAY");
-    thin:SetTexture(WHITE);
-    local haze=mark:CreateTexture(nil,"ARTWORK");
-    haze:SetTexture(WHITE);
-    if haze.SetBlendMode then haze:SetBlendMode("ADD") end
-    if horizontal then
-      thin:SetHeight(2);haze:SetHeight(9);
-      local anchor=v[2]==10 and "TOP" or "BOTTOM";
-      if v[3]<0 then anchor="BOTTOM" end
-      thin:SetPoint(anchor.."LEFT",mark,anchor.."LEFT",v[2],v[3]<0 and 37 or -35);
-      thin:SetPoint(anchor.."RIGHT",mark,anchor.."RIGHT",v[4],v[3]<0 and 37 or -35);
-      haze:SetPoint(anchor.."LEFT",mark,anchor.."LEFT",v[2],v[3]<0 and 37 or -35);
-      haze:SetPoint(anchor.."RIGHT",mark,anchor.."RIGHT",v[4],v[3]<0 and 37 or -35);
-    else
-      local right=v[2]<0;
-      thin:SetWidth(2);haze:SetWidth(9);
-      thin:SetPoint("TOP"..(right and "RIGHT" or "LEFT"),mark,"TOP"..(right and "RIGHT" or "LEFT"),v[2],-35);
-      thin:SetPoint("BOTTOM"..(right and "RIGHT" or "LEFT"),mark,"BOTTOM"..(right and "RIGHT" or "LEFT"),v[2],37);
-      haze:SetPoint("TOP"..(right and "RIGHT" or "LEFT"),mark,"TOP"..(right and "RIGHT" or "LEFT"),v[2],-35);
-      haze:SetPoint("BOTTOM"..(right and "RIGHT" or "LEFT"),mark,"BOTTOM"..(right and "RIGHT" or "LEFT"),v[2],37);
-    end
-    mark.border[#mark.border+1]=thin;
-    mark.glow[#mark.glow+1]=haze;
+  mark.border={};mark.glow={};mark.corners={};
+  -- The edge is aligned with the metallic outer border; ADD glow extends
+  -- slightly past it, never inward over the card text or artwork.
+  for _,side in ipairs({"TOP","BOTTOM","LEFT","RIGHT"}) do
+    local edge=cardEdge(mark,side,3,1,"OVERLAY");
+    local halo=cardEdge(mark,side,10,4,"ARTWORK");
+    if halo.SetBlendMode then halo:SetBlendMode("ADD") end
+    mark.border[#mark.border+1]=edge;
+    mark.glow[#mark.glow+1]=halo;
   end
-  -- Decorative corner strokes make the outline feel like an enchanted frame.
-  mark.corners={};
   for _,point in ipairs({"TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
-    local right=string.find(point,"RIGHT",1,true)~=nil;
-    local bottom=string.find(point,"BOTTOM",1,true)~=nil;
-    local horizontal=mark:CreateTexture(nil,"OVERLAY");
-    horizontal:SetTexture(WHITE);horizontal:SetSize(15,4);
-    horizontal:SetPoint(point,mark,point,right and -9 or 9,bottom and 36 or -34);
-    local vertical=mark:CreateTexture(nil,"OVERLAY");
-    vertical:SetTexture(WHITE);vertical:SetSize(4,15);
-    vertical:SetPoint(point,mark,point,right and -9 or 9,bottom and 36 or -34);
-    mark.corners[#mark.corners+1]=horizontal;
-    mark.corners[#mark.corners+1]=vertical;
+    local horiz=mark:CreateTexture(nil,"OVERLAY");
+    horiz:SetTexture(WHITE);horiz:SetSize(13,3);
+    horiz:SetPoint(point,mark,point,0,0);
+    local vert=mark:CreateTexture(nil,"OVERLAY");
+    vert:SetTexture(WHITE);vert:SetSize(3,13);
+    vert:SetPoint(point,mark,point,0,0);
+    mark.corners[#mark.corners+1]=horiz;
+    mark.corners[#mark.corners+1]=vert;
   end
-  -- Small label in the top-right free area; avoids the card number,
-  -- "NOUVEAU / AMÉLIORER" heading and icon portrait.
+  -- Badge floats ABOVE the top border so that the number and the native
+  -- NOUVEAU/AMÉLIORER heading remain fully readable.
   mark.badge=mark:CreateTexture(nil,"OVERLAY");
   mark.badge:SetTexture(WHITE);
-  mark.badge:SetSize(111,19);
-  mark.badge:SetPoint("TOPRIGHT",mark,"TOPRIGHT",-17,-44);
+  mark.badge:SetSize(86,17);
+  mark.badge:SetPoint("BOTTOMRIGHT",mark,"TOPRIGHT",-11,2);
   mark.note=mark:CreateFontString(nil,"OVERLAY","GameFontNormalSmall");
-  mark.note:SetSize(105,16);
+  mark.note:SetSize(82,15);
   mark.note:SetPoint("CENTER",mark.badge,"CENTER",0,0);
   mark.note:SetJustifyH("CENTER");
   mark:Hide();
@@ -486,17 +455,18 @@ function H.UpdateCards(self, build, snapshot, phase, theme)
       local style=hint and CARD_STYLES[hint];
       if style then
         local rgb=style.color;
-        paint(mark.tint,rgb,0.025);
         for _,t in ipairs(mark.border) do paint(t,rgb,0.87) end
-        for _,t in ipairs(mark.glow) do paint(t,rgb,0.14) end
+        for _,t in ipairs(mark.glow) do paint(t,rgb,0.11) end
         for _,t in ipairs(mark.corners) do paint(t,rgb,1) end
-        paint(mark.badge,rgb,0.22);
+        paint(mark.badge,rgb,0.86);
         local fr=ns.Locale and ns.Locale.lang=="frFR";
         local caption=style.label;
         if fr and hint=="avoid" then caption="ÉVITER" end
         if fr and hint=="banish_after" then caption="BANNIR APRÈS" end
+        if mark.badge.SetWidth then mark.badge:SetWidth(hint=="banish_after" and 113 or 86) end
+        if mark.note.SetWidth then mark.note:SetWidth(hint=="banish_after" and 109 or 82) end
         mark.note:SetText(caption);
-        mark.note:SetTextColor(rgb[1],rgb[2],rgb[3],1);
+        mark.note:SetTextColor(0.09,0.065,0.025,1);
         mark:Show();
       else mark:Hide() end
     end
