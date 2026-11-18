@@ -75,6 +75,16 @@ return function(H)
     eq(#p.outsideSpells,0)
     eq(#p.outsideJewelry,0)
   end)
+  test("lot4: future phase targets are not labeled outside build", function()
+    local b={class="hunter",phases={
+      {spells={{key="whirlwind",mode="acquire"}},rings={"ring_a"},trinkets={},amulets={}},
+      {spells={{key="execute",mode="acquire"}},rings={"ring_future"},trinkets={},amulets={}}
+    }}
+    local p=T.Evaluate(b,1,{inRun=true,spellsKnown=true,gearKnown=true,
+      spells={{key="execute",rank=1}},gear={{key="ring_future"}}})
+    eq(#p.outsideSpells,0)
+    eq(#p.outsideJewelry,0)
+  end)
   test("lot4: jewelry offers use exact keys for jewel/ring/trinket/amulet", function()
     local gearBuild={phases={{spells={},banish={},
       rings={"ring_a","ring_b","ring_alt"},
