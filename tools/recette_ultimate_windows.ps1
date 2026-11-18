@@ -76,7 +76,7 @@ try {
     if (!$line -or $line.StartsWith("#")) { continue }
     if ($entries -notcontains ("RebornBuildPlanner/" + $line)) { throw "ZIP missing " + $line }
   }
-  foreach ($asset in @("ultimate_panel.tga", "ultimate_titlebar.tga", "ultimate_corner.tga", "ultimate_crest.tga")) {
+  foreach ($asset in @("ultimate_panel.tga", "ultimate_titlebar.tga", "ultimate_corner.tga", "ultimate_crest.tga", "ultimate_fav_on.tga", "ultimate_fav_off.tga")) {
     if ($entries -notcontains ("RebornBuildPlanner/Media/" + $asset)) { throw "ZIP missing fantasy asset " + $asset }
   }
   $localFacts = $archive.GetEntry("RebornBuildPlanner/GeneratedJewelryMechanics.lua")
