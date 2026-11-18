@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: Reborn Build Planner
 ## Notes: Reborn build planner, one-page editor, fantasy UI and local jewelry effects (alpha recipe; no live tracking).
-## Version: 0.4.12-alpha-createfix
+## Version: 0.4.13-alpha-library
 ## Dependencies: AzerothSurvivors, AzerothSurvivorsAPI
 ## SavedVariables: RebornBuildPlannerDB
 # Load order = dependency order: Util -> Locale -> catalogue data -> Catalog -> BuildModel -> Storage -> Utf8 -> Base64Url -> Json -> PlannerCodec -> UIStrings -> Controller -> UI -> Commands -> Core.
