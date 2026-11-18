@@ -3,7 +3,8 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$true)][string]$GameRoot,
-  [string]$GameExe = ""
+  [string]$GameExe = "",
+  [switch]$UseCachedCatalog
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -49,10 +50,22 @@ if ($LASTEXITCODE -ne 0) {
   if ($LASTEXITCODE -ne 0) { throw "Lua/Pillow verification failed after installation" }
 }
 $python = $venv
-Write-Host "Retrieving official public Reborn data into the ignored .local folder" -ForegroundColor Cyan
 $catalog = Join-Path $root ".local\catalog\public-preview"
-& $python -I tools/fetch_catalog_public.py --out $catalog
-if ($LASTEXITCODE -ne 0) { throw "Public catalogue retrieval failed" }
+if ($UseCachedCatalog) {
+  # Explicit opt-in only: never silently mix an old snapshot with a new download.
+  # The deterministic generator below validates the cached index/schema/data.
+  $cacheIndex = Join-Path $catalog "index.json"
+  if (!(Test-Path -LiteralPath $cacheIndex -PathType Leaf)) {
+    throw "Cached catalogue not found at $catalog. Build once online without -UseCachedCatalog."
+  }
+  Write-Host "OFFLINE MODE: using the existing local catalogue snapshot (not refreshed)" -ForegroundColor Yellow
+} else {
+  Write-Host "Retrieving official public Reborn data into the ignored .local folder" -ForegroundColor Cyan
+  & $python -I tools/fetch_catalog_public.py --out $catalog
+  if ($LASTEXITCODE -ne 0) {
+    throw "Public catalogue retrieval failed. If you previously built a valid snapshot, retry with -UseCachedCatalog."
+  }
+}
 $env:RBP_CATALOG_DIR = $catalog
 & $python -I tools/generate_catalog.py
 if ($LASTEXITCODE -ne 0) { throw "Catalogue generator refused current schema" }
