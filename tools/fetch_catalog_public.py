@@ -9,12 +9,16 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 BASE = "https://azreborn.com/data/v1/"
-FILES = ("index.json", "classes.json", "spells.json", "jewelry.json",
-         "amulets.json", "legends.json", "i18n/frFR.json")
+REQUIRED = ("classes.json", "spells.json", "jewelry.json", "amulets.json",
+            "legends.json", "i18n/frFR.json")
+OFFICIAL_LOCALES = ("deDE", "frFR", "esES", "ptBR", "ruRU", "itIT",
+                    "plPL", "trTR", "jaJP", "zhCN", "koKR")
+APPROVED = set(("index.json",) + REQUIRED +
+               tuple("i18n/%s.json" % lang for lang in OFFICIAL_LOCALES))
 MAX_BYTES = 3_000_000
 
 def fetch(name):
-    if name not in FILES:
+    if name not in APPROVED:
         raise ValueError("Not an approved catalogue file: " + name)
     req = Request(BASE + name, headers={"User-Agent": "RebornBuildPlanner-PrivateRecipe/1.0"})
     with urlopen(req, timeout=40) as response:
@@ -32,16 +36,22 @@ def main():
     manifest = json.loads(index_before)
     if manifest.get("schema") != 1:
         raise ValueError("Unsupported official schema")
-    for name in FILES[1:]:
-        if name not in manifest.get("files", {}):
+    listed = manifest.get("files", {})
+    for name in REQUIRED:
+        if name not in listed:
             raise ValueError("Missing catalogue entry in official index: " + name)
+    # The official index is authoritative. Never guess a URL or require an
+    # unpublished locale; include all listed dictionaries for the client.
+    extra = tuple("i18n/%s.json" % lang for lang in OFFICIAL_LOCALES
+                  if lang != "frFR" and "i18n/%s.json" % lang in listed)
+    selected = REQUIRED + extra
     payloads = {"index.json": index_before}
-    for name in FILES[1:]:
+    for name in selected:
         payloads[name] = fetch(name)
     index_after = fetch("index.json")
     if json.loads(index_before).get("content") != json.loads(index_after).get("content"):
         raise ValueError("Official catalogue changed mid-download; no files written")
-    for name in FILES[1:]:
+    for name in selected:
         json.loads(payloads[name])
     args.out.mkdir(parents=True, exist_ok=True)
     for name, data in payloads.items():
@@ -49,6 +59,6 @@ def main():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
     print("Official public catalogue content:", manifest["content"])
-    print("Files downloaded:", len(FILES), "to", args.out)
+    print("Files downloaded:", len(payloads), "to", args.out)
 if __name__ == "__main__":
     main()
