@@ -40,6 +40,42 @@ local function decode(s, i)
 end
 Utf8.Decode = decode;
 
+-- Basic Unicode case folding for catalogue search. Lua 5.1 string.lower
+-- only converts ASCII, so a Cyrillic query typed in lowercase would not
+-- match the official Russian capitalized name. This deliberately handles
+-- common European game locales without changing saved identifiers.
+local LOWER_EXCEPT = {
+  [0x0130] = 0x0069, [0x0401] = 0x0451, [0x0404] = 0x0454,
+  [0x0406] = 0x0456, [0x0407] = 0x0457, [0x0490] = 0x0491,
+  [0x0141] = 0x0142, [0x0178] = 0x00FF,
+}
+for _, pair in ipairs({
+  {0x0104,0x0105}, {0x0106,0x0107}, {0x010C,0x010D},
+  {0x0118,0x0119}, {0x011A,0x011B}, {0x0143,0x0144},
+  {0x0147,0x0148}, {0x015A,0x015B}, {0x015E,0x015F},
+  {0x0160,0x0161}, {0x0164,0x0165}, {0x0179,0x017A},
+  {0x017B,0x017C}, {0x017D,0x017E}, {0x011E,0x011F}
+}) do LOWER_EXCEPT[pair[1]] = pair[2] end
+
+function Utf8.CaseFold(text)
+  if type(text) ~= "string" then return "" end
+  local out, i = {}, 1
+  while i <= #text do
+    local cp, nextIndex = decode(text, i)
+    if not cp then return string.lower(text) end
+    if cp >= 0x41 and cp <= 0x5A then cp = cp + 32
+    elseif (cp >= 0x00C0 and cp <= 0x00D6) or (cp >= 0x00D8 and cp <= 0x00DE) then cp = cp + 32
+    elseif cp >= 0x0410 and cp <= 0x042F then cp = cp + 32
+    elseif cp >= 0x0391 and cp <= 0x03AB and cp ~= 0x03A2 then cp = cp + 32
+    else cp = LOWER_EXCEPT[cp] or cp end
+    out[#out+1] = Utf8.Encode(cp)
+    i = nextIndex
+  end
+  return table.concat(out)
+end
+
+
+
 function Utf8.Encode(cp)
 	if cp < 0x80 then
 		return char(cp);
