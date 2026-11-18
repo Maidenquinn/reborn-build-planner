@@ -35,7 +35,7 @@ return function(H)
     local gearBuild={phases={{spells={},banish={},
       rings={"ring_a","ring_b","ring_alt"},
       trinkets={"trinket_a","trinket_b"},
-      amulets={"amulet_a","amulet_alt"}}}
+      amulets={"amulet_a","amulet_alt"}}}}
     local function hint(kind,key,slot)
       local snap={inRun=true,cards={kind=kind}}
       return T.CardHint(gearBuild,1,snap,{key=key,slot=slot})
