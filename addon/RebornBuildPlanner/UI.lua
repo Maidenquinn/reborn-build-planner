@@ -77,6 +77,9 @@ local function text(parent, x, y, w, font, justify, size)
 	fs:SetHeight(size or 14);
 	fs:SetJustifyH(justify or "LEFT");
 	if fs.SetWordWrap then fs:SetWordWrap(false); end
+	if THEME and font == "GameFontNormal" then
+		fs:SetTextColor(0.76, 0.86, 0.96); -- subdued section chrome, no yellow form labels
+	end
 	return fs;
 end
 
@@ -1508,9 +1511,25 @@ function UI:BuildModal()
 		m:SetBackdropBorderColor(0.70, 0.58, 0.30, 1);
 	end
 	m:Hide();
-	m.title = text(m, 24, 18, 412, "GameFontNormalLarge", "LEFT", 18);
-	m.title:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
-	m.body = wrapped(m, 24, 46, 412, 66, "GameFontHighlight");
+	-- Modal scrim blocks underlying editor interaction and establishes a clear
+	-- foreground focus; it is always below the actual dialog and its footer.
+	m.dim = CreateFrame("Frame", nil, UIParent);
+	m.dim:SetAllPoints(UIParent);
+	m.dim:SetFrameStrata("FULLSCREEN_DIALOG");
+	m.dim:SetFrameLevel(145);
+	local veil = m.dim:CreateTexture(nil, "BACKGROUND");
+	veil:SetAllPoints(m.dim);
+	veil:SetTexture(0.0, 0.015, 0.035, 0.60);
+	m.dim:EnableMouse(true);
+	m.dim:Hide();
+	if THEME then
+		m.titleBar = THEME.TitleBar(m, "", 14, 8, 432, 36);
+		m.title = m.titleBar.title;
+	else
+		m.title = text(m, 24, 18, 412, "GameFontNormalLarge", "LEFT", 18);
+		m.title:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
+	end
+	m.body = wrapped(m, 24, 58, 412, 64, "GameFontHighlight");
 	m.editLabel = text(m, 24, 118, 120, "GameFontNormal");
 	m.edit = edit(m, 288, 148, 114, function(t) m.value = t; end, "RebornBuildPlannerModalEdit");
 	m.cycleLabel = text(m, 24, 150, 120, "GameFontNormal");
@@ -1532,7 +1551,10 @@ function UI:BuildModal()
 		m.b[i].role = i == 1 and "primary" or "quiet";
 		m.b[i].enabledFlag = true;
 	end
-	m:SetScript("OnHide", function() self:SyncEscape(); end);
+	m:SetScript("OnHide", function()
+		if m.dim then m.dim:Hide(); end
+		self:SyncEscape();
+	end);
 end
 
 -- spec = { title, body, edit = initial text|nil, editLabel, class = key|nil (class cycler), buttons = { label... },
@@ -1553,6 +1575,7 @@ function UI:ShowModal(spec)
 	setShown(m.cycleLabel, spec.class ~= nil);
 	m.cycleLabel:SetText(L("Class:"));
 	if spec.class then m.cycle.label:SetText(self.c:ClassName(spec.class)); end
+	m.dim:Show();
 	m:Show();
 	m.footer:Show();
 	for i = 1, 3 do
