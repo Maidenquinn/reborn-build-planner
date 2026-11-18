@@ -26,6 +26,10 @@ jobs:
         env:
           RBP_CATALOG_DIR: .local/catalog/public-preview
         run: python -I tools/generate_catalog.py
+      - name: Test catalogue generator against downloaded revision
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tests/py/test_generator.py
       - name: Create original fantasy texture assets
         run: |
           python -I tools/make_textures.py addon_lab/RebornPlannerThemeLab/Media
