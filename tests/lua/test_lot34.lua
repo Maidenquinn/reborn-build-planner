@@ -94,9 +94,9 @@ return function(H)
 		local report = e.c:TooltipData("jewel", "accuria");
 		ok(report.sections and #report.sections == 2, "plain benefit and source, no duplicate technical percentage");
 		local joined = plain(report.sections);
-		ok(joined:find("Damage", 1, true), joined);
+		ok(joined:find("extra damage", 1, true), joined);
 		ok(joined:find("17%", 1, true), joined);
-		ok(joined:find("Not the actual in-run value", 1, true), joined);
+		ok(joined:find("Base value: actual bonus depends", 1, true), joined);
 		source.items.accuria.slot = "trinket";
 		eq(e.c:TooltipData("jewel", "accuria").sections, nil, "wrong slot rejected");
 		source.items.accuria = nil;
@@ -212,7 +212,7 @@ return function(H)
 		for _, l in ipairs(fixture("legends.json")) do if l.fixed then fixedKey = l.key; break; end end
 		ok(fixedKey);
 		local ft = plain(D.Amulet(cat, cat:Get("amulet", fixedKey), nil));
-		ok(ft:find("Fixed value", 1, true) and ft:find("not offered past rank 11", 1, true), ft);
+		ok(ft:find("Damage and area:", 1, true) and ft:find("not offered past rank 11", 1, true), ft);
 		no(ft:find("Growth 0.2", 1, true));
 		-- a generic entry says which shape picked it
 		for _, l in ipairs(fixture("legends.json")) do
