@@ -17,7 +17,8 @@ local function spellMap(raw)
   for _, v in ipairs(raw) do
     if type(v) == "table" and type(v.key) == "string" then
       local n = tonumber(v.rank);
-      out[v.key] = (n and n > 0 and n) or true;
+      if n == nil then out[v.key] = true
+      elseif n > 0 then out[v.key] = n end
     end
   end
   return out;
@@ -47,10 +48,13 @@ function M.Evaluate(build, phaseIndex, snapshot)
   -- Only an unambiguous stable catalog key permits an equipment match.
   -- AZS_GEAR can carry text/slot but not an identity: never guess by icon or display name.
   local equipped = {};
+  local unidentified = false;
   if output.inRun and snapshot.gearKnown then
     for _, item in ipairs(snapshot.gear or {}) do
       if type(item) == "table" and type(item.key) == "string" and item.key ~= "" then
         equipped[item.key] = true;
+      elseif type(item) == "table" then
+        unidentified = true; -- never infer absence from unidentified game rows
       end
     end
   end
@@ -60,10 +64,10 @@ function M.Evaluate(build, phaseIndex, snapshot)
     for i = 1, main do
       local key = values[i];
       if type(key) == "string" and key ~= "" then
-        local stateName = (not output.inRun or not snapshot.gearKnown) and "UNKNOWN" or
-          (equipped[key] and "EQUIPPED" or "MISSING");
+        local stateName = equipped[key] and "EQUIPPED" or
+          ((not output.inRun or not snapshot.gearKnown or unidentified) and "UNKNOWN" or "MISSING");
         -- An explicitly selected alternative can also satisfy a main slot.
-        if stateName == "MISSING" then
+        if stateName ~= "EQUIPPED" then
           for j = main + 1, #values do
             if equipped[values[j]] then stateName = "ALTERNATIVE"; break end
           end
