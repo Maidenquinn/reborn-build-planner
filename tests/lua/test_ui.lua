@@ -75,6 +75,7 @@ return function(H)
 		b=assert(e.ns.BuildModel.AddSpell(b,1,"execute",nil,e.ns.catalog));
 		b=assert(e.ns.BuildModel.SetBanishAfter(b,1,"execute",true,e.ns.catalog));
 		ok(h:Update(id,b));ok(e.c:Activate(id));
+		events.AZSSPELLS();
 		eq(e.ns.Runtime.progress.achieved,1);
 		ok(e.ns.Runtime.hud:IsShown(),"compact tracker visible in a real run");
 		local cardRoot=e.G.CreateFrame("Frame","AZSCardsFrame",e.G.UIParent);
@@ -89,6 +90,10 @@ return function(H)
 		ok(e.ns.TrackHUD.marks[2].note.text:find("BANISH",1,true),"after-acquisition indicator is shown in English client");
 		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
 		eq(h:GetSetting("trackerTheme"),"elwynn");
+		eq(e.ns.Runtime.CycleStage(),2,"HUD moves to next manually selected phase");
+		eq(e.ns.Runtime.progress.stage,2);
+		for _=1,3 do e.ns.Runtime.CycleStage(); end
+		eq(e.ns.Runtime.progress.stage,1,"cycles 4 stages without gameplay assumptions");
 		eq(e.ns.Runtime.ToggleHud(),false);
 		no(e.ns.Runtime.hud:IsShown(),"HUD can be disabled separately");
 		ok(e.ns.TrackHUD.marks[1]:IsShown(),"card marks remain informational when HUD hidden");
