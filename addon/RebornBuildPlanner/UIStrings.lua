@@ -6,6 +6,9 @@ assert(ns.Locale, "RebornBuildPlanner: Locale.lua must load before UIStrings.lua
 
 ns.Locale.Register({
 	["Language"] = "Langue",
+	["Command %s is already used by another addon and was left alone."] = "La commande %s est déjà utilisée par un autre addon et n'a pas été modifiée.",
+	["Usage: /rbp (open or close) | /rbp reset | /rbp diag"] = "Utilisation : /rbp (ouvrir ou fermer) | /rbp reset | /rbp diag",
+	["Window position and size reset."] = "Position et taille de la fenêtre réinitialisées.",
 	["Choose your next build"] = "Choisissez votre prochain build",
 	["Select a saved build on the left, or create a new one."] = "Sélectionnez un build à gauche ou créez-en un nouveau.",
 	["Storage unavailable"] = "Stockage indisponible",
