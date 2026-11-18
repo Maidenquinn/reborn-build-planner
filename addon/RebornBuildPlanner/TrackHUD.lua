@@ -134,10 +134,17 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f.counter:SetJustifyH("RIGHT");
   f.themeButton=CreateFrame("Button",nil,f);
   f.themeButton:SetSize(47,16);
+  f.themeButton:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=7,insets={left=2,right=2,top=2,bottom=2}});
+  f.themeButton:SetBackdropColor(.045,.11,.075,.95);
+  f.themeButton:SetBackdropBorderColor(.55,.46,.25,.9);
   f.themeButton:SetPoint("TOPRIGHT",f,"TOPRIGHT",-12,-28);
   f.themeButton.text=label(f.themeButton,"GameFontHighlightSmall",9,1,2,45);
   f.themeButton.text:SetJustifyH("RIGHT");
   f.themeButton:SetScript("OnClick",function()if onTheme then onTheme()end end);
+  f.themeButton:SetScript("OnEnter",function(self)
+    if GameTooltip then GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText("Changer le thème du suivi");GameTooltip:Show() end
+  end);
+  f.themeButton:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end);
   f.collapseButton=CreateFrame("Button",nil,f);f.collapseButton:SetSize(23,18);
   f.collapseButton:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=7,insets={left=2,right=2,top=2,bottom=2}});
   f.collapseButton:SetBackdropColor(.12,.17,.09,.98);f.collapseButton:SetBackdropBorderColor(.8,.64,.31,1);
@@ -175,7 +182,13 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f.miniGearCount=label(f,"GameFontHighlightSmall",9,180,91,27);
   for i=1,11 do
     local cell=CreateFrame("Frame",nil,f);
-    cell:SetSize(22,22);
+    cell:SetSize(22,22);cell:EnableMouse(true);
+    cell:SetScript("OnEnter",function(self)
+      if GameTooltip and self.tip then
+        GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(self.tip);GameTooltip:Show()
+      end
+    end);
+    cell:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end);
     local row=i<=6 and 0 or 1;
     local col=row==0 and (i-1) or (i-7);
     cell:SetPoint("TOPLEFT",f,"TOPLEFT",14+col*31,-64-row*43);
@@ -331,6 +344,14 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
       local kind=i<=6 and "spell" or item.group=="amulets" and "amulet" or "jewel";
       t:SetTexture(iconTexture(catalog and catalog:Get(kind,item.key)));
       local state=i<=6 and item.status or item.state;
+      local name=catalog and catalog:Name(kind,item.key,lang) or item.key;
+      local status;
+      if i<=6 and item.remindAfter then status=fr and "Bannir après acquisition" or "Banish after acquisition"
+      elseif state=="ACHIEVED" or state=="EQUIPPED" then status=fr and "Acquis" or "Owned"
+      elseif state=="ALTERNATIVE" then status=fr and "Alternative" or "Alternative"
+      elseif state=="UNKNOWN" then status=fr and "État inconnu" or "Unknown"
+      else status=fr and "Manquant" or "Missing" end
+      m.cell.tip=tostring(name).." - "..status;
       -- Keep game icons in their original colours: status lives in the rim.
       t:SetVertexColor(1,1,1,1);
       local rgb;
