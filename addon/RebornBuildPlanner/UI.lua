@@ -1505,10 +1505,20 @@ function UI:BuildModal()
 	m.cycle = cycler(m, 148, 146, 288, function() self:ModalClass(-1); end, function() self:ModalClass(1); end);
 	m.err = text(m, 24, 176, 412, "GameFontNormal");
 	m.err:SetTextColor(COLOR.error[1], COLOR.error[2], COLOR.error[3]);
+	-- Explicit high-level footer: the native client can otherwise place the
+	-- modal's low-level button textures behind its opaque window materials.
+	-- Anchor from BOTTOMLEFT so controls cannot drift out of the 250px dialog.
+	m.footer = CreateFrame("Frame", nil, m);
+	m.footer:SetWidth(436); m.footer:SetHeight(50);
+	m.footer:SetPoint("BOTTOMLEFT", m, "BOTTOMLEFT", 12, 10);
+	m.footer:SetFrameStrata("FULLSCREEN_DIALOG");
+	m.footer:SetFrameLevel(180);
 	m.b = {};
 	for i = 1, 3 do
-		m.b[i] = button(m, "", 130, 26, 24 + (i - 1) * 140, 204, function() self:ModalChoose(i); end);
+		m.b[i] = button(m.footer, "", 132, 32, 4 + (i - 1) * 144, 9, function() self:ModalChoose(i); end);
+		m.b[i]:SetFrameLevel(185);
 		m.b[i].role = i == 1 and "primary" or "quiet";
+		m.b[i].enabledFlag = true;
 	end
 	m:SetScript("OnHide", function() self:SyncEscape(); end);
 end
@@ -1531,12 +1541,20 @@ function UI:ShowModal(spec)
 	setShown(m.cycleLabel, spec.class ~= nil);
 	m.cycleLabel:SetText(L("Class:"));
 	if spec.class then m.cycle.label:SetText(self.c:ClassName(spec.class)); end
+	m:Show();
+	m.footer:Show();
 	for i = 1, 3 do
 		local label = spec.buttons[i];
 		m.b[i].role = (i == 1 and spec.dangerFirst) and "danger" or (i == 1 and "primary" or "quiet");
-		if label then setLabel(m.b[i], label); m.b[i]:Show(); else m.b[i]:Hide(); end
+		if label then
+			m.b[i]:Enable();
+			m.b[i].enabledFlag = true;
+			setLabel(m.b[i], label);
+			m.b[i]:Show();
+		else
+			m.b[i]:Hide();
+		end
 	end
-	m:Show();
 	self:SyncEscape();
 end
 
