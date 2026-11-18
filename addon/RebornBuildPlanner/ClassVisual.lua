@@ -24,6 +24,13 @@ function V.Color(key)
   return c[1], c[2], c[3]
 end
 function V.Icon(key, catalog)
+  -- Reborn's WoW 3.3.5 class atlas has no monk/demon-hunter tiles.
+  -- Use our two original assets before any atlas or unreliable spell fallback.
+  if key == "monk" then
+    return "Interface\\AddOns\\RebornBuildPlanner\\Media\\ultimate_class_monk",0.02,0.98,0.02,0.98
+  elseif key == "demonhunter" then
+    return "Interface\\AddOns\\RebornBuildPlanner\\Media\\ultimate_class_dh",0.02,0.98,0.02,0.98
+  end
   local rec = catalog and catalog.classes and catalog.classes[key]
   local token = rec and rec.token and string.upper(rec.token) or string.upper(key or "")
   local live = type(CLASS_ICON_TCOORDS) == "table" and CLASS_ICON_TCOORDS[token]
