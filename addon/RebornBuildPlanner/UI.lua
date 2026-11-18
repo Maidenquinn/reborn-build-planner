@@ -485,6 +485,18 @@ function UI:Build()
 			elseif c.state.export then c:SetView("export"); end
 		end),
 	};
+	-- Reborn Planner supports French and English translations just like FieldKit/Stats.
+	-- Keep the choice in its own saved settings, never in a build record.
+	self.languageButton = button(root, "", 150, 24, 546, 8, function()
+		local h = c:Handle();
+		if not h or h.readOnly then return; end
+		local nextLang = c:Lang() == "frFR" and "enUS" or "frFR";
+		if h:SetSetting("lang", nextLang) then
+			ns.Locale.SetLang(nextLang);
+			c:Notify();
+		end
+	end);
+	self.languageButton.role = "quiet";
 	self.sizeMinus = button(root, "", 84, 24, 1026, 8, function() self:Rescale(-0.1); end);
 	self.sizePlus = button(root, "", 84, 24, 1114, 8, function() self:Rescale(0.1); end);
 	self.banner = text(root, 20, 38, 1180, "GameFontNormal", "LEFT");
@@ -1755,6 +1767,8 @@ function UI:Refresh()
 	local st = c.state;
 	self:HideTip();       -- list / view / data may have changed under the pointer
 	self.title:SetText("Reborn Build Planner");
+	setLabel(self.languageButton, L("Language") .. ": " .. (c:Lang() == "frFR" and "FR" or "EN"));
+	enable(self.languageButton, not c:ReadOnly());
 	setLabel(self.nav.import, L("Import"));
 	setLabel(self.nav.export, L("Export"));
 	setLabel(self.sizeMinus, L("Size -"));
