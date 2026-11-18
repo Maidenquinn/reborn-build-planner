@@ -97,11 +97,13 @@ return function(H)
 		ok(e.ns.TrackHUD.marks[2] and e.ns.TrackHUD.marks[2]:IsShown(),"unowned banish-after remains wanted");
 		ok(e.ns.TrackHUD.marks[1].mouse==false,"overlay cannot capture card clicks");
 		local goldMark=e.ns.TrackHUD.marks[1];
-		eq(#goldMark.shine,4,"four ASBuilder-style additive corner glow textures");
+		eq(#goldMark.shine,4,"four continuous outer-edge highlight strips");
+		eq(#goldMark.shineWide,4,"four additional diffuse outer-edge strips");
 		ok(goldMark.shineEnabled,"recommended card enables glow animation");
 		ok(goldMark.shine[1].texture:find("WHITE8X8",1,true)~=nil,
 		  "external glow is a seamless edge strip, not an internal square stamp");
-		eq(goldMark.shine[1]:GetHeight(),8,"top external glow has thin strip geometry");
+		eq(goldMark.shine[1]:GetHeight(),5,"core external glow is a narrow strip");
+		eq(goldMark.shineWide[1]:GetHeight(),17,"diffuse outer glow is wider than core");
 
 		cardRoot:Hide();
 		no(e.ns.TrackHUD.marks[1]:IsShown(),"native OnHide immediately clears highlight");
