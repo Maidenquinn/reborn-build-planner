@@ -92,6 +92,28 @@ return function(H)
 		e.G.AZS_SPELLS[2]={key="execute",rank=1};events.AZSSPELLS();
 		ok(e.ns.Runtime.progress.spells[2].remindAfter);
 		ok(e.ns.TrackHUD.marks[2].note.text:find("BANISH",1,true),"after-acquisition indicator is shown in English client");
+		-- With no wanted cards: advise reroll first, then skip when reroll unaffordable.
+		local reroll=e.G.CreateFrame("Button","AZSCardsReroll",cardRoot);
+		local skip=e.G.CreateFrame("Button","AZSCardsSkip",cardRoot);
+		reroll:Show();skip:Show();
+		e.G.AZS_RUN.gold=300;
+		e.G.AZS_CARDS={kind="spell",cards={{key="rend"}},rr=0,rc=30};
+		events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),true,"reroll gold frame when no build cards");
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),false,"skip not highlighted while reroll available");
+		e.G.AZS_RUN.gold=0;events.AZSRUN();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false);
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),true,"skip highlighted when reroll unaffordable");
+		e.G.AZS_CARDS={kind="spell",cards={{key="whirlwind"}},rr=2,rc=0};
+		events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false,"no fallback while wanted card offered");
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),false);
+		e.G.AZS_CARDS={kind="spell",cards={{key="totally_unknown_spell"}},rr=2,rc=0};
+		events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false,"unknown cards do not trigger false fallback");
+		e.G.AZS_CARDS={kind="spell",cards={{key="whirlwind"},{key="execute"},{key="rend"}}};
+		events.AZSCARDS();
+
 		-- In-game build selection must use the same validated active pointer as the planner.
 		local second=assert(h:Create({name="Second warrior plan",class="warrior"}));
 		ok(e.ns.Runtime.SelectBuild(second));
