@@ -170,6 +170,7 @@ function Controller:IndexOf(b)
 		if cat and cat:Get(kind, k) then
 			parts[#parts + 1] = cat:Name(kind, k, nil);
 			parts[#parts + 1] = cat:Name(kind, k, "frFR");
+			parts[#parts + 1] = cat:Name(kind, k, self:Lang());
 		end
 	end
 	for _, ph in ipairs(b.phases or {}) do
@@ -179,7 +180,7 @@ function Controller:IndexOf(b)
 		for _, k in ipairs(ph.trinkets or {}) do name("jewel", k); end
 		for _, k in ipairs(ph.amulets or {}) do name("amulet", k); end
 	end
-	local text = string.lower(table.concat(parts, " \n "));
+	local text = ns.Utf8.CaseFold(table.concat(parts, " \n "));
 	self.searchIndex[b.id] = { rev = b.revision, lang = Locale.lang, text = text };
 	return text;
 end
@@ -727,9 +728,9 @@ end
 -- ---- catalogue lists for the editor (identifiers are the catalogue keys; names are display only)
 local function matches(entryNames, filter)
 	if filter == "" then return true; end
-	local f = string.lower(filter);
+	local f = ns.Utf8.CaseFold(filter);
 	for _, n in ipairs(entryNames) do
-		if string.find(string.lower(n), f, 1, true) then return true; end
+		if string.find(ns.Utf8.CaseFold(n), f, 1, true) then return true; end
 	end
 	return false;
 end
