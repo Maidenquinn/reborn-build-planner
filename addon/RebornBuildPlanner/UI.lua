@@ -166,28 +166,29 @@ end
 -- Ask the native font renderer to measure text instead of guessing width from
 -- the number of letters. A typical Cyrillic glyph and a Latin letter may take
 -- different widths depending on the client's chosen font.
-local function fittedButtonText(b, full)
-	local available = math.max(16, (b.GetWidth and b:GetWidth() or 100) - 14);
-	local fs = b.fs or b.label;
+local function fitFontText(fs, full, available)
 	if not fs or not fs.SetText or not fs.GetStringWidth then
-		return fitText(full, available, 13);
+		return fitText(full, available, 14);
 	end
 	fs:SetText(full);
 	if fs:GetStringWidth() <= available then return full; end
-	local ellipse = "...";
-	fs:SetText(ellipse);
-	local measured = fs:GetStringWidth();
+	local ellipsis = "...";
 	local last, index = "", 1;
 	while index <= #full do
 		local byte = string.byte(full, index);
 		local length = byte < 0x80 and 1 or (byte < 0xE0 and 2 or (byte < 0xF0 and 3 or 4));
 		local nextText = last .. string.sub(full, index, index + length - 1);
-		fs:SetText(nextText .. ellipse);
+		fs:SetText(nextText .. ellipsis);
 		if fs:GetStringWidth() > available then break; end
 		last = nextText;
 		index = index + length;
 	end
-	return (last ~= "" and last or "") .. ellipse;
+	return last .. ellipsis;
+end
+
+local function fittedButtonText(b, full)
+	local available = math.max(16, (b.GetWidth and b:GetWidth() or 100) - 14);
+	return fitFontText(b.fs or b.label, full, available);
 end
 
 local function setLabel(b, label)
@@ -987,7 +988,8 @@ function UI:RefreshEditor()
 	ed.equipHead:SetText(L("Equipment (main | alternatives)"));
 	for _, g in ipairs(EQUIP_GROUPS) do
 		local grp = ed.groups[g];
-		grp.label:SetText(g == "rings" and L("Rings") or (g == "trinkets" and L("Trinkets") or L("Amulet")));
+		local categoryLabel = g == "rings" and L("Rings") or (g == "trinkets" and L("Trinkets") or L("Amulet"));
+		grp.label:SetText(fitFontText(grp.label, categoryLabel, 60));
 		grp.label:Show();
 		grp.sep:Show();
 		local list = pv[g];
@@ -1386,7 +1388,7 @@ function UI:RefreshBrowser()
 				tag = en.here and L("In slot") or (en.state == "placed" and L("Placed") or "");
 			end
 			r.sub:SetText(fitText(sub, 228, 10));
-			r.tag:SetText(tag);
+				r.tag:SetText(fitFontText(r.tag, tag, 72));
 			r.tag:SetTextColor(en.here and 0.55 or 0.95, en.here and 0.9 or 0.78, en.here and 0.62 or 0.35);
 			if insp and insp.kind == kind and insp.key == en.key then r.sel:Show(); else r.sel:Hide(); end
 			r:Show();
@@ -1418,8 +1420,8 @@ function UI:BuildImport(v)
 	im.pager = pager(v, 8, 404, function() c:SetImportPage(c.state.import.page - 1); end, function() c:SetImportPage(c.state.import.page + 1); end);
 	im.loss = text(v, 210, 408, 350, "GameFontNormalSmall");
 	im.classCycle = cycler(v, 8, 440, 250, function() self:CycleImportClass(-1); end, function() self:CycleImportClass(1); end);
-	im.nameLabel = text(v, 270, 444, 60, "GameFontNormal");
-	im.nameEdit = edit(v, 150, 332, 440, function(t) c:SetImportName(t); end, "RebornBuildPlannerImportName");
+	im.nameLabel = text(v, 270, 444, 80, "GameFontNormal");
+	im.nameEdit = edit(v, 128, 354, 440, function(t) c:SetImportName(t); end, "RebornBuildPlannerImportName");
 	im.commit = button(v, "", 150, 28, 8, 480, function() local id = c:CommitImport(); if id then c.state.import = nil; c:SetView("editor", true); end end);
 	im.commit.role = "primary";
 end
