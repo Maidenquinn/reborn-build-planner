@@ -295,11 +295,13 @@ function H.Refresh(self,build,progress,catalog,lang,theme)
       local kind=i<=6 and "spell" or item.group=="amulets" and "amulet" or "jewel";
       t:SetTexture(iconTexture(catalog and catalog:Get(kind,item.key)));
       local state=i<=6 and item.status or item.state;
-      if i<=6 and item.remindAfter then t:SetVertexColor(1,.35,.35)
-      elseif state=="ACHIEVED" or state=="EQUIPPED" or state=="ALTERNATIVE" then t:SetVertexColor(.4,1,.62)
-      elseif state=="UNKNOWN" then t:SetVertexColor(.7,.7,.7)
-      else t:SetVertexColor(1,.75,.45) end
-      m.cell.ring:SetVertexColor(.68,.54,.24,1);
+      -- Keep game icons in their original colours: status lives in the rim.
+      t:SetVertexColor(1,1,1,1);
+      if i<=6 and item.remindAfter then m.cell.ring:SetVertexColor(.96,.30,.34,1)
+      elseif state=="ACHIEVED" or state=="EQUIPPED" then m.cell.ring:SetVertexColor(.30,.88,.49,1)
+      elseif state=="ALTERNATIVE" then m.cell.ring:SetVertexColor(.45,.72,1,1)
+      elseif state=="UNKNOWN" then m.cell.ring:SetVertexColor(.52,.56,.59,1)
+      else m.cell.ring:SetVertexColor(.94,.66,.28,1) end
       m.cell:Show()
     else m.cell:Hide() end
   end
