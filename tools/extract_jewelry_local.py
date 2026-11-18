@@ -110,13 +110,15 @@ def lua_pairs(pairs):
         "{ " + quoted(k) + ", " + format_number(v) + " }" for k, v in pairs
     ) + " }"
 
-def render(records, digest):
+def render(records, digest, expected=None, missing=()):
     lines = [
         "-- Generated from the locally installed game. Never commit or redistribute.",
         "-- Source executable SHA-256: " + digest,
         "local ADDON, ns = ...",
         "ns.GeneratedJewelryMechanics = {",
         "  source = " + quoted(digest) + ",",
+        "  expected = " + str(expected if expected is not None else len(records)) + ",",
+        "  missing = { " + ", ".join(quoted(k) for k in missing) + " },",
         "  items = {",
     ]
     for key, row in sorted(records.items()):
@@ -129,7 +131,7 @@ def render(records, digest):
         )
     return "\n".join(lines + ["  },", "}", ""])
 
-def validate(records, catalogue):
+def validate(records, catalogue, require_complete=False):
     if not isinstance(catalogue, list):
         raise ValueError("jewelry.json is not an array")
     expected = {}
@@ -144,20 +146,23 @@ def validate(records, catalogue):
         expected[key] = slot
     if len(expected) < 30:
         raise ValueError("official jewelry catalog unexpectedly small")
-    if set(records) != set(expected):
-        missing = sorted(set(expected)-set(records))
-        unexpected = sorted(set(records)-set(expected))
-        raise ValueError("incomplete jewelry extraction: missing=%r unexpected=%r" % (missing[:12], unexpected[:12]))
+    missing = sorted(set(expected)-set(records))
+    unexpected = sorted(set(records)-set(expected))
+    if unexpected or len(records) < 30:
+        raise ValueError("invalid jewelry extraction: missing=%r unexpected=%r" % (missing[:12], unexpected[:12]))
     for key, item in records.items():
         if item["slot"] != expected[key]:
             raise ValueError("wrong slot for " + key)
-    return len(expected)
+    if require_complete and missing:
+        raise ValueError("strict coverage requested: missing=%r" % (missing[:12],))
+    return len(expected), missing
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--exe", type=Path, required=True)
     ap.add_argument("--catalog", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--require-complete", action="store_true", help="Refuse any missing catalog key")
     args = ap.parse_args()
     if not args.exe.is_file() or not args.catalog.is_file():
         ap.error("missing locally installed exe or official jewelry.json")
@@ -168,8 +173,8 @@ def main():
         ap.error("not a Windows executable")
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
     records = read_records(data)
-    count = validate(records, catalog)
-    encoded = render(records, hashlib.sha256(data).hexdigest())
+    count, missing = validate(records, catalog, args.require_complete)
+    encoded = render(records, hashlib.sha256(data).hexdigest(), count, missing)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     # Atomic replace: never leave an incomplete output on parse/validation failures.
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="\n",
@@ -177,8 +182,10 @@ def main():
         fh.write(encoded)
         temp = Path(fh.name)
     temp.replace(args.out)
-    print("PASS: extracted %d/%d validated jewelry definitions to %s" %
-          (len(records), count, args.out))
+    print(("%s: extracted %d/%d validated jewelry definitions to %s" %
+          ("PARTIAL" if missing else "PASS", len(records), count, args.out)))
+    if missing:
+        print("Missing official keys (no fabricated effects): " + ", ".join(missing))
 
 if __name__ == "__main__":
     main()
