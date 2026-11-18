@@ -26,7 +26,7 @@ local SETTING_CHECK = {
 	advancedPhases = function(v) return type(v) == "boolean"; end,
 	scale = function(v) return type(v) == "number" and v >= 0.6 and v <= 1.5; end,
 	lastClass = function(v) return type(v) == "string" and #v <= 64; end,
-	libSort = function(v) return v == "name" or v == "used" or v == "modified"; end,
+	libSort = function(v) return v == "name" or v == "used" or v == "modified" or v == "created" or v == "class"; end,
 	libFilter = function(v) return v == "all" or v == "favorites" or v == "recent"; end,
 	-- window position: anchor point, offsets from that point of UIParent (persistent, validated on use)
 	window = function(v)
