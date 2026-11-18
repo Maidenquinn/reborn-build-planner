@@ -15,8 +15,8 @@ from pathlib import Path
 
 RECORD = re.compile(r'\[\[([a-z_]+)\]\]\s*key\s*=\s*"([a-z0-9_]+)"')
 NEXT = re.compile(r'\[\[[a-z_]+\]\]|(?:base|tbc|wotlk|cata)/[a-zA-Z0-9_./-]+\.toml')
-NAME_FIELD = re.compile(r'(?m)^\s*(slot|behavior)\s*=\s*"([a-z_]+)"\s*$')
-NUMBER = re.compile(r'(?m)^\s*base\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)\s*$')
+NAME_FIELD = re.compile(r'\b(slot|behavior)\s*=\s*"([a-z_]+)"')
+NUMBER = re.compile(r'\bbase\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)')
 SAFE_ID = re.compile(r'^[a-z][a-z0-9_]{0,60}$')
 MAX_SPAN = 12000
 MAX_BYTES = 500_000_000
@@ -30,7 +30,7 @@ def numeric(value):
 
 def payload(body, key):
     """Read an explicitly bracketed one-line array, no code execution."""
-    match = re.search(r'(?m)^\s*' + re.escape(key) + r'\s*=\s*(\[[^\r\n]*\])\s*$', body)
+    match = re.search(r'\b' + re.escape(key) + r'\s*=\s*(\[[^\r\n]*\])', body)
     if not match:
         return []
     value = match.group(1)
@@ -42,16 +42,19 @@ def payload(body, key):
         raise ValueError("invalid effects list")
     pairs = []
     for part in result:
-        if not isinstance(part, dict) or len(part) != 1:
+        if isinstance(part, dict) and len(part) == 1:
+            k, v = next(iter(part.items()))
+        elif isinstance(part, list) and len(part) == 2:
+            k, v = part
+        else:
             raise ValueError("unsupported effect object")
-        k, v = next(iter(part.items()))
         if not SAFE_ID.fullmatch(k):
             raise ValueError("unsafe effect name")
         pairs.append((k, numeric(v)))
     return pairs
 
 def specials(body):
-    match = re.search(r'(?m)^\s*special\s*=\s*\{([^}\r\n]{0,3000})\}', body)
+    match = re.search(r'\bspecial\s*=\s*\{([^}\r\n]{0,3000})\}', body)
     if not match:
         return []
     pairs = []
