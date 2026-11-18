@@ -37,6 +37,12 @@ return function(H)
 		eq(state.jewelry[1].state,"EQUIPPED");
 		eq(state.jewelry[2].state,"ALTERNATIVE");
 		eq(state.jewelry[3].state,"MISSING");
+		local unnamed={inRun=true,spellsKnown=true,gearKnown=true,spells={},
+			gear={{name="Some ring",text="Unidentified but equipped"}}};
+		local unknown=tracking.Evaluate(trackedBuild,1,unnamed);
+		eq(unknown.jewelry[1].state,"UNKNOWN","unnamed game item is not proof of missing ring");
+		local zero=tracking.Evaluate(trackedBuild,1,{inRun=true,spellsKnown=true,spells={{key="auto_shot",rank=0}}});
+		eq(zero.spells[1].status,"PENDING","rank zero is not an acquired spell");
 	end);
 	test("Lot4: cards are suggestions only; first-acquire and avoid remain distinct",function()
 		local snap={inRun=true,spellsKnown=true,spells={{key="auto_shot",rank=1}},cards={kind="spell"}};
