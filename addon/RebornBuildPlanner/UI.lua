@@ -626,8 +626,55 @@ function UI:BuildLibrary(v)
 		favorites = button(v, "", 92, 22, 70, 36, function() c:SetFilter("favorites"); end),
 		recent = button(v, "", 82, 22, 162, 36, function() c:SetFilter("recent"); end),
 	};
-	lib.classCycle = cycler(v, 8, 64, 236, function() c:CycleClassFilter(-1); end, function() c:CycleClassFilter(1); end, "GameFontNormalSmall");
-	lib.sortCycle = cycler(v, 8, 90, 236, function() c:CycleSort(-1); end, function() c:CycleSort(1); end, "GameFontNormalSmall");
+	-- Two direct-choice menus replace the old previous/next cycling controls.
+	-- Build each option once and only refresh its label and selected state.
+	lib.classButton = button(v, "", 236, 23, 8, 64, function() self:ToggleLibraryMenu("class"); end);
+	lib.sortButton = button(v, "", 236, 23, 8, 90, function() self:ToggleLibraryMenu("sort"); end);
+	lib.classButton.role, lib.sortButton.role = "quiet", "quiet";
+	lib.menuKind = nil;
+	lib.dismiss = CreateFrame("Frame", nil, v);
+	lib.dismiss:SetAllPoints(v);
+	lib.dismiss:SetFrameStrata("FULLSCREEN_DIALOG");
+	lib.dismiss:SetFrameLevel(134);
+	lib.dismiss:EnableMouse(true);
+	lib.dismiss:SetScript("OnMouseDown", function() self:HideLibraryMenu(); end);
+	lib.dismiss:Hide();
+	local classKeys = c:ClassKeys();
+	lib.classMenu = panel(v, nil, 8, 88, 236, 12 + (#classKeys + 1) * 24);
+	lib.classMenu:SetFrameStrata("FULLSCREEN_DIALOG");
+	lib.classMenu:SetFrameLevel(140);
+	lib.classMenu:EnableMouse(true);
+	lib.classOptions = {};
+	for i = 0, #classKeys do
+		local key = i == 0 and false or classKeys[i];
+		local opt = button(lib.classMenu, "", 220, 22, 8, 6 + i * 24, function()
+			self:HideLibraryMenu();
+			c:SetClassFilter(key or nil);
+		end);
+		opt.role = "quiet"; opt:SetFrameLevel(145); opt.classKey = key;
+		if key then
+			opt.classIcon = opt:CreateTexture(nil, "OVERLAY");
+			opt.classIcon:SetWidth(16); opt.classIcon:SetHeight(16);
+			opt.classIcon:SetPoint("LEFT", opt, "LEFT", 8, 0);
+		end
+		lib.classOptions[#lib.classOptions + 1] = opt;
+	end
+	lib.classMenu:Hide();
+	lib.sortMenu = panel(v, nil, 8, 114, 236, 12 + 3 * 24);
+	lib.sortMenu:SetFrameStrata("FULLSCREEN_DIALOG");
+	lib.sortMenu:SetFrameLevel(140);
+	lib.sortMenu:EnableMouse(true);
+	lib.sortOptions = {};
+	for i, key in ipairs({ "name", "used", "modified" }) do
+		local sortKey = key;
+		local opt = button(lib.sortMenu, "", 220, 22, 8, 6 + (i - 1) * 24, function()
+			self:HideLibraryMenu();
+			c:SetSort(sortKey);
+		end);
+		opt.role = "quiet"; opt:SetFrameLevel(145); opt.sortKey = key;
+		lib.sortOptions[i] = opt;
+	end
+	lib.sortMenu:Hide();
 	lib.area = scrollArea(v, 8, 120, 220, 360, function(d) c:ScrollLib(d); end, function(o) c:SetLibOffset(o); end);
 	lib.rows = {};
 	for i = 1, ns.Controller.LIB_ROWS do
@@ -640,11 +687,22 @@ function UI:BuildLibrary(v)
 		r.bg:SetAllPoints(r);
 		r.bg:SetTexture(ROW_SEL[1], ROW_SEL[2], ROW_SEL[3], ROW_SEL[4]);
 		r.bg:Hide();
-		r.name = text(r, 32, 3, 136, "GameFontHighlight");
-		r.tag = text(r, 168, 5, 48, "GameFontNormalSmall", "RIGHT");
-		r.sub = text(r, 32, 19, 186, "GameFontNormalSmall");
-		r.sub:SetTextColor(0.66, 0.68, 0.74);
-		r.star = button(r, "", 24, 22, 3, 6, function() local id = r.rowId; if id then c:ToggleFavorite(id); end end);
+		-- Left: recognisable class icon. Right: a true favorite heart;
+		-- neither is used as an identifier or part of the build's name.
+		r.classIcon = r:CreateTexture(nil, "ARTWORK");
+		r.classIcon:SetWidth(26); r.classIcon:SetHeight(26);
+		r.classIcon:SetPoint("TOPLEFT", r, "TOPLEFT", 5, -4);
+		r.name = text(r, 37, 3, 155, "GameFontHighlight");
+		r.tag = text(r, 160, 19, 34, "GameFontNormalSmall", "RIGHT");
+		r.sub = text(r, 37, 19, 119, "GameFontNormalSmall");
+		r.sub:SetTextColor(0.66, 0.72, 0.82);
+		r.star = CreateFrame("Button", nil, r);
+		r.star:SetWidth(24); r.star:SetHeight(26);
+		r.star:SetPoint("TOPRIGHT", r, "TOPRIGHT", -1, -4);
+		r.star.tex = r.star:CreateTexture(nil, "ARTWORK");
+		r.star.tex:SetWidth(21); r.star.tex:SetHeight(21);
+		r.star.tex:SetPoint("CENTER", r.star, "CENTER", 0, 0);
+		r.star:SetScript("OnClick", function() local id = r.rowId; if id then c:ToggleFavorite(id); end end);
 		r:SetScript("OnClick", function(f) if f.rowId then self:ClickRow(f); end end);
 		self:Hover(r.star, function() return helpData(self, "star"); end);
 		lib.rows[i] = r;
@@ -663,6 +721,49 @@ function UI:BuildLibrary(v)
 	lib.restore = button(v, "", 160, 24, 8, 530, function() local r = c:Selected(); if r then c:Restore(r.id); end end);
 	lib.create.role, lib.follow.role, lib.restore.role = "primary", "primary", "primary";
 	lib.delete.role = "danger";
+end
+
+-- Click-away layer is above the library but below dropdown options.
+-- Never let a click on a menu row also open a build behind it.
+function UI:HideLibraryMenu()
+	local lib = self.lib;
+	if not lib then return end
+	lib.menuKind = nil;
+	lib.classMenu:Hide(); lib.sortMenu:Hide(); lib.dismiss:Hide();
+end
+
+function UI:ToggleLibraryMenu(kind)
+	local lib = self.lib;
+	if not lib then return end
+	if lib.menuKind == kind then self:HideLibraryMenu(); return end
+	self:HideLanguageMenu();
+	self:HideLibraryMenu();
+	lib.menuKind = kind;
+	local c = self.c;
+	if kind == "class" then
+		local selected = c.state.classFilter;
+		for _, opt in ipairs(lib.classOptions) do
+			local on = (opt.classKey or nil) == selected;
+			opt.role = on and "warn" or "quiet";
+			local name = opt.classKey and c:ClassName(opt.classKey) or L("All classes");
+			setLabel(opt, (on and "  >  " or "      ") .. name);
+			if opt.classIcon then
+				local path, l, r, top, bottom = ns.ClassVisual.Icon(opt.classKey, c:Catalog());
+				opt.classIcon:SetTexture(path);
+				opt.classIcon:SetTexCoord(l, r, top, bottom);
+			end
+		end
+		lib.classMenu:Show();
+	elseif kind == "sort" then
+		local labels = { name = L("Name"), used = L("Last used"), modified = L("Last modified") };
+		for _, opt in ipairs(lib.sortOptions) do
+			local on = opt.sortKey == c:Sort();
+			opt.role = on and "warn" or "quiet";
+			setLabel(opt, (on and "  >  " or "      ") .. labels[opt.sortKey]);
+		end
+		lib.sortMenu:Show();
+	end
+	lib.dismiss:Show();
 end
 
 -- a click opens the build in the editor; unsaved changes elsewhere ask first (Save / Discard / Keep editing)
@@ -687,10 +788,11 @@ function UI:RefreshLibrary()
 		setLabel(b, label .. (name == filter and " *" or ""));
 		setShown(b, not st.trashMode);
 	end
-	lib.classCycle.label:SetText(fitText(L("Class:") .. " " .. (st.classFilter and c:ClassName(st.classFilter) or L("All classes")), 180, 13));
 	local sortNames = { name = L("Name"), used = L("Last used"), modified = L("Last modified") };
-	lib.sortCycle.label:SetText(fitText(L("Sort:") .. " " .. sortNames[c:Sort()], 180, 13));
-	setShown(lib.sortCycle.prev, not st.trashMode); setShown(lib.sortCycle.next, not st.trashMode); setShown(lib.sortCycle.label, not st.trashMode);
+	setLabel(lib.classButton, L("Class:") .. " " .. (st.classFilter and c:ClassName(st.classFilter) or L("All classes")) .. "  v");
+	setLabel(lib.sortButton, L("Sort:") .. " " .. sortNames[c:Sort()] .. "  v");
+	setShown(lib.sortButton, not st.trashMode);
+	if st.trashMode then self:HideLibraryMenu(); end
 	local rows, off, max = c:LibView();
 	lib.area.sync(off, max);
 	local sel = st.selectedId;
@@ -699,21 +801,26 @@ function UI:RefreshLibrary()
 		local d = rows[i];
 		if d then
 			r.rowId, r.trashed = d.id, d.trashed;
-			r.name:SetText(fitText(d.name ~= "" and d.name or L("(no name)"), 136, 12));
+			local path, l, right, top, bottom = ns.ClassVisual.Icon(d.class, c:Catalog());
+			r.classIcon:SetTexture(path);
+			r.classIcon:SetTexCoord(l, right, top, bottom);
+			local cr, cg, cb = ns.ClassVisual.Color(d.class);
+			r.name:SetTextColor(cr, cg, cb);
+			r.name:SetText(fitFontText(r.name, d.name ~= "" and d.name or L("(no name)"), 152));
 			local s = "";
 			if d.trashed then s = L("Deleted");
 			elseif d.active then s = L("Active");
 			elseif d.clean == false then s = L("Repair"); end
-			r.tag:SetText(s);
+			r.tag:SetText(fitFontText(r.tag, s, 34));
 			local when = "";
 			if not d.trashed then
 				local key = c:Sort() == "used" and d.used or d.modified;
 				local ds = dateText(key);
 				if ds then when = " | " .. ds; end
 			end
-			r.sub:SetText(fitText(d.className .. when, 186, 10));
-			r.star.role = d.fav and "warn" or "quiet";
-			setLabel(r.star, d.fav and "*" or "-");
+			r.sub:SetText(fitFontText(r.sub, d.className .. when, 117));
+			r.star.tex:SetTexture(THEME and THEME.Media(d.fav and "ultimate_fav_on" or "ultimate_fav_off") or
+				"Interface\\Buttons\\WHITE8X8");
 			setShown(r.star, not d.trashed);
 			if d.id == sel or d.id == edId then r.bg:Show(); else r.bg:Hide(); end
 			r:Show();
