@@ -233,6 +233,24 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
     t:SetPoint("CENTER",cell,"CENTER",0,0);
     cell:Hide();f.mini[i]={icon=t,cell=cell};
   end
+  f.extra={};
+  for g=1,3 do
+    local group={icons={}};
+    group.label=label(f,"GameFontNormalSmall",9,13,1,97);
+    for i=1,5 do
+      local cell=CreateFrame("Frame",nil,f);cell:SetSize(16,16);
+      cell:EnableMouse(true);
+      cell.icon=cell:CreateTexture(nil,"ARTWORK");cell.icon:SetAllPoints(cell);
+      cell:SetScript("OnEnter",function(self)
+        if GameTooltip and self.tip then
+          GameTooltip:SetOwner(self,"ANCHOR_RIGHT");GameTooltip:SetText(self.tip);GameTooltip:Show()
+        end
+      end);
+      cell:SetScript("OnLeave",function()if GameTooltip then GameTooltip:Hide() end end);
+      cell:Hide();group.icons[i]=cell;
+    end
+    group.label:Hide();f.extra[g]=group;
+  end
   f.menu=CreateFrame("Frame",nil,f);f.menu:SetSize(225,184);
   f.menu:SetFrameStrata("DIALOG");f.menu:SetFrameLevel(f:GetFrameLevel()+30);
   f.menu:SetPoint("TOPLEFT",f,"TOPLEFT",0,-19);
@@ -284,7 +302,14 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
   theme=THEMES[theme] and theme or "standard";
   local c=THEMES[theme];
   local compact=self.compact==true;
-  local height=compact and COMPACT_HEIGHT or HEIGHT;
+  local extras={
+    {label=lang=="frFR" and "HORS BUILD · SORTS" or "OUTSIDE · SPELLS",items=progress.outsideSpells or {},kind="spell"},
+    {label=lang=="frFR" and "HORS BUILD · BIJOUX" or "OUTSIDE · JEWELS",items=progress.outsideJewelry or {},kind="jewel"},
+    {label=lang=="frFR" and "BANNIS" or "BANNED",items=progress.banishedSpells or {},kind="spell"},
+  };
+  local activeExtras=0;
+  for _,g in ipairs(extras) do if #g.items>0 then activeExtras=activeExtras+1 end end
+  local height=(compact and COMPACT_HEIGHT or HEIGHT)+activeExtras*23;
   if f:GetHeight()~=height then f:SetHeight(height) end
   rim(f,theme);
   local assetRoot=fieldkitPath();
@@ -329,6 +354,9 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
       elseif spell.status=="ACHIEVED" then status=spell.rank and ("R"..spell.rank) or "OK";color={0.42,0.95,0.62};
       elseif spell.rank then status="R"..tostring(spell.rank);color={0.75,0.87,1};
       else status=fr and "Manque" or "Missing";color={0.94,0.67,0.42};end
+      if spell.banished then status=fr and "Banni" or "Banned";color={.96,.38,.43} end
+      r.icon:SetAlpha(spell.status=="UNKNOWN" and .58 or (spell.acquired and 1 or .38));
+      r.name:SetAlpha(spell.status=="UNKNOWN" and .65 or (spell.acquired and 1 or .55));
       r.state:SetText(status);r.state:SetTextColor(unpack(color));r:Show();
     else r:Hide() end
     if compact then r:Hide() end
@@ -360,6 +388,9 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
       elseif item.state=="ALTERNATIVE" then status="ALT";color={0.72,0.84,1};
       elseif item.state=="MISSING" then status=fr and "Manque" or "Missing";color={0.94,0.67,0.42};
       else status="?";color={0.74,0.77,0.82};end
+      local obtained=item.state=="EQUIPPED" or item.state=="ALTERNATIVE";
+      r.icon:SetAlpha(obtained and 1 or (item.state=="UNKNOWN" and .65 or .42));
+      r.name:SetAlpha(obtained and 1 or (item.state=="UNKNOWN" and .73 or .55));
       r.state:SetText(status);r.state:SetTextColor(unpack(color));r:Show();
     else r:Hide() end
     if compact then r:Hide() end
@@ -373,7 +404,8 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
       local state=i<=6 and item.status or item.state;
       local name=catalog and catalog:Name(kind,item.key,lang) or item.key;
       local status;
-      if i<=6 and item.remindAfter then status=fr and "Bannir après acquisition" or "Banish after acquisition"
+      if i<=6 and item.banished then status=fr and "Banni" or "Banned"
+      elseif i<=6 and item.remindAfter then status=fr and "Bannir après acquisition" or "Banish after acquisition"
       elseif state=="ACHIEVED" or state=="EQUIPPED" then status=fr and "Acquis" or "Owned"
       elseif state=="ALTERNATIVE" then status=fr and "Alternative" or "Alternative"
       elseif state=="UNKNOWN" then status=fr and "État inconnu" or "Unknown"
@@ -386,8 +418,10 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
       end
       -- Keep game icons in their original colours: status lives in the rim.
       t:SetVertexColor(1,1,1,1);
+      local obtained=(i<=6 and item.acquired) or (i>6 and (state=="EQUIPPED" or state=="ALTERNATIVE"));
+      t:SetAlpha(obtained and 1 or (state=="UNKNOWN" and .68 or .4));
       local rgb;
-      if i<=6 and item.remindAfter then rgb={.96,.30,.34}
+      if i<=6 and (item.banished or item.remindAfter) then rgb={.96,.30,.34}
       elseif state=="ACHIEVED" or state=="EQUIPPED" then rgb={.30,.88,.49}
       elseif state=="ALTERNATIVE" then rgb={.45,.72,1}
       elseif state=="UNKNOWN" then rgb={.52,.56,.59}
@@ -396,6 +430,33 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
       m.cell:Show()
     else m.cell:Hide() end
   end
+  local base=compact and COMPACT_HEIGHT or HEIGHT;
+  local visibleExtra=0;
+  for g,src in ipairs(extras) do
+    local panel=f.extra[g];
+    local show=#src.items>0;
+    local y=base+visibleExtra*23;
+    if show then visibleExtra=visibleExtra+1 end
+    if show then
+      panel.label:ClearAllPoints();
+      panel.label:SetPoint("TOPLEFT",f,"TOPLEFT",13,-y+1);
+      panel.label:SetText(src.label.." · "..#src.items);
+      panel.label:SetTextColor(.96,.73,.42);
+      panel.label:Show();
+    else panel.label:Hide() end
+    for i,cell in ipairs(panel.icons) do
+      local item=show and src.items[i];
+      if item then
+        local kind=item.kind or src.kind;
+        local name=catalog and catalog:Name(kind,item.key,lang) or item.key;
+        cell.icon:SetTexture(iconTexture(catalog and catalog:Get(kind,item.key)));
+        cell.tip=name..(item.rank and (" · R"..item.rank) or "");
+        cell:ClearAllPoints();cell:SetPoint("TOPLEFT",f,"TOPLEFT",110+(i-1)*19,-y+1);
+        cell:Show();
+      else cell:Hide() end
+    end
+  end
+  if activeExtras>0 then rim(f,theme) end
   f:Show();
 end
 -- Pure presentation: no card click handlers or native card mutations.
