@@ -73,20 +73,32 @@ return function(H)
 		eq(reads, {}, "non-client globals read");
 	end);
 
-	test("3A: French/English selector translates the UI immediately and persists across reload", function()
+	test("3A: fifteen-language dropdown, automatic client language and fallback persist", function()
 		local e = boot({ locale = "frFR" }); e.open();
 		eq(e.ns.Locale.lang, "frFR");
-		ok(e.ui.languageButton:GetText():find("Langue", 1, true));
+		eq(e.ns.Locale.Selection(), "auto");
+		eq(#e.ns.Locale.LANGUAGES, 15);
+		ok(e.ui.languageButton:GetText():find("Automatic", 1, true));
 		e.world.click(e.ui.languageButton);
+		ok(e.ui.languageMenu:IsShown() and #e.ui.languageMenu.buttons == 15);
+		local en = e.ui.languageMenu.buttons[2];
+		e.world.click(en);
 		eq(e.ns.Locale.lang, "enUS");
+		eq(e.ns.Locale.Selection(), "enUS");
 		eq(e.h():GetSetting("lang"), "enUS");
-		ok(e.ui.languageButton:GetText():find("Language", 1, true));
+		no(e.ui.languageMenu:IsShown(), "menu closes after selection");
+		e.world.click(e.ui.languageButton);
+		e.world.click(e.ui.languageMenu.buttons[5]); -- German, not yet translated
+		eq(e.ns.Locale.lang, "deDE");
+		eq(e.ns.Locale.T("Search:"), "Search:", "untranslated German keys fall back to English");
 		local nextWorld = reload(e, { locale = "frFR" });
-		eq(nextWorld.ns.Locale.lang, "enUS", "explicit choice beats system language");
+		eq(nextWorld.ns.Locale.lang, "deDE", "explicit locale remains selected");
 		nextWorld.open();
 		nextWorld.world.click(nextWorld.ui.languageButton);
+		nextWorld.world.click(nextWorld.ui.languageMenu.buttons[1]); -- Automatic
+		eq(nextWorld.ns.Locale.Selection(), "auto");
 		eq(nextWorld.ns.Locale.lang, "frFR");
-		eq(nextWorld.h():GetSetting("lang"), "frFR");
+		eq(nextWorld.h():GetSetting("lang"), "auto");
 	end);
 
 	test("3A: unsaved changes modal has explicit visible footer with 3 actions above main window", function()
