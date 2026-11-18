@@ -124,11 +124,11 @@ function H.New(onTheme,onStage,onSelect,onCollapse)
   f:EnableMouse(true);f:RegisterForDrag("LeftButton");
   f:SetScript("OnDragStart",function(self)self:StartMoving()end);
   f:SetScript("OnDragStop",function(self)self:StopMovingOrSizing()end);
-  f.title=label(f,"GameFontNormal",10,16,11,116);
   f.titleButton=CreateFrame("Button",nil,f);f.titleButton:SetSize(125,19);
   f.titleButton:SetBackdrop({bgFile=WHITE,edgeFile=EDGE,edgeSize=7,insets={left=2,right=2,top=2,bottom=2}});
   f.titleButton:SetBackdropColor(.055,.13,.085,.95);f.titleButton:SetBackdropBorderColor(.75,.56,.24,1);
   f.titleButton:SetPoint("TOPLEFT",f,"TOPLEFT",12,-7);
+  f.title=label(f.titleButton,"GameFontNormal",10,5,3,112);
   f.titleButton:SetScript("OnClick",function()H.ToggleBuildMenu(H)end);
   f.counter=label(f,"GameFontHighlightSmall",9,142,12,27);
   f.counter:SetJustifyH("RIGHT");
