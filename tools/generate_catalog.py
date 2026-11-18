@@ -22,7 +22,8 @@ DEFAULT_OUT = os.path.join(ROOT, "addon", "RebornBuildPlanner", "GeneratedCatalo
 DEFAULT_REPORT = os.path.join(ROOT, "tests", "results", "catalog_report.txt")
 
 REQUIRED = ["classes.json", "spells.json", "jewelry.json", "amulets.json", "legends.json"]
-LANGS = ["frFR", "deDE", "esES", "ptBR", "ruRU", "itIT", "plPL", "trTR", "jaJP", "zhCN", "koKR"]\n# Only the dictionaries actually advertised by index.json are embedded.
+LANGS = ["frFR", "deDE", "esES", "ptBR", "ruRU", "itIT", "plPL", "trTR", "jaJP", "zhCN", "koKR"]
+# Only the dictionaries actually advertised by index.json are embedded.
 RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "pvp", "exotic", "mythic"]
 SLOTS = ["ring", "trinket"]
 
