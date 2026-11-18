@@ -39,9 +39,11 @@ class LocalExtractionTests(unittest.TestCase):
         base = {"slot":"ring","behavior":"damage","base":0.17,"effects":[],"specials":[]}
         rows = {("j%d" % k): dict(base) for k in range(30)}
         catalogue = [{"key":k,"slot":"ring"} for k in rows]
-        self.assertEqual(mod.validate(rows,catalogue), 30)
+        self.assertEqual(mod.validate(rows,catalogue), (30, []))
+        reduced = dict(list(rows.items())[:-1])
+        self.assertEqual(mod.validate(reduced, catalogue), (30, [list(rows)[-1]]))
         with self.assertRaises(ValueError):
-            mod.validate(dict(list(rows.items())[:-1]), catalogue)
+            mod.validate(reduced, catalogue, require_complete=True)
         with self.assertRaises(ValueError):
             mod.validate(rows,catalogue+[{"key":"j0","slot":"ring"}])
 
