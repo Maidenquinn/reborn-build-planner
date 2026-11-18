@@ -36,6 +36,13 @@ function H.New(onTheme)
   f:SetFrameStrata("HIGH");f:SetFrameLevel(75);
   f:SetPoint("BOTTOMRIGHT",UIParent,"BOTTOMRIGHT",-26,180);
   f:SetClampedToScreen(true);f:SetMovable(true);
+  -- The Elwynn visual reuses FieldKit's installed panel artwork if available;
+  -- no FieldKit texture is copied into this addon and it remains optional.
+  f.art=f:CreateTexture(nil,"BACKGROUND");
+  f.art:SetPoint("TOPLEFT",f,"TOPLEFT",3,-3);
+  f.art:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-3,3);
+  f.art:SetTexture(ns.Theme.Media("ultimate_panel"));
+  f.art:SetAlpha(0.19);
   f:EnableMouse(true);f:RegisterForDrag("LeftButton");
   f:SetScript("OnDragStart",function(self)self:StartMoving()end);
   f:SetScript("OnDragStop",function(self)self:StopMovingOrSizing()end);
@@ -69,6 +76,13 @@ function H.Refresh(self, build, progress, catalog, lang, theme)
   if not build or not progress or not progress.inRun then f:Hide();return end
   theme=THEMES[theme] and theme or "standard";
   local c=THEMES[theme];surface(f,theme);
+  if theme=="elwynn" and type(IsAddOnLoaded)=="function" and IsAddOnLoaded("AzerothFieldKit") then
+    f.art:SetTexture("Interface\\AddOns\\AzerothFieldKit\\media\\ReferenceHUD\\elwynn_card_body_v9.tga");
+    f.art:SetAlpha(0.34);
+  else
+    f.art:SetTexture(ns.Theme.Media("ultimate_panel"));
+    f.art:SetAlpha(theme=="elwynn" and 0.23 or 0.16);
+  end
   f.rule:SetVertexColor(unpack(c.edge));
   f.title:SetText(trunc(build.name,24));f.title:SetTextColor(unpack(c.gold));
   f.counter:SetText(tostring(progress.achieved).."/"..tostring(progress.total));
