@@ -24,7 +24,37 @@ local function spellMap(raw)
   return out;
 end
 
-function M.Evaluate(build, phaseIndex, snapshot)
+-- Match equipped accessories through stable keys or an exact unique official
+-- display name. A duplicated/localized name is never promoted to an identity.
+local function equippedKey(item,catalog,lang,class)
+  if type(item)~="table" then return nil end
+  if type(item.key)=="string" and item.key~="" then
+    if not catalog or catalog:Get("jewel",item.key) or catalog:Get("amulet",item.key) then
+      return item.key
+    end
+  end
+  if not catalog or not catalog.data or type(item.name)~="string" or item.name=="" then return nil end
+  local found=nil;
+  for _,listName in ipairs({"rings","trinkets","amulets"}) do
+    local slot=listName=="rings" and "ring" or listName=="trinkets" and "trinket" or "amulet";
+    local matchSlot=(not item.slot or item.slot==slot or item.slot==listName);
+    if matchSlot then
+      local kind=listName=="amulets" and "amulet" or "jewel";
+      local pools=listName=="amulets" and {catalog.data.amulets or {},catalog.data.legends or {}} or {catalog.data.jewelry or {}};
+      for _,entries in ipairs(pools) do for _,entry in ipairs(entries) do
+        local key=entry.key;
+        if key and (not catalog.CheckKey or catalog:CheckKey(listName,key,class)=="ok") and
+          (catalog:Name(kind,key,lang)==item.name or catalog:Name(kind,key,"enUS")==item.name) then
+          if found and found~=key then return nil end
+          found=key;
+        end
+      end end
+    end
+  end
+  return found;
+end
+
+function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
   local output = { inRun = false, known = false, spells = {}, jewelry = {}, achieved = 0, total = 0, offered = {} };
   if type(build) ~= "table" or type(build.phases) ~= "table" then return output end
   local phase = build.phases[phaseIndex or 1];
@@ -40,7 +70,8 @@ function M.Evaluate(build, phaseIndex, snapshot)
     output.spells[#output.spells + 1] = {
       key = goal.key, status = status, reason = reason, acquired = acquired,
       after = later, remindAfter = later and acquired or false,
-      rank = type(state.spells[goal.key]) == "number" and state.spells[goal.key] or nil
+      rank = type(state.spells[goal.key]) == "number" and state.spells[goal.key] or nil,
+      targetRank = goal.mode=="rank" and goal.rank or nil
     };
     output.total = output.total + 1;
     if status == BM.STATUS.ACHIEVED then output.achieved = output.achieved + 1 end
@@ -51,10 +82,10 @@ function M.Evaluate(build, phaseIndex, snapshot)
   local unidentified = false;
   if output.inRun and snapshot.gearKnown then
     for _, item in ipairs(snapshot.gear or {}) do
-      if type(item) == "table" and type(item.key) == "string" and item.key ~= "" then
-        equipped[item.key] = true;
-      elseif type(item) == "table" then
-        unidentified = true; -- never infer absence from unidentified game rows
+      if type(item)=="table" then
+        local key=equippedKey(item,catalog,lang,build.class);
+        if key then equipped[key]=true
+        else unidentified=true end -- never infer absence from unidentified game rows
       end
     end
   end
