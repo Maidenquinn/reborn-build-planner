@@ -134,7 +134,12 @@ function M.CardHint(build, phaseIndex, snapshot, card, catalog, lang)
         if cardKey == key and key ~= "" then
           local slot = listName == "rings" and "ring" or
             (listName == "trinkets" and "trinket" or "amulet");
-          local offeredSlot = card.slot or (kind == "ring" and "ring") or (kind == "trinket" and "trinket") or (kind == "amulet" and "amulet");
+          local offeredSlot = card.slot;
+          if not offeredSlot then
+            if kind == "ring" then offeredSlot="ring"
+            elseif kind == "trinket" then offeredSlot="trinket"
+            elseif kind == "amulet" then offeredSlot="amulet" end
+          end
           if offeredSlot == nil or offeredSlot == slot then
             return i <= main and "wanted" or "alternative", i
           end
