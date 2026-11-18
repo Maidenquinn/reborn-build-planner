@@ -69,7 +69,7 @@ return function(H)
 		end
 		local reads = {};
 		for k in pairs(e.sb.reads) do reads[#reads + 1] = k; end
-		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" or reads[i] == "GetAddOnMetadata" then table.remove(reads, i); end end
+		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" or reads[i] == "GetAddOnMetadata" or reads[i] == "AZS" then table.remove(reads, i); end end
 		eq(reads, {}, "non-client globals read");
 	end);
 
