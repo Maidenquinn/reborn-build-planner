@@ -145,7 +145,7 @@ return function(H)
 		e.G.SlashCmdList.REBORNPLANNER("toggle");
 		ok(root:IsShown());
 		e.G.SlashCmdList.REBORNPLANNER("diag");
-		ok(e.world.chat[#e.world.chat - 1]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat - 1]);
+		ok(e.world.chat[#e.world.chat - 2]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat - 2]);
 			ok(e.world.chat[#e.world.chat]:find("bijoux :", 1, true));
 		e.G.SlashCmdList.REBORNPLANNER("what");
 		ok(e.world.chat[#e.world.chat]:find("Usage", 1, true));
