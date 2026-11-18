@@ -95,6 +95,24 @@ def panel():
     d.line((3, h-3, w-3, h-3), fill=(25, 54, 85, 255), width=1)
     return im
 
+def favorite(filled):
+    """Small original transparent heart. Consistent silhouette at 20px UI size."""
+    im = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    path = [(32, 53), (10, 33), (7, 27), (7, 19), (11, 12), (18, 9),
+            (24, 10), (32, 17), (40, 10), (46, 9), (53, 12),
+            (57, 19), (57, 27), (54, 33)]
+    # Dark stroke improves readability against selected blue rows.
+    d.line(path + [path[0]], fill=(8, 19, 36, 255), width=7, joint="curve")
+    if filled:
+        d.polygon(path, fill=(233, 93, 126, 255))
+        d.line([(11, 19), (17, 13), (23, 13), (30, 20)],
+               fill=(255, 196, 208, 240), width=3)
+    else:
+        d.polygon(path, fill=(20, 35, 58, 120))
+        d.line(path + [path[0]], fill=(174, 199, 221, 240), width=3, joint="curve")
+    return im
+
 def tga_bytes(im):
     """WoW-compatible 18-byte header, uncompressed bottom-left BGRA rows."""
     w, h = im.size
@@ -109,7 +127,7 @@ def tga_bytes(im):
 
 def main(out):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
-    textures={"ultimate_corner":corner(),"ultimate_crest":crest(),"ultimate_titlebar":title(),"ultimate_panel":panel()}
+    textures={"ultimate_corner":corner(),"ultimate_crest":crest(),"ultimate_titlebar":title(),"ultimate_panel":panel(),\n              "ultimate_fav_on":favorite(True),"ultimate_fav_off":favorite(False)}
     for name,im in textures.items():(out/(name+".tga")).write_bytes(tga_bytes(im))
     print("Generated",len(textures),"original textures in",out)
 
