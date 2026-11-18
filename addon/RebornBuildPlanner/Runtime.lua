@@ -45,10 +45,20 @@ function R.Active()
   local id=h:GetActive(cls);
   return id and h:Get(id) or nil;
 end
+function R.HookCardsFrame()
+  -- Native cards may become visible after AZSCARDS is sent. Hook show/hide,
+  -- instead of polling every frame or replacing the game's existing scripts.
+  local frame=AZSCardsFrame;
+  if not frame or type(frame.HookScript)~="function" or R.cardsHooked==frame then return end
+  R.cardsHooked=frame;
+  frame:HookScript("OnShow",function()R.Refresh()end);
+  frame:HookScript("OnHide",function()R.Refresh()end);
+end
 function R.Refresh()
   if not R.ready then return end
   local build=R.Active();
   local snapshot=R.Capture();
+  R.HookCardsFrame();
   R.last=snapshot;
   if snapshot.runId and R.stageRun ~= tostring(snapshot.runId) then
     R.stageRun=tostring(snapshot.runId);
