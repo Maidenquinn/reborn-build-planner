@@ -114,10 +114,10 @@ function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
       if type(item)=="table" then
         local key=equippedKey(item,catalog,lang,build.class);
         if key then
-          equipped[key]=true;
+          equipped[key]=item;
           if not wantedJewelry[key] then
             local kind=(catalog and catalog:Get("amulet",key)) and "amulet" or "jewel";
-            output.outsideJewelry[#output.outsideJewelry+1]={key=key,kind=kind};
+            output.outsideJewelry[#output.outsideJewelry+1]={key=key,kind=kind,equippedRow=item};
           end
         else unidentified=true end -- never infer absence from unidentified game rows
       end
@@ -138,7 +138,8 @@ function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
             if equipped[values[j]] then stateName = "ALTERNATIVE"; break end
           end
         end
-        output.jewelry[#output.jewelry + 1] = { key = key, group = kind, slot = i, state = stateName };
+        output.jewelry[#output.jewelry + 1] = { key = key, group = kind, slot = i, state = stateName,
+          equippedRow = equipped[key] };
       end
     end
   end
