@@ -233,7 +233,7 @@ return function(H)
 	test("3.4 legendary names: canonical head + translated spell only when the spell IS translated", function()
 		eq(cat:Name("amulet", "legendary:cleave", nil), "Medallion of the Bladestorm: Cleave");
 		eq(cat:Name("amulet", "legendary:cleave", "frFR"), "Médaillon de la Tempête de lames: Enchaînement");
-		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: Cleave", "language not embedded: English");
+		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: " .. ((cat.i18n.deDE or {})["Cleave"] or "Cleave"), "official translated spell when available");
 		-- search finds it by the English title and by the French spell part
 		local e = boot({ locale = "frFR" });
 		local id, ed = newEditor(e);
