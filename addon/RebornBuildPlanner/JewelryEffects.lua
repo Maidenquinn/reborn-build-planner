@@ -83,14 +83,14 @@ function E.Simple(key, slot, french)
     local pct = number(row.base * 100, fr) .. (fr and " %" or "%")
     return {
       text = pct .. " " .. desc[fr and 1 or 2],
-      note = fr and "Valeur de base : le bonus reel depend de la rarete et des ameliorations."
+      note = fr and "Valeur de base : le bonus réel dépend de la rareté et des améliorations."
         or "Base value: actual bonus depends on rarity and upgrades."
     }
   end
   return {
     text = fr and "Effet special : consulte la description dans le jeu."
       or "Special effect: check the in-game description.",
-    note = fr and "Les donnees locales ne precisent pas la formule complete."
+    note = fr and "Les données locales ne précisent pas la formule complète."
       or "The local data does not specify the full formula."
   }
 end
