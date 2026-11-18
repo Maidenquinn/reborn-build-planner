@@ -22,7 +22,7 @@ DEFAULT_OUT = os.path.join(ROOT, "addon", "RebornBuildPlanner", "GeneratedCatalo
 DEFAULT_REPORT = os.path.join(ROOT, "tests", "results", "catalog_report.txt")
 
 REQUIRED = ["classes.json", "spells.json", "jewelry.json", "amulets.json", "legends.json"]
-LANGS = ["frFR"]            # translations embedded (EN is the fallback and the key)
+LANGS = ["frFR", "deDE", "esES", "ptBR", "ruRU", "itIT", "plPL", "trTR", "jaJP", "zhCN", "koKR"]\n# Only the dictionaries actually advertised by index.json are embedded.
 RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "pvp", "exotic", "mythic"]
 SLOTS = ["ring", "trinket"]
 
@@ -184,7 +184,11 @@ def translations(data, index, tables, warnings, notes):
     for lang in LANGS:
         rel = "i18n/%s.json" % lang
         path = os.path.join(data, rel)
-        if rel not in index["files"] or not os.path.exists(path):
+        if rel not in index["files"]:
+            # An unlisted locale is not supported by this game revision.
+            # Do not emit a warning for legitimate optional dictionaries.
+            continue
+        if not os.path.exists(path):
             warnings.append("translation %s not available: names fall back to English" % lang)
             out[lang] = {}
             continue
