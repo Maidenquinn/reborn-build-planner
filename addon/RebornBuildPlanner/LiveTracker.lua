@@ -81,20 +81,57 @@ end
 
 -- Report a proposed card only when game phase, offer kind and stable key are known.
 -- "banishAfter" means wanted until acquired, never immediate avoidance.
-function M.CardHint(build, phaseIndex, snapshot, card)
+-- The client sometimes supplies an accessory name instead of a catalog key.
+-- Only accept an exact, UNIQUE official name for the current class and slot;
+-- never compare icons, descriptions or partial names.
+local function resolvedAccessoryKey(card, kind, catalog, class, lang)
+  if type(card.key)=="string" and card.key~="" then
+    if not catalog then return card.key end
+    local known=catalog:Get("jewel",card.key) or catalog:Get("amulet",card.key);
+    if known then return card.key end
+  end
+  if not catalog or type(card.name)~="string" or card.name=="" then return nil end
+  local names={rings=true,trinkets=true,amulets=true};
+  if kind=="ring" then names={rings=true}
+  elseif kind=="trinket" then names={trinkets=true}
+  elseif kind=="amulet" then names={amulets=true}
+  elseif card.slot=="ring" then names={rings=true}
+  elseif card.slot=="trinket" then names={trinkets=true}
+  elseif card.slot=="amulet" then names={amulets=true} end
+  local candidates,found={},nil;
+  for listName in pairs(names) do
+    local wantedKind=listName=="amulets" and "amulet" or "jewel";
+    local rows=listName=="amulets" and {catalog.data.amulets or {},catalog.data.legends or {}} or {catalog.data.jewelry or {}};
+    for _,list in ipairs(rows) do for _,record in ipairs(list) do
+      local key=record.key;
+      if key and (not catalog.CheckKey or catalog:CheckKey(listName,key,class)=="ok") and
+        (catalog:Name(wantedKind,key,lang)==card.name or
+         catalog:Name(wantedKind,key,"enUS")==card.name) then
+        if not candidates[key] then candidates[key]=true;
+          if found and found~=key then return nil end
+          found=key;
+        end
+      end
+    end end
+  end
+  return found
+end
+
+function M.CardHint(build, phaseIndex, snapshot, card, catalog, lang)
   if not build or not snapshot or snapshot.inRun ~= true then return nil end
   if not snapshot.cards then return nil end
-  if type(card) ~= "table" or type(card.key) ~= "string" then return nil end
+  if type(card) ~= "table" then return nil end
   local ph = build.phases and build.phases[phaseIndex or 1];
   if not ph then return nil end
   local kind = snapshot.cards.kind;
   if kind == "jewel" or kind == "amulet" or kind == "ring" or kind == "trinket" then
-    -- Only exact stable keys. Absence of a card key is not interpreted.
+    local cardKey=resolvedAccessoryKey(card,kind,catalog,build.class,lang);
+    if not cardKey then return nil end
     for _, listName in ipairs({ "rings", "trinkets", "amulets" }) do
       local list = ph[listName] or {};
       local main = listName == "amulets" and 1 or 2;
       for i, key in ipairs(list) do
-        if card.key == key and key ~= "" then
+        if cardKey == key and key ~= "" then
           local slot = listName == "rings" and "ring" or
             (listName == "trinkets" and "trinket" or "amulet");
           local offeredSlot = card.slot or (kind == "ring" and "ring") or (kind == "trinket" and "trinket") or (kind == "amulet" and "amulet");
@@ -106,7 +143,7 @@ function M.CardHint(build, phaseIndex, snapshot, card)
     end
     return nil
   end
-  if kind ~= "spell" then return nil end
+  if kind ~= "spell" or type(card.key)~="string" then return nil end
   if has(ph.banish, card.key) then return "avoid" end
   local wanted;
   for i, goal in ipairs(ph.spells or {}) do
