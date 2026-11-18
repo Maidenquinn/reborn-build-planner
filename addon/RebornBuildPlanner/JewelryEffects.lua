@@ -76,14 +76,42 @@ function E.Sections(key, slot, french)
   local caution = fr and
     "Avant rareté et améliorations. Ce n'est pas la valeur effective pendant une partie."
     or "Before rarity and upgrades. Not the actual in-run value."
-  return {
+  local result = {
     { title = fr and "Effet identifié" or "Identified effect", lines = { { text = label } } },
     { title = amountLabel, lines = {
       { text = value },
       { text = caution, tone = "dim" }
     } },
-    { title = fr and "Origine" or "Source", lines = { { text = source, tone = "dim" } } }
   }
+  local function appendPairs(input, title, isSpecial)
+    if type(input) ~= "table" or #input == 0 then return end
+    local lines = {}
+    for _, pair in ipairs(input) do
+      if type(pair) == "table" and type(pair[1]) == "string" and type(pair[2]) == "number" and
+         pair[2] == pair[2] and #lines < 16 then
+        local fieldName = pair[1]
+        local translated = labels[fieldName]
+        local name = translated and translated[fr and 1 or 2] or fieldName
+        -- Only stat shares have documented percentage semantics. Special parameters
+        -- are implementation-dependent and must not be displayed as run bonuses.
+        local pct = (not isSpecial) and SHARE[fieldName]
+        local rendered = number(pct and pair[2] * 100 or pair[2], fr)
+        lines[#lines+1] = { text = name .. ": " .. rendered .. (pct and (fr and " %" or "%") or "") }
+      end
+    end
+    if #lines > 0 then
+      if isSpecial then
+        lines[#lines+1] = { text = fr and
+          "Paramètres de mécanique ; leur interprétation dépend du jeu." or
+          "Mechanics parameters; interpretation depends on the game.", tone = "dim" }
+      end
+      result[#result+1] = { title = title, lines = lines }
+    end
+  end
+  appendPairs(row.effects, fr and "Autres effets déclarés" or "Other declared effects", false)
+  appendPairs(row.specials, fr and "Effets conditionnels" or "Conditional effects", true)
+  result[#result+1] = { title = fr and "Origine" or "Source", lines = { { text = source, tone = "dim" } } }
+  return result
 end
 
 -- The game exposes owned jewelry as AZS_GEAR snapshots. It does NOT supply
