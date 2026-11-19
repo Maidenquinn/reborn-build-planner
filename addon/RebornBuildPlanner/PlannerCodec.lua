@@ -433,7 +433,59 @@ end
 --   plan: build (model, id "pending"), class, classKnown, name, phases (summary), status ("ready"|"needs_repair"),
 --         canActivate, exportReport (what a re-export to the site would lose)
 --   talents: talents, class (from the link path, or nil), needsClass
+-- RBP-native exchange: all model fields (including banishAfter, alternatives,
+-- notes and extensions) are preserved. It is deliberately distinct from the
+-- lossy official azsb1 format. Decoding remains bounded JSON data only.
+C.RBP_PREFIX="rbp1:";
+function C.EncodeRBP(build,catalog)
+  local valid=BM.Validate(build,catalog);
+  if not valid.ok then return nil,{code="INVALID_BUILD",message="build validation failed"} end
+  local text,err=Json.Encode({format="RBP1",build=build});
+  if not text then return nil,err end
+  if #text>C.LIMITS.decodedBytes then return nil,{code="PAYLOAD_TOO_LARGE"} end
+  return C.RBP_PREFIX..B64.Encode(text),{ok=true,lossless=true};
+end
+local function decodeNative(text,catalog)
+  local issues=newIssues();
+  local pv={ok=false,issues=issues,official=false,
+    source={chars=#text,text=sub(text,1,C.LIMITS.sourceKeep),truncated=#text>C.LIMITS.sourceKeep}};
+  local raw=text:sub(#C.RBP_PREFIX+1);
+  if #raw>C.LIMITS.encodedChars then
+    pv.errorCode="INPUT_TOO_LARGE";add(issues,"error",pv.errorCode,"payload");return pv
+  end
+  local bytes,why=B64.Decode(raw,C.LIMITS.encodedChars);
+  if not bytes or #bytes>C.LIMITS.decodedBytes then
+    pv.errorCode="BASE64_INVALID";add(issues,"error",pv.errorCode,"payload",nil,why);return pv
+  end
+  local fine=Utf8.Validate(bytes);
+  if not fine then pv.errorCode="INVALID_UTF8";add(issues,"error",pv.errorCode,"payload");return pv end
+  local value,err=Json.Decode(bytes,{maxBytes=C.LIMITS.decodedBytes,
+    maxDepth=12,maxNodes=C.LIMITS.jsonNodes});
+  if err or type(value)~="table" or value.format~="RBP1" or type(value.build)~="table" then
+    pv.errorCode="JSON_INVALID";add(issues,"error",pv.errorCode,"payload");return pv
+  end
+  local build,rep=BM.Normalize(value.build,catalog);
+  if not build then
+    pv.errorCode="INVALID_BUILD";add(issues,"error",pv.errorCode,"build");return pv
+  end
+  for _,item in ipairs(rep.issues or {}) do
+    add(issues,item.level,item.code,item.path,item.key,item.detail);
+  end
+  pv.ok,pv.kind,pv.build=true,"plan",build;
+  pv.name,pv.class=build.name,build.class;
+  pv.classKnown=catalog~=nil and catalog:IsClass(build.class);
+  pv.phases=summary(build);
+  pv.canActivate=rep.clean and pv.classKnown;
+  pv.status=rep.clean and "ready" or "needs_repair";
+  pv.exportReport=C.PlanExport(build,catalog);
+  pv.native=true;
+  return pv
+end
+
 function C.Decode(text, catalog, opts)
+	if type(text)=="string" and sub(text,1,#C.RBP_PREFIX)==C.RBP_PREFIX then
+		return decodeNative(text,catalog);
+	end
 	opts = opts or {};
 	local iss = newIssues();
 	local pv = { ok = false, issues = iss };
