@@ -1404,8 +1404,10 @@ function UI:RefreshDetail()
 	local key = d and (d.title .. "|" .. tostring(c.state.inspect.key)) or "";
 	if not d then
 		det.icon:Hide();
-		det.title:SetText("");
-		det.type:SetText("");
+		det.title:SetText(L("Nothing selected"));
+		det.title:SetTextColor(.82,.88,.95);
+		det.type:SetText(L("Choose a spell or piece to inspect"));
+		det.type:SetTextColor(.66,.74,.82);
 		det.lines = {};
 		for _, w in ipairs(wrapText(L("Select a spell or a piece to see its details here."), DET_CHARS)) do det.lines[#det.lines + 1] = { text = w, rgb = TONE_RGB.dim }; end
 		det.source:SetText("");
