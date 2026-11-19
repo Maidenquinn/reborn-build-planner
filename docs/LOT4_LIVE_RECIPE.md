@@ -150,23 +150,31 @@ FPS and frame-time statistics.
 Automated Lua tests and CI are necessary gates, but do not replace in-game
 validation. Neither `main` nor an official public release is modified here.
 
-## Inspect imported builds before committing (2026-11-19)
+## Import UX — two-step confirmation (2026-11-19)
 
-Paste an `azsb1:` (official site) or `rbp1:` code, then click **Analyze**.
-For a valid plan, **Inspect build** replaces the initial Type/paste action.
-The original Summary still shows all four stage totals and any decode issues.
-In inspection mode the existing controls are reused:
+The import flow now has two clear, dedicated steps spanning both the editor
+and browser columns. The normal catalogue browser is hidden while importing.
 
-- `<` / `>` at the bottom choose **stage 1–4**;
-- the central pager moves through four icon/name entries at a time;
-- the view includes ordered spells, banishes, main and alternative rings,
-  trinkets, amulets, plus supported notes.
-- **Summary** returns to the warnings and totals without losing the decoded data.
+1. **Paste a build:** type or paste a `azsb1:` / `rbp1:` code in the large,
+   framed field and click **Analyze**. A rejected code stays on this screen and
+   gives a diagnostic. Nothing is written to SavedVariables.
+2. **Review before importing:** successful validation immediately reveals
+   the decoded build name and class, six prioritized spells (with icons for
+   the first four), a clearly separate AVOID / banish list, and named rings,
+   trinkets, amulets with primary/alternative markers. The four phases are
+   selected with arrows and a full phase name; there is no "Items 1-4 / 17"
+   pseudo-pagination. **Edit code** returns to the first step without losing
+   the text; **Import** is the only operation that saves the new build.
 
-The `Ready to import (local)` message means the pasted payload decoded and
-passed local model validation, **not** that the addon fetched the current
-website build. Compare the named items against the site before clicking
-**Import**. A successful import creates a new build; it never replaces or
-auto-activates an existing one. Test an invalid code and a conflicting build
-as well as a valid six-spell plan; verify storage counts never change during
-inspection.
+The "Locally valid" message confirms *local* decoding and model validation,
+not real-time retrieval of the web page. Do not claim or infer website state.
+"Importable, needs repair" keeps conflicting plans unfollowable until repaired.
+Talent-only links retain explicit class selection before import.
+If an exceptionally large phase contains more equipment than the visible
+preview capacity, the interface indicates the overflow; import remains safe,
+and the complete normalized data remains in the decoded preview.
+
+Live acceptance: long import code, invalid payload, six spells + bans +
+two rings/trinkets + legendary amulet, all four phases, native lossless code,
+small screen scaling, alpha 0/50/100, and Cancel/Edit/Import preserving data
+integrity.
