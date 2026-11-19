@@ -212,7 +212,10 @@ return function(H)
 		no(e.ui:DetailText():find("%d+%%"));
 		-- the advanced block takes the detail area and gives it back
 		e.c:ToggleAdvanced();
-		no(e.ui.det.title:IsVisible()); ok(e.ui.ed.nt.notes.scroll:IsVisible());
+		no(e.ui.det.title:IsVisible());
+		ok(e.ui.ed.nt.previewNotes:IsVisible(), "read-only overview is shown by default");
+		e.world.click(e.ui.ed.nt.switch);
+		ok(e.ui.ed.nt.notes.scroll:IsVisible(), "explicit edit button reveals fields");
 		e.c:ToggleAdvanced();
 		ok(e.ui.det.title:IsVisible()); no(e.ui.ed.nt.notes.scroll:IsVisible());
 	end);
