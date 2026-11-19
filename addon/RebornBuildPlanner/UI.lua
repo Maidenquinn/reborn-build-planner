@@ -1662,7 +1662,12 @@ function UI:BuildImport(v)
 	im.head = text(v, 8, 8, EW, "GameFontNormal");
 	im.box = multiline(v, "RebornBuildPlannerImportBox", EW, 90, 8, 30, nil);
 	im.paste = button(v, "", 160, 24, 8, 126, function()
-		im.box:SetFocus();
+		local pv=c:ImportState() and c:ImportState().preview;
+		if pv and pv.ok and pv.kind=="plan" then
+			im.detail=not im.detail;im.offset=0;self:RefreshImport();
+		else
+			im.box:SetFocus();
+		end
 	end);
 	im.paste.role = "primary";
 	im.analyze = button(v, "", 140, 24, 178, 126, function() c:AnalyzeImport(im.box:GetText()); end);
@@ -1677,10 +1682,10 @@ function UI:BuildImport(v)
 	im.issues = {};
 	for i = 1, ns.Controller.ISSUE_PAGE do im.issues[i] = text(v, 8, 298 + (i - 1) * 16, EW, "GameFontNormalSmall"); end
 	im.pager = pager(v, 8, 404, function()
-		if im.detail then im.offset=math.max(0,im.offset-8);self:RefreshImport()
+		if im.detail then im.offset=math.max(0,im.offset-6);self:RefreshImport()
 		else c:SetImportPage(c.state.import.page-1) end
 	end, function()
-		if im.detail then im.offset=im.offset+8;self:RefreshImport()
+		if im.detail then im.offset=im.offset+6;self:RefreshImport()
 		else c:SetImportPage(c.state.import.page+1) end
 	end);
 	im.loss = text(v, 210, 408, 350, "GameFontNormalSmall");
@@ -1698,12 +1703,9 @@ function UI:BuildImport(v)
 	-- Detailed preview uses the otherwise empty middle area. Fixed pools and
 	-- page controls avoid rebuilding widgets for long imported plans.
 	im.detail=false;im.stage=1;im.offset=0;im.previewRef=nil;
-	im.detailsButton=button(v,"",164,22,390,223,function()
-		im.detail=not im.detail;im.offset=0;self:RefreshImport();
-	end);
 	im.detailRows={};
-	for i=1,8 do
-		local y=254+(i-1)*18;
+	for i=1,6 do
+		local y=254+(i-1)*21;
 		local row={};
 		row.icon=v:CreateTexture(nil,"OVERLAY");
 		row.icon:SetSize(15,15);
@@ -1728,7 +1730,11 @@ function UI:RefreshImport()
 	local c, im = self.c, self.im;
 	local st = c:ImportState();
 	im.head:SetText((ns.Locale.lang=="frFR" and "Cliquez dans la zone pour écrire ou coller (Ctrl+V), puis analysez." or "Click the field to type or paste (Ctrl+V), then Analyze."));
-	setLabel(im.paste, (ns.Locale.lang=="frFR" and "Saisir / coller" or "Type / paste"));
+	local current=c:ImportState() and c:ImportState().preview;
+	setLabel(im.paste,current and current.ok and current.kind=="plan" and
+		(im.detail and (ns.Locale.lang=="frFR" and "Résumé" or "Summary") or
+		(ns.Locale.lang=="frFR" and "Voir le build" or "Inspect build")) or
+		(ns.Locale.lang=="frFR" and "Saisir / coller" or "Type / paste"));
 	setLabel(im.analyze, L("Analyze"));
 	setLabel(im.back, L("Back"));
 	im.hint:SetText(L("Nothing is saved until you press Import. The new build is never active."));
@@ -1738,21 +1744,19 @@ function UI:RefreshImport()
 		im.previewRef=pv;im.stage=1;im.offset=0;im.detail=false;
 	end
 	local detailed=show and pv.ok and pv.kind=="plan" and im.detail;
-	setShown(im.detailsButton,show and pv.ok and pv.kind=="plan");
-	setLabel(im.detailsButton,im.detail and "Summary" or "Inspect build");
 	for _,row in ipairs(im.detailRows) do
 		setShown(row.label,detailed);
 		setShown(row.icon,detailed);
 	end
 	if detailed then
 		local all=importPreviewLines(pv,im.stage,c:Catalog(),c:Lang());
-		local pages=math.max(1,math.ceil(#all/8));
-		im.offset=math.min(im.offset,(pages-1)*8);
+		local pages=math.max(1,math.ceil(#all/6));
+		im.offset=math.min(im.offset,(pages-1)*6);
 		im.classCycle.label:SetText((pv.build.phases[im.stage].label~="" and
 			pv.build.phases[im.stage].label or L(BM.DEFAULT_LABELS[im.stage])).." ("..im.stage.."/4)");
-		im.pager.label:SetText("Items "..math.min(im.offset+1,#all).."-"..math.min(im.offset+8,#all).." / "..#all);
+		im.pager.label:SetText("Items "..math.min(im.offset+1,#all).."-"..math.min(im.offset+6,#all).." / "..#all);
 		enable(im.pager.prev,im.offset>0);
-		enable(im.pager.next,im.offset+8<#all);
+		enable(im.pager.next,im.offset+6<#all);
 		for i,row in ipairs(im.detailRows) do
 			local entry=all[im.offset+i];
 			if entry then
