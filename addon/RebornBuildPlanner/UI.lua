@@ -966,8 +966,8 @@ function UI:BuildEditor(v)
 		r.num = text(r.frame, 6, 4, 20, "GameFontNormal");
 		r.num:SetTextColor(GOLD[1], GOLD[2], GOLD[3]);
 		r.icon = r.frame:CreateTexture(nil, "ARTWORK");
-		r.icon:SetWidth(18); r.icon:SetHeight(18);
-		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 28, -2);
+		r.icon:SetWidth(20); r.icon:SetHeight(20);
+		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 27, -1);
 		r.name = text(r.frame, 52, 4, 258, "GameFontHighlight");
 		r.hit = hitArea(r.frame, 26, 0, 284, 22);
 		r.add = button(r.frame, "", 190, 20, 52, 1, function() c:AddSpellTarget(); end);
@@ -1507,10 +1507,10 @@ function UI:BuildBrowser(v)
 		r.icon = r:CreateTexture(nil, "ARTWORK");
 		r.icon:SetWidth(26); r.icon:SetHeight(26);
 		r.icon:SetPoint("TOPLEFT", r, "TOPLEFT", 4, -4);
-		r.name = text(r, 36, 3, 222, "GameFontHighlight");
-		r.sub = text(r, 36, 19, 222, "GameFontNormalSmall");
+		r.name = text(r, 36, 3, 195, "GameFontHighlight");
+		r.sub = text(r, 36, 19, 195, "GameFontNormalSmall");
 		r.sub:SetTextColor(0.66, 0.68, 0.74);
-		r.tag = text(r, 260, 10, 76, "GameFontNormalSmall", "RIGHT");
+		r.tag = text(r, 234, 10, 102, "GameFontNormalSmall", "RIGHT");
 		r:SetScript("OnClick", function() if r.tipKey then c:Inspect(r.tipKind, r.tipKey); end end);
 		r:SetScript("OnDoubleClick", function() if r.tipKey then c:Inspect(r.tipKind, r.tipKey); self:DetailAct(1); end end);
 		self:Hover(r, function() return r.tipKey and c:TooltipData(r.tipKind, r.tipKey) or nil; end);
@@ -1558,7 +1558,7 @@ function UI:RefreshBrowser()
 		local en = view[i];
 		if en then
 			r.tipKind, r.tipKey = kind, en.key;
-			r.name:SetText(fitText(en.name, 228, 12));
+			r.name:SetText(fitFontText(r.name, en.name, 192));
 			local laterBanish = kind == "spell" and en.after;
 			local rcol = rarityRgb(en.legend and "legendary" or en.rarity);
 			if kind == "amulet" then r.name:SetTextColor(rcol[1], rcol[2], rcol[3]); else r.name:SetTextColor(1, 1, 1); end
@@ -1571,7 +1571,7 @@ function UI:RefreshBrowser()
 			elseif kind == "amulet" then
 				sub = en.legend and L("Legendary amulet") or (L("Amulet") .. " | " .. L(RARITY_L[en.rarity or ""] or "Unknown"));
 				if en.legend and en.spellName then      -- spell name first (what tells two legends apart), head and class below
-					r.name:SetText(fitText(en.spellName, 228, 12));
+					r.name:SetText(fitFontText(r.name, en.spellName, 192));
 					sub = (en.head or "") .. " | " .. (en.className or "");
 				end
 				tag = en.here and L("In slot") or (en.state == "placed" and L("Placed") or "");
@@ -1579,8 +1579,8 @@ function UI:RefreshBrowser()
 				sub = e.cat == "rings" and L("Ring") or L("Trinket");
 				tag = en.here and L("In slot") or (en.state == "placed" and L("Placed") or "");
 			end
-			r.sub:SetText(fitText(sub, 228, 10));
-				r.tag:SetText(fitFontText(r.tag, tag, 72));
+			r.sub:SetText(fitFontText(r.sub, sub, 192));
+				r.tag:SetText(fitFontText(r.tag, tag, 98));
 			setShown(r.afterMark, laterBanish and true or false);
 			if laterBanish then
 				r.base:SetTexture(0.19, 0.07, 0.10, 1);
