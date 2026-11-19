@@ -1159,7 +1159,7 @@ return function(H)
 		e.world.click(e.ui.ex.back);
 		eq(#e.world.all, n0, "frames/regions created after the first open");
 		-- The import review uses one additional, pre-created overflow label; no widgets are created on refresh.
-		ok(n0 <= 1650, "static texture/button budget including import overflow indicator: " .. n0);
+		ok(n0 <= 1750, "static texture/button budget including the read-only notes view and inspector matte: " .. n0);
 	end);
 
 	-- ------------------------------------------------------------------ layout lint at several sizes
