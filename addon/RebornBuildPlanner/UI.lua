@@ -1030,6 +1030,13 @@ function UI:BuildEditor(v)
 	local nt = { editing = false };
 	ed.nt = nt;
 	nt.head = header(v, 8, 430, EW);
+	-- An opaque reading pane prevents the game cards and the editor field frame
+	-- from visually obscuring the notes summary at low UI opacity.
+	nt.readingMatte = v:CreateTexture(nil, "ARTWORK");
+	nt.readingMatte:SetTexture(WHITE);
+	nt.readingMatte:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -453);
+	nt.readingMatte:SetWidth(EW); nt.readingMatte:SetHeight(153);
+	nt.readingMatte:SetVertexColor(.015,.025,.036,1);
 	-- Read-only first view. Fields and SavedVariables are untouched until the
 	-- player explicitly selects Edit; this keeps notes useful during a run.
 	nt.switch = button(v, "", 166, 24, 394, 427, function()
@@ -1037,9 +1044,10 @@ function UI:BuildEditor(v)
 		self:RefreshEditor();
 	end);
 	nt.switch.role = "primary";
-	nt.previewNotes = wrapped(v, 12, 458, 538, 82, "GameFontHighlight");
+	nt.previewNotes = wrapped(v, 18, 468, 522, 66, "GameFontHighlight");
+	nt.previewNotes:SetJustifyV("TOP");
 	nt.previewNotes:SetTextColor(.91, .94, .97);
-	nt.previewLink = button(v, "", 542, 25, 12, 545, function()
+	nt.previewLink = button(v, "", 542, 27, 16, 548, function()
 		-- 3.3.5a does not expose a supported OS-browser launch API.
 		-- Display/select the URL for Ctrl+C rather than claiming to open it.
 		nt.editing = true;
@@ -1048,7 +1056,7 @@ function UI:BuildEditor(v)
 		if nt.link.HighlightText then nt.link:HighlightText(); end
 	end);
 	nt.previewLink.role = "quiet";
-	nt.previewAvoid = wrapped(v, 12, 580, 538, 42, "GameFontNormalSmall");
+	nt.previewAvoid = wrapped(v, 18, 584, 522, 24, "GameFontNormalSmall");
 	nt.previewAvoid:SetTextColor(.78, .83, .88);
 	nt.counter = text(v, 400, 432, 160, "GameFontNormalSmall", "RIGHT");
 	nt.notes = multiline(v, "RebornBuildPlannerNotes", EW, 52, 8, 452, function(t) c:SetNotes(t); end);
@@ -1098,8 +1106,9 @@ function UI:RefreshEditor()
 	local editing = adv and ed.nt.editing;
 	setShown(ed.nt.head, adv);
 	setShown(ed.nt.switch, adv);
+	setShown(ed.nt.readingMatte, adv and not editing);
 	for _, w in ipairs({ ed.nt.counter, ed.nt.notes.scroll, ed.nt.linkLabel, ed.nt.link, ed.nt.talentsLabel, ed.nt.talents,
-		ed.nt.warn, ed.nt.avoidHead, ed.nt.kept }) do setShown(w, editing); end
+		ed.nt.warn, ed.nt.avoidHead, ed.nt.kept, ed.nt.notes.surround }) do setShown(w, editing); end
 	for _, w in ipairs({ ed.nt.previewNotes, ed.nt.previewLink, ed.nt.previewAvoid }) do setShown(w, adv and not editing); end
 	if not on then
 		ed.empty:SetText(L("Choose your next build"));
@@ -1250,10 +1259,10 @@ function UI:RefreshEditor()
 			ed.nt.head:SetText(L("Build notes"));
 			local notes = type(ph.notes) == "string" and ph.notes or "";
 			ed.nt.previewNotes:SetText(notes ~= "" and notes or L("No notes for this stage."));
-			ed.nt.previewNotes:SetTextColor(notes ~= "" and .91 or .65, notes ~= "" and .94 or .72, notes ~= "" and .97 or .78);
+			ed.nt.previewNotes:SetTextColor(notes ~= "" and 1 or .67, notes ~= "" and .96 or .73, notes ~= "" and .85 or .8);
 			local url = type(ph.link) == "string" and ph.link or "";
 			setShown(ed.nt.previewLink, url ~= "");
-			if url ~= "" then setLabel(ed.nt.previewLink, fitText(url, 505, 12) .. "  (Ctrl+C)"); end
+			if url ~= "" then setLabel(ed.nt.previewLink, L("Select and copy build link")); end
 			local count = #pv.banish;
 			ed.nt.previewAvoid:SetText(string.format(L("Avoid list: %d spells"), count) ..
 				(count > 0 and ("  |  " .. fitText(table.concat((function()
@@ -1336,17 +1345,17 @@ function UI:BuildDetail(v)
 	det.readingMatte:SetTexture(WHITE);
 	det.readingMatte:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -452);
 	det.readingMatte:SetWidth(EW); det.readingMatte:SetHeight(160);
-	det.readingMatte:SetVertexColor(.012, .020, .030, .97);
+	det.readingMatte:SetVertexColor(.012, .020, .030, 1);
 	det.icon = v:CreateTexture(nil, "ARTWORK");
 	det.icon:SetWidth(36); det.icon:SetHeight(36);
 	det.icon:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -454);
 	det.title = text(v, 52, 456, 332, "GameFontNormalLarge", "LEFT", 18);
 	det.type = text(v, 52, 478, 332, "GameFontNormalSmall");
 	det.type:SetTextColor(0.66, 0.68, 0.74);
-	det.area = scrollArea(v, 12, 503, 540, DET_ROWS * 14, function(d) self:ScrollDetail(d); end, function(o) self:SetDetailOffset(o); end);
+	det.area = scrollArea(v, 12, 515, 540, DET_ROWS * 12, function(d) self:ScrollDetail(d); end, function(o) self:SetDetailOffset(o); end);
 	det.rows = {};
 	for i = 1, DET_ROWS do
-		det.rows[i] = text(det.area.hold, 0, (i - 1) * 14, 522, "GameFontHighlight");
+		det.rows[i] = text(det.area.hold, 0, (i - 1) * 12, 522, "GameFontHighlight");
 	end
 	det.body = det.rows[1];        -- first row (kept for tests and callers that only want "the text")
 	det.source = wrapped(v, 8, 626, 540, 16, "GameFontNormalSmall");
@@ -1478,7 +1487,7 @@ function UI:RefreshDetail()
 	setIcon(det.icon, d.icon);
 	det.title:SetText(fitText(d.title, 340, 16));
 	local rc = rarityRgb(d.rarity);
-	det.title:SetTextColor(rc[1], rc[2], rc[3]);
+	det.title:SetTextColor(math.max(.85,rc[1]), math.max(.88,rc[2]), math.max(.90,rc[3]));
 	det.type:SetText(fitText(d.subtitle or "", 340, 10));
 	det.lines = self:DetailLines(d);
 	if det.key ~= key then det.offset = 0; det.key = key; end      -- a new selection starts at the top
