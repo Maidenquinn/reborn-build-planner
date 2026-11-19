@@ -118,8 +118,20 @@ function R.HookCardsFrame()
   frame:HookScript("OnShow",function()R.Refresh()end);
   frame:HookScript("OnHide",function()R.Refresh()end);
 end
+R.profile={calls=0,totalMs=0,maxMs=0};
+R.profileEnabled=false;
+function R.ResetProfile()
+  R.profile={calls=0,totalMs=0,maxMs=0};
+end
+function R.ProfileSummary()
+  local p=R.profile;
+  return {calls=p.calls,totalMs=p.totalMs,maxMs=p.maxMs,
+    averageMs=p.calls>0 and p.totalMs/p.calls or 0,
+    callbacks=R.callbacks,enabled=R.profileEnabled};
+end
 function R.Refresh()
   if not R.ready then return end
+  local started=R.profileEnabled and type(debugprofilestop)=="function" and debugprofilestop() or nil
   local build=R.Active();
   local snapshot=R.Capture();
   R.HookCardsFrame();
@@ -144,6 +156,12 @@ function R.Refresh()
     ns.TrackHUD.UpdateCards(ns.TrackHUD,build,snapshot,phase,theme,ns.catalog,ns.Locale.lang);
   end
   R.progress=progress;
+  if started then
+    local delta=math.max(0,debugprofilestop()-started);
+    local p=R.profile;
+    p.calls=p.calls+1;p.totalMs=p.totalMs+delta;
+    if delta>p.maxMs then p.maxMs=delta end
+  end
 end
 function R.CycleStage()
   R.stage=R.stage%4+1;
