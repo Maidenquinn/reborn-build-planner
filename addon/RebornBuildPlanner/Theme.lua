@@ -178,6 +178,20 @@ function T.Surface(frame, kind)
 		return frame;
 	end
 	frame.nine = T.Nine(frame, SURFACE[kind] or "panel_nine", "BACKGROUND");
+	-- Standard mode follows the game's native dark cards rather than the
+	-- prototype's saturated blue panels. Keep the existing engraved corners
+	-- visible but use a near-black inset in all three main surfaces.
+	if kind=="window" or kind=="panel" or kind=="inset" then
+		for _,piece in ipairs(frame.nine.tex or {}) do
+			piece:SetVertexColor(.82,.80,.72,1);
+		end
+		local inset=kind=="window" and 18 or (kind=="panel" and 11 or 7);
+		frame.standardMatte=frame:CreateTexture(nil,"ARTWORK");
+		frame.standardMatte:SetTexture(WHITE);
+		frame.standardMatte:SetPoint("TOPLEFT",frame,"TOPLEFT",inset,-inset);
+		frame.standardMatte:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",-inset,inset);
+		frame.standardMatte:SetVertexColor(.014,.020,.023,.96);
+	end
 	return frame;
 end
 
