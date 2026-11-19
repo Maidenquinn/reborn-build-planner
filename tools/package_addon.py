@@ -21,9 +21,30 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 SRC = os.path.join(ROOT, "addon", "RebornBuildPlanner")
 
 
+def safe_output_path(raw):
+    """Never recursively delete any project, game, parent, or user directory."""
+    from pathlib import Path
+    root = Path(ROOT).resolve()
+    output = Path(raw).resolve()
+    forbidden = {root, root.parent, Path.home().resolve(),
+                 Path.home().resolve().parent, Path(ROOT).anchor and Path(Path(ROOT).anchor)}
+    forbidden = {p for p in forbidden if p}
+    if output in forbidden or output == root or output in root.parents:
+        raise ValueError("Unsafe output path: cannot replace a project/parent/home directory")
+    # Only allow a dedicated dist child or the historic explicitly named recipe.
+    if output.parent != root / "dist" and output.parent != root.parent:
+        raise ValueError("Output directory must be a direct child of dist/ or project parent")
+    if not output.name.startswith(("ultimate-", "private-preview", "reborn-build-planner-recette-")):
+        raise ValueError("Output directory name must be a dedicated recipe folder")
+    # Symbolic links and junctions can make seemingly safe paths point elsewhere.
+    if output.is_symlink() or output.parent.is_symlink():
+        raise ValueError("Output directory or parent must not be a symbolic link")
+    return str(output)
+
+
 def main(argv):
     out = argv[argv.index("--out") + 1] if "--out" in argv else os.path.join(ROOT, "..", "reborn-build-planner-recette-lot3-5b")
-    out = os.path.normpath(out)
+    out = safe_output_path(out)
     toc_path = os.path.join(SRC, "RebornBuildPlanner.toc")
     toc = open(toc_path, encoding="utf-8").read()
     files = [l.strip() for l in toc.splitlines() if l.strip() and not l.startswith("#")]
