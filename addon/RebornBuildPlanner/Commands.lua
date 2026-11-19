@@ -39,6 +39,30 @@ function Commands.Handle(ui, controller, msg)
 		if ns.Runtime and ns.Runtime.ready then say("HUD theme: " .. tostring(ns.Runtime.ToggleTheme())); else say("Live API unavailable"); end
 	elseif arg == "theme standard" or arg == "theme elwynn" then
 		if ns.Runtime and ns.Runtime.ready then say("HUD theme: " .. tostring(ns.Runtime.SetTheme(arg:sub(7)))); else say("Live API unavailable"); end
+	elseif arg == "history" then
+		local h=controller:Handle();
+		local history=h and h.RevisionHistory and h:RevisionHistory() or {};
+		if #history==0 then say("No saved revisions yet."); end
+		for i,entry in ipairs(history) do
+			say(string.format("%d. %s (revision %s) [%s]",i,tostring(entry.name),
+				tostring(entry.revision),tostring(entry.id)));
+		end
+	elseif string.match(arg,"^restore%s+") then
+		local id,index=string.match(arg,"^restore%s+(%S+)%s+(%d+)$");
+		local h=controller:Handle();
+		if not id or not index then
+			say("Usage: /rbp restore <build-id> <history-index>; see /rbp history");
+		elseif not h or h.readOnly then
+			say("Saved data is read-only.");
+		else
+			local ok,reason=h:RestoreRevision(id,tonumber(index));
+			if ok then
+				say("Build revision restored as a new saved version: "..id);
+				if controller.Notify then controller:Notify() end
+			else
+				say("Restore refused: "..tostring(reason and (reason.message or reason.code) or "unknown"));
+			end
+		end
 	elseif arg == "diag" then
 		local h = controller:Handle();
 		say(string.format("version %s, storage %s%s, catalogue %s (%s)", tostring(ns.VERSION), h and h.status or "none",
