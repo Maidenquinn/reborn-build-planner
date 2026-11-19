@@ -13,13 +13,13 @@ function M.Start()
   b:SetWidth(30); b:SetHeight(30);
   b:SetFrameStrata("MEDIUM"); b:SetFrameLevel((Minimap.GetFrameLevel and Minimap:GetFrameLevel() or 0) + 8);
   b:SetPoint("CENTER", Minimap, "CENTER", 58, -58);
-  b:SetNormalTexture("Interface\\Minimap\\MiniMap-TrackingBorder");
+  if b.SetNormalTexture then b:SetNormalTexture("Interface\\Minimap\\MiniMap-TrackingBorder") end
   b.icon = b:CreateTexture(nil, "ARTWORK");
   b.icon:SetWidth(19); b.icon:SetHeight(19);
   b.icon:SetPoint("CENTER", b, "CENTER", 0, 0);
   b.icon:SetTexture("Interface\\Icons\\INV_Misc_Note_01");
   b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight");
-  b:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+  if b.RegisterForClicks then b:RegisterForClicks("LeftButtonUp", "RightButtonUp") end
   b:SetScript("OnClick", function(_, mouseButton)
     if mouseButton == "RightButton" then
       if ns.Runtime and ns.Runtime.ready then ns.Runtime.ToggleHud() end
