@@ -897,6 +897,31 @@ return function(H)
 		eq(e.c:ImportState(), nil);
 	end);
 
+	test("3E: inspect preview shows decoded prioritized spells, banish and equipment before save", function()
+		local e=boot();e.open();
+		local prior=e.h():Counts().builds;
+		analyze(e,GOOD);
+		ok(e.ui.im.detailsButton:IsShown(),"inspect control available for valid plan");
+		e.world.click(e.ui.im.detailsButton);
+		ok(e.ui.im.stageSelector.label:IsShown(),"stage selector available");
+		local rows=e.ui.im.detailRows;
+		local function hasRow(term)
+			for _,row in ipairs(rows) do
+				if row.label:GetText():find(term,1,true) then return true end
+			end
+			return false
+		end
+		ok(hasRow("Whirlwind") or hasRow("whirlwind"),"first spell visible by name");
+		ok(hasRow("Execute") or hasRow("execute"),"second spell visible");
+		e.world.click(e.ui.im.detailNext);
+		ok(hasRow("Rend") or hasRow("rend") or hasRow("RINGS"),"banish or equipment section visible on next page");
+		eq(e.h():Counts().builds,prior,"inspection does not write SavedVariables");
+		e.world.click(e.ui.im.stageSelector.next);
+		ok(e.ui.im.stageSelector.label:GetText():find("2/4",1,true),"stage navigation");
+		e.world.click(e.ui.im.detailsButton);
+		ok(e.ui.im.phases[1]:IsShown(),"summary restored");
+	end);
+
 	test("3E: a build with conflicts previews its problems and imports as 'needs repair', not followable", function()
 		local e = boot(); e.open();
 		analyze(e, CONFLICT);
