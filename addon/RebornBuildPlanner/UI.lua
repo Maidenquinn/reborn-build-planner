@@ -1676,9 +1676,21 @@ function UI:BuildImport(v)
 	for i = 1, 4 do im.phases[i] = text(v, 8, 226 + (i - 1) * 16, EW, "GameFontHighlightSmall"); end
 	im.issues = {};
 	for i = 1, ns.Controller.ISSUE_PAGE do im.issues[i] = text(v, 8, 298 + (i - 1) * 16, EW, "GameFontNormalSmall"); end
-	im.pager = pager(v, 8, 404, function() c:SetImportPage(c.state.import.page - 1); end, function() c:SetImportPage(c.state.import.page + 1); end);
+	im.pager = pager(v, 8, 404, function()
+		if im.detail then im.offset=math.max(0,im.offset-8);self:RefreshImport()
+		else c:SetImportPage(c.state.import.page-1) end
+	end, function()
+		if im.detail then im.offset=im.offset+8;self:RefreshImport()
+		else c:SetImportPage(c.state.import.page+1) end
+	end);
 	im.loss = text(v, 210, 408, 350, "GameFontNormalSmall");
-	im.classCycle = cycler(v, 8, 440, 250, function() self:CycleImportClass(-1); end, function() self:CycleImportClass(1); end);
+	im.classCycle = cycler(v, 8, 440, 250, function()
+		if im.detail then im.stage=(im.stage+2)%4+1;im.offset=0;self:RefreshImport()
+		else self:CycleImportClass(-1) end
+	end, function()
+		if im.detail then im.stage=im.stage%4+1;im.offset=0;self:RefreshImport()
+		else self:CycleImportClass(1) end
+	end);
 	im.nameLabel = text(v, 270, 444, 80, "GameFontNormal");
 	im.nameEdit = edit(v, 128, 354, 440, function(t) c:SetImportName(t); end, "RebornBuildPlannerImportName");
 	im.commit = button(v, "", 150, 28, 8, 480, function() local id = c:CommitImport(); if id then c.state.import = nil; c:SetView("editor", true); end end);
@@ -1688,11 +1700,6 @@ function UI:BuildImport(v)
 	im.detail=false;im.stage=1;im.offset=0;im.previewRef=nil;
 	im.detailsButton=button(v,"",164,22,390,223,function()
 		im.detail=not im.detail;im.offset=0;self:RefreshImport();
-	end);
-	im.stageSelector=cycler(v,8,224,255,function()
-		im.stage=(im.stage+2)%4+1;im.offset=0;self:RefreshImport();
-	end,function()
-		im.stage=im.stage%4+1;im.offset=0;self:RefreshImport();
 	end);
 	im.detailRows={};
 	for i=1,8 do
@@ -1704,13 +1711,7 @@ function UI:BuildImport(v)
 		row.label=text(v,32,y,522,"GameFontHighlightSmall");
 		im.detailRows[i]=row;
 	end
-	im.detailPrev=button(v,"",75,22,8,402,function()
-		im.offset=math.max(0,im.offset-8);self:RefreshImport();
-	end);
-	im.detailPage=text(v,93,407,355,"GameFontNormalSmall","CENTER");
-	im.detailNext=button(v,"",75,22,475,402,function()
-		im.offset=im.offset+8;self:RefreshImport();
-	end);
+
 end
 
 function UI:CycleImportClass(dir)
@@ -1739,12 +1740,6 @@ function UI:RefreshImport()
 	local detailed=show and pv.ok and pv.kind=="plan" and im.detail;
 	setShown(im.detailsButton,show and pv.ok and pv.kind=="plan");
 	setLabel(im.detailsButton,im.detail and "Summary" or "Inspect build");
-	setShown(im.stageSelector.prev,detailed);
-	setShown(im.stageSelector.next,detailed);
-	setShown(im.stageSelector.label,detailed);
-	setShown(im.detailPrev,detailed);
-	setShown(im.detailNext,detailed);
-	setShown(im.detailPage,detailed);
 	for _,row in ipairs(im.detailRows) do
 		setShown(row.label,detailed);
 		setShown(row.icon,detailed);
@@ -1753,11 +1748,11 @@ function UI:RefreshImport()
 		local all=importPreviewLines(pv,im.stage,c:Catalog(),c:Lang());
 		local pages=math.max(1,math.ceil(#all/8));
 		im.offset=math.min(im.offset,(pages-1)*8);
-		im.stageSelector.label:SetText((pv.build.phases[im.stage].label~="" and
+		im.classCycle.label:SetText((pv.build.phases[im.stage].label~="" and
 			pv.build.phases[im.stage].label or L(BM.DEFAULT_LABELS[im.stage])).." ("..im.stage.."/4)");
-		im.detailPage:SetText("Items "..math.min(im.offset+1,#all).."-"..math.min(im.offset+8,#all).." / "..#all);
-		enable(im.detailPrev,im.offset>0);
-		enable(im.detailNext,im.offset+8<#all);
+		im.pager.label:SetText("Items "..math.min(im.offset+1,#all).."-"..math.min(im.offset+8,#all).." / "..#all);
+		enable(im.pager.prev,im.offset>0);
+		enable(im.pager.next,im.offset+8<#all);
 		for i,row in ipairs(im.detailRows) do
 			local entry=all[im.offset+i];
 			if entry then
@@ -1775,10 +1770,10 @@ function UI:RefreshImport()
 	for _, w in ipairs({ im.name, im.class, im.state }) do setShown(w, show); end
 	for _, w in ipairs(im.phases) do setShown(w, show and not detailed); end
 	for _, w in ipairs(im.issues) do setShown(w, show and not detailed); end
-	setShown(im.pager.prev, show and not detailed); setShown(im.pager.next, show and not detailed); setShown(im.pager.label, show and not detailed); setShown(im.loss, show and not detailed);
+	setShown(im.pager.prev, show); setShown(im.pager.next, show); setShown(im.pager.label, show); setShown(im.loss, show and not detailed);
 	local talents = show and pv.ok and pv.kind == "talents";
-	setShown(im.classCycle.prev, talents); setShown(im.classCycle.next, talents); setShown(im.classCycle.label, talents);
-	setShown(im.nameLabel, show and pv.ok); setShown(im.nameEdit, show and pv.ok); setShown(im.commit, show);
+	setShown(im.classCycle.prev,talents or detailed); setShown(im.classCycle.next,talents or detailed); setShown(im.classCycle.label,talents or detailed);
+	setShown(im.nameLabel, show and pv.ok and not detailed); setShown(im.nameEdit, show and pv.ok and not detailed); setShown(im.commit, show);
 	if not show then return; end
 	im.nameLabel:SetText(L("Name:"));
 	setLabel(im.commit, L("Import"));
@@ -1823,9 +1818,11 @@ function UI:RefreshImport()
 			w:SetText("");
 		end
 	end
-	im.pager.label:SetText(string.format(L("Page %d/%d"), st.page, c:ImportPageCount()));
-	enable(im.pager.prev, st.page > 1);
-	enable(im.pager.next, st.page < c:ImportPageCount());
+	if not detailed then
+		im.pager.label:SetText(string.format(L("Page %d/%d"), st.page, c:ImportPageCount()));
+		enable(im.pager.prev, st.page > 1);
+		enable(im.pager.next, st.page < c:ImportPageCount());
+	end
 	local loss = pv.exportReport and pv.exportReport.intentLosses or 0;
 	im.loss:SetText(loss > 0 and fitText(string.format(L("%d thing(s) the official planner would not keep if exported back"), loss), 350, 10) or "");
 end
