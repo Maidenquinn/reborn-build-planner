@@ -1664,7 +1664,7 @@ function UI:BuildImport(v)
   local im={detail=false,stage=1,previewRef=nil};
   self.im=im;
   im.head=text(v,20,20,900,"GameFontNormalLarge","LEFT",20);
-  im.box=multiline(v,"RebornBuildPlannerImportBox",908,200,20,90,nil);
+  im.box=multiline(v,"RebornBuildPlannerImportBox",908,200,20,100,nil);
   im.paste=button(v,"",160,27,20,325,function()
     if im.detail then
       im.detail=false;self:RefreshImport();
@@ -1679,18 +1679,29 @@ function UI:BuildImport(v)
   im.analyze.role="primary";
   im.back=button(v,"",150,27,370,325,function() c:SetView("editor");end);
   im.hint=text(v,20,378,880,"GameFontNormal");
+  im.inputHelp=text(v,20,74,900,"GameFontHighlight");
   im.name=text(v,20,58,620,"GameFontNormalLarge","LEFT",20);
   im.class=text(v,20,86,390,"GameFontNormal");
   im.state=text(v,620,86,308,"GameFontNormal","RIGHT");
   -- Existing label pools are reused for the read-only preview: no growing
   -- widget tree, no hidden browser inputs, and no ambiguous item pagination.
   im.phases={};
-  for i=1,4 do im.phases[i]=text(v,470,152+(i-1)*31,458,"GameFontHighlightSmall");end
+  for i=1,4 do im.phases[i]=text(v,480,184+(i-1)*30,436,"GameFontHighlight");end
   im.issues={};
-  for i=1,ns.Controller.ISSUE_PAGE do im.issues[i]=text(v,470,276+(i-1)*29,458,"GameFontHighlightSmall");end
+  for i=1,ns.Controller.ISSUE_PAGE do im.issues[i]=text(v,480,302+(i-1)*30,436,"GameFontHighlight");end
   im.pager=pager(v,20,504,function() c:SetImportPage(c.state.import.page-1);end,
     function() c:SetImportPage(c.state.import.page+1);end);
   im.loss=text(v,470,158,450,"GameFontNormal");
+  -- Two quiet read-only surfaces group the information without creating
+  -- another panel tree or changing the configured UI opacity globally.
+  im.previewLeft=v:CreateTexture(nil,"BACKGROUND");
+  im.previewLeft:SetPoint("TOPLEFT",v,"TOPLEFT",14,-150);
+  im.previewLeft:SetSize(438,328);
+  im.previewLeft:SetTexture(.055,.105,.13,.65);
+  im.previewRight=v:CreateTexture(nil,"BACKGROUND");
+  im.previewRight:SetPoint("TOPLEFT",v,"TOPLEFT",466,-150);
+  im.previewRight:SetSize(466,328);
+  im.previewRight:SetTexture(.055,.105,.13,.65);
   im.classCycle=cycler(v,20,112,390,function()
     local pv=c:ImportState() and c:ImportState().preview;
     if pv and pv.kind=="talents" then self:CycleImportClass(-1);
@@ -1711,9 +1722,9 @@ function UI:BuildImport(v)
   for i=1,4 do
     local row={};
     row.icon=v:CreateTexture(nil,"OVERLAY");
-    row.icon:SetSize(24,24);
-    row.icon:SetPoint("TOPLEFT",v,"TOPLEFT",24,-(184+(i-1)*37));
-    row.label=text(v,58,186+(i-1)*37,365,"GameFontHighlight");
+    row.icon:SetSize(29,29);
+    row.icon:SetPoint("TOPLEFT",v,"TOPLEFT",28,-(188+(i-1)*40));
+    row.label=text(v,67,195+(i-1)*40,355,"GameFontHighlight");
     im.detailRows[i]=row;
   end
 end
@@ -1755,6 +1766,9 @@ function UI:RefreshImport()
   end
   visible(im.box.scroll,not preview);
   visible(im.box.surround,not preview);
+  visible(im.inputHelp,not preview);
+  visible(im.previewLeft,preview);
+  visible(im.previewRight,preview);
   visible(im.paste,true);
   visible(im.analyze,not preview);
   visible(im.back,true);
@@ -1767,25 +1781,32 @@ function UI:RefreshImport()
   visible(im.classCycle.prev,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.classCycle.next,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.classCycle.label,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
-  visible(im.commit,preview or pv~=nil);
+  visible(im.commit,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.nameLabel,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.nameEdit,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.loss,preview);
   for _,w in ipairs(im.phases) do visible(w,preview);end
   for _,w in ipairs(im.issues) do visible(w,preview);end
   for _,row in ipairs(im.detailRows) do visible(row.icon,preview);visible(row.label,preview);end
-  visible(im.pager.prev,not preview and pv~=nil);
-  visible(im.pager.next,not preview and pv~=nil);
-  visible(im.pager.label,preview or pv~=nil);
+  visible(im.pager.prev,not preview and pv~=nil and c:ImportPageCount()>1);
+  visible(im.pager.next,not preview and pv~=nil and c:ImportPageCount()>1);
+  visible(im.pager.label,preview or (pv~=nil and c:ImportPageCount()>1));
 
   if not preview then
     im.head:SetText(fr and "1 / 2  —  Coller un build" or "STEP 1 / 2  —  Paste a build");
     im.hint:SetText(fr and "Colle un code azsb1: ou rbp1:, puis clique sur Analyser. Aucun build n'est modifié."
       or "Paste an azsb1: or rbp1: build code, then Analyze. Your builds remain unchanged.");
-    place(im.hint,20,375,900);
+    place(im.hint,20,384,900);
+    im.inputHelp:SetText(fr and
+      "Collez un code du site azreborn.com ou un code RBP. Le texte reste modifiable." or
+      "Paste a code from azreborn.com or a native RBP code. You can edit it freely.");
+    place(im.paste,20,323,160,27);
+    place(im.analyze,195,323,155,27);
+    place(im.back,370,323,150,27);
+    enable(im.commit,false);
     if pv and not pv.ok then
       im.name:SetText(L("Cannot import this text"));
-      place(im.name,20,423,900);
+      place(im.name,20,433,900);
       im.name:SetTextColor(COLOR.error[1],COLOR.error[2],COLOR.error[3]);
     end
     if pv and pv.kind=="talents" and pv.ok then
@@ -1830,7 +1851,7 @@ function UI:RefreshImport()
   local tone=ready and COLOR.info or COLOR.warn;
   im.state:SetTextColor(tone[1],tone[2],tone[3]);
   im.hint:SetText(fr and "SORTS • Ordre de priorité" or "SPELLS • Priority order");
-  place(im.hint,22,158,418);
+  place(im.hint,28,165,418);
   im.hint:SetTextColor(.95,.77,.4);
   im.loss:SetText(fr and "ÉQUIPEMENT • Principaux et alternatives" or "EQUIPMENT • Main and alternatives");
   im.loss:SetTextColor(.95,.77,.4);
@@ -1855,11 +1876,12 @@ function UI:RefreshImport()
     else row.label:SetText("");row.icon:Hide() end
   end
   -- All remaining spell lines and jewelry are rendered in existing text slots.
-  local leftBase=340;
+  local leftBase=348;
   for i=1,2 do
     local w=im.issues[i];
     local item=spellItems[i+4];
-    place(w,24,leftBase+(i-1)*36,400,18);
+    place(w,28,leftBase+(i-1)*40,395,25);
+    w:SetFontObject("GameFontHighlight");
     local icon=item and item.icon and item.icon:gsub("[^%w_%-]","") or nil;
     w:SetText(item and ((icon and ("|TInterface\\Icons\\"..icon..":20:20|t  ") or "")..
       fitText(item.text,340,12)) or "");
@@ -1885,7 +1907,8 @@ function UI:RefreshImport()
   local slots={im.phases[1],im.phases[2],im.phases[3],im.phases[4]};
   for i=3,#im.issues do slots[#slots+1]=im.issues[i] end
   for i,w in ipairs(slots) do
-    place(w,478,184+(i-1)*29,440,19);
+    place(w,484,191+(i-1)*30,420,24);
+    w:SetFontObject("GameFontHighlight");
     local value=labels[i];
     w:SetText(value or "");
     w:SetTextColor(value and value:sub(-1)==":" and .95 or .89,
@@ -1900,9 +1923,9 @@ function UI:RefreshImport()
   im.pager.label:SetText((fr and "À ÉVITER : " or "AVOID: ")..
     (#banned>0 and fitText(table.concat(banned,", "),340,12) or (fr and "Aucun" or "None")));
   im.pager.label:SetTextColor(#banned>0 and .98 or .72,#banned>0 and .58 or .76,#banned>0 and .45 or .81);
-  place(im.pager.label,24,448,428,20);
+  place(im.pager.label,28,448,415,20);
   im.nameLabel:SetText(fr and "Nom :" or "Name:");
-  setEdit(im.nameEdit,st.name or pv.name or "");
+  setEdit(im.nameEdit,(st.name and st.name~="" and st.name) or pv.name or "");
   place(im.nameLabel,20,504,95);
   place(im.nameEdit,115,498,340,25);
   local more=math.max(0,#labels-#slots);
