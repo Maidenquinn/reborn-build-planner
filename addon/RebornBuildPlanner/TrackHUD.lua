@@ -95,6 +95,26 @@ local function rim(frame,theme)
     frame:SetBackdropColor(unpack(c.bg));frame:SetBackdropBorderColor(unpack(c.edge));
   end
 end
+-- Background-only opacity. Leave title, spell icons, rank labels, choices,
+-- buttons and all ornate edges fully opaque and clickable at 0%.
+function H.SetBackgroundOpacity(self,opacity,theme)
+  local f=self.frame;if not f then return end
+  opacity=type(opacity)=="number" and math.max(0,math.min(1,opacity)) or 1;
+  local c=THEMES[theme] or THEMES.standard;
+  if theme=="elwynn" and fieldkitPath() then
+    if f.rim then
+      for _,part in ipairs(f.rim) do
+        if part.x==2 and part.y==2 then part.texture:SetAlpha(opacity) end
+      end
+    end
+    if f.goldFill then f.goldFill:SetAlpha(opacity) end
+  else
+    -- Backdrop fill alpha does not affect the separate steel/gold edge.
+    f:SetBackdropColor(c.bg[1],c.bg[2],c.bg[3],opacity);
+  end
+  f.art:SetAlpha((fieldkitPath() and .65 or .22)*opacity);
+end
+
 local function popupButton(parent,text,x,y,w,h,callback)
   local b=CreateFrame("Button",nil,parent);b:SetSize(w,h);
   b:SetPoint("TOPLEFT",parent,"TOPLEFT",x,-y);
