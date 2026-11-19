@@ -149,3 +149,24 @@ FPS and frame-time statistics.
 
 Automated Lua tests and CI are necessary gates, but do not replace in-game
 validation. Neither `main` nor an official public release is modified here.
+
+## Inspect imported builds before committing (2026-11-19)
+
+Paste an `azsb1:` (official site) or `rbp1:` code, then click **Analyze**.
+For a valid plan, **Inspect build** replaces the initial Type/paste action.
+The original Summary still shows all four stage totals and any decode issues.
+In inspection mode the existing controls are reused:
+
+- `<` / `>` at the bottom choose **stage 1–4**;
+- the central pager moves through four icon/name entries at a time;
+- the view includes ordered spells, banishes, main and alternative rings,
+  trinkets, amulets, plus supported notes.
+- **Summary** returns to the warnings and totals without losing the decoded data.
+
+The `Ready to import (local)` message means the pasted payload decoded and
+passed local model validation, **not** that the addon fetched the current
+website build. Compare the named items against the site before clicking
+**Import**. A successful import creates a new build; it never replaces or
+auto-activates an existing one. Test an invalid code and a conflicting build
+as well as a valid six-spell plan; verify storage counts never change during
+inspection.
