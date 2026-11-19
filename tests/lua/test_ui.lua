@@ -40,6 +40,42 @@ return function(H)
 	end
 	local function T(env, s) return env.ns.Locale.T(s); end
 
+	test("Beta hotfix: minimap launcher opens planner even without a build", function()
+		local world = Stub.new({ width = 1365, height = 768 });
+		world.G.Minimap = world.G.CreateFrame("Frame", "Minimap", world.G.UIParent);
+		world.G.Minimap:SetSize(140, 140);
+		local ns = H.loadAddon({globals = world.G, time = world.G.time});
+		world.fire("ADDON_LOADED", "RebornBuildPlanner");
+		local icon = world.G.RBPMinimapButton;
+		ok(icon ~= nil and icon:IsShown(), "minimap icon appears immediately");
+		ok(not ns.ui:IsShown(), "main UI remains closed on login");
+		world.click(icon);
+		ok(ns.ui:IsShown(), "left click opens the planner without an active build");
+		world.click(icon);
+		no(ns.ui:IsShown(), "second click closes the planner");
+	end);
+
+	test("Beta hotfix: idle HUD remains usable without a followed build", function()
+		local events={};
+		local e=boot({preset={
+			AZS={On=function(event,fn) events[event]=fn end},
+			AZS_RUN={ph="playing"}, AZS_ZONE={hub=0,run="run-idle"}
+		}});
+		ok(e.ns.Runtime.ready);
+		local hud=e.ns.TrackHUD.frame;
+		ok(hud:IsShown(),"idle HUD is visible without any active build");
+		ok(hud.title:GetText():find("Choose a build",1,true),"idle HUD invites build selection");
+		ok(hud.openButton:IsShown(),"idle HUD retains the planner launch control");
+		e.world.click(hud.openButton);
+		ok(e.ns.ui:IsShown(),"idle HUD opens the planner");
+		ok(e.h():SetSetting("trackerEnabled",false));
+		e.ns.Runtime.Refresh();
+		no(hud:IsShown(),"explicitly disabled tracker stays hidden");
+		ok(e.h():SetSetting("trackerEnabled",true));
+		e.ns.Runtime.Refresh();
+		ok(hud:IsShown(),"re-enabled HUD returns without a build");
+	end);
+
 	-- ------------------------------------------------------------------ 3A: native initialisation
 	test("3A: nothing is created or read before ADDON_LOADED; the event of another addon is ignored", function()
 		local e = boot({ noStart = true });
