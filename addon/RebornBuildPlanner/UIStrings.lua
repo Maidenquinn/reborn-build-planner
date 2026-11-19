@@ -12,6 +12,8 @@ ns.Locale.Register({
 	["Usage: /rbp (open or close) | /rbp reset | /rbp diag"] = "Utilisation : /rbp (ouvrir ou fermer) | /rbp reset | /rbp diag",
 	["Window position and size reset."] = "Position et taille de la fenêtre réinitialisées.",
 	["Choose your next build"] = "Choisissez votre prochain build",
+	["Nothing selected"] = "Aucune sélection",
+	["Choose a spell or piece to inspect"] = "Sélectionnez un sort ou un équipement à examiner",
 	["Select a saved build on the left, or create a new one."] = "Sélectionnez un build à gauche ou créez-en un nouveau.",
 	["Storage unavailable"] = "Stockage indisponible",
 	["Read only: the saved data comes from a newer version"] = "Lecture seule : les données enregistrées viennent d'une version plus récente",
