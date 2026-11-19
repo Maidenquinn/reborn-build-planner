@@ -946,7 +946,7 @@ return function(H)
 			ok(e.world.hasText("Cannot import this text"), "for " .. bad .. ": " .. e.texts());
 			no(e.ui.im.commit:IsEnabled());
 		end
-		e.world.click(e.ui.im.commit);
+		no(e.ui.im.commit:IsShown(),"invalid code cannot display the confirmation action");
 		ok(H.deepeq(snap, e.h().db), "refused import mutated storage");
 	end);
 
