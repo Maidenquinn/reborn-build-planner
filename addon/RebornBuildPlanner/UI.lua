@@ -1763,7 +1763,7 @@ function UI:RefreshExport()
 		ex.box.fixed = x.code;
 		setEdit(ex.box, x.code);
 	end
-	ex.hint:SetText(x.code and (ns.Locale.lang=="frFR" and "Ctrl+C pour copier le code." or "Ctrl+C to copy the code.") or (ns.Locale.lang=="frFR" and "Le build RBP original reste intact." or "Your original RBP build remains unchanged."));
+	ex.hint:SetText((x.source=="draft" and L("This is the draft shown in the editor, saved or not.") or L("This is the saved build.")) .. (x.code and "  Ctrl+C." or ""));
 	setLabel(ex.back, L("Back"));
 end
 
