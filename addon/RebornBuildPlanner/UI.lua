@@ -1692,9 +1692,13 @@ function UI:BuildImport(v)
     function() c:SetImportPage(c.state.import.page+1);end);
   im.loss=text(v,470,128,450,"GameFontNormal");
   im.classCycle=cycler(v,274,112,390,function()
-    im.stage=(im.stage+2)%4+1;self:RefreshImport();
+    local pv=c:ImportState() and c:ImportState().preview;
+    if pv and pv.kind=="talents" then self:CycleImportClass(-1);
+    else im.stage=(im.stage+2)%4+1;self:RefreshImport() end
   end,function()
-    im.stage=im.stage%4+1;self:RefreshImport();
+    local pv=c:ImportState() and c:ImportState().preview;
+    if pv and pv.kind=="talents" then self:CycleImportClass(1);
+    else im.stage=im.stage%4+1;self:RefreshImport() end
   end);
   im.nameLabel=text(v,20,521,92,"GameFontNormal");
   im.nameEdit=edit(v,250,115,517,function(t)c:SetImportName(t);end,"RebornBuildPlannerImportName");
@@ -1759,11 +1763,11 @@ function UI:RefreshImport()
   setLabel(im.back,fr and "Annuler" or "Cancel");
   visible(im.name,preview or (pv~=nil and not pv.ok));
   visible(im.class,preview);
-  visible(im.state,preview);
-  visible(im.classCycle.prev,preview);
-  visible(im.classCycle.next,preview);
-  visible(im.classCycle.label,preview);
-  visible(im.commit,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
+  visible(im.state,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
+  visible(im.classCycle.prev,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
+  visible(im.classCycle.next,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
+  visible(im.classCycle.label,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
+  visible(im.commit,preview or pv~=nil);
   visible(im.nameLabel,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.nameEdit,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.loss,preview);
@@ -1780,16 +1784,23 @@ function UI:RefreshImport()
       or "Paste an azsb1: or rbp1: build code, then Analyze. Your builds remain unchanged.");
     place(im.hint,20,375,900);
     if pv and not pv.ok then
-      im.name:SetText(fr and "Impossible de lire ce code" or "This code could not be decoded");
+      im.name:SetText(L("Cannot import this text"));
       place(im.name,20,423,900);
       im.name:SetTextColor(COLOR.error[1],COLOR.error[2],COLOR.error[3]);
     end
     if pv and pv.kind=="talents" and pv.ok then
       im.head:SetText(fr and "Code de talents uniquement" or "Talent-only code");
       im.nameLabel:SetText(fr and "Nom :" or "Name:");
-      im.classCycle.label:SetText(st.class or "?");
-      setLabel(im.commit,fr and "Importer les talents" or "Import talents");
+      im.classCycle.label:SetText(st.class and c:ClassName(st.class) or L("Class?"));
+      im.state:SetText(st.class and L("Ready") or L("Choose a class"));
+      place(im.classCycle.prev,20,440);
+      place(im.classCycle.label,54,444,290);
+      place(im.classCycle.next,315,440);
+    end
+    if pv then
+      setLabel(im.commit,L("Import"));
       enable(im.commit,c:ImportReady());
+      place(im.commit,718,550,210,32);
     end
     if pv then
       local issues=c:ImportIssues();
@@ -1808,10 +1819,14 @@ function UI:RefreshImport()
   im.head:SetText(fr and "2 / 2  —  Vérifier avant d'importer" or "STEP 2 / 2  —  Review before importing");
   im.name:SetText(fitText(pv.name~="" and pv.name or L("(no name)"),650,19));
   im.name:SetTextColor(.94,.79,.46);
-  im.class:SetText(L("Class:").." "..c:ClassName(pv.class));
+  local issues=c:ImportIssues();
+  local firstIssue=issues and issues[1];
+  local issueNote=firstIssue and firstIssue.message or nil;
+  im.class:SetText(L("Class:").." "..c:ClassName(pv.class)..
+    (issueNote and ("  •  "..fitText(issueNote,350,11)) or ""));
   local ready=pv.status=="ready";
-  im.state:SetText(ready and (fr and "✓ Valide localement" or "✓ Locally valid") or
-    (fr and "Vérifications nécessaires" or "Needs review"));
+  im.state:SetText(ready and (fr and "Valide localement" or "Locally valid") or
+    L("Importable, needs repair"));
   local tone=ready and COLOR.info or COLOR.warn;
   im.state:SetTextColor(tone[1],tone[2],tone[3]);
   im.hint:SetText(fr and "SORTS • Ordre de priorité" or "SPELLS • Priority order");
@@ -1878,7 +1893,7 @@ function UI:RefreshImport()
   place(im.nameLabel,20,504,95);
   place(im.nameEdit,115,498,340,25);
   local more=math.max(0,#labels-#slots);
-  setLabel(im.commit,fr and "Importer ce build" or "Import this build");
+  setLabel(im.commit,L("Import"));
   enable(im.commit,c:ImportReady());
   place(im.paste,20,550,174,28);
   place(im.back,204,550,136,28);
