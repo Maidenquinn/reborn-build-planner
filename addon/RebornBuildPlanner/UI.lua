@@ -1739,6 +1739,11 @@ function UI:RefreshImport()
 	setLabel(im.back, L("Back"));
 	im.hint:SetText(L("Nothing is saved until you press Import. The new build is never active."));
 	local pv = st and st.preview;
+	if pv and pv.ok and pv.kind=="plan" then
+		im.hint:SetText(ns.Locale.lang=="frFR" and
+			"Code décodé localement. Vérifiez les détails ; rien n'est enregistré avant Import." or
+			"Decoded locally. Inspect the build; nothing is saved until Import.");
+	end
 	local show = pv ~= nil;
 	if pv~=im.previewRef then
 		im.previewRef=pv;im.stage=1;im.offset=0;im.detail=false;
@@ -1799,7 +1804,7 @@ function UI:RefreshImport()
 		else
 			im.name:SetText(fitText(pv.name ~= "" and pv.name or L("(no name)"), EW, 16));
 			im.class:SetText(fitText(L("Class:") .. " " .. c:ClassName(pv.class) .. (pv.classKnown and "" or " (" .. L("unknown") .. ")"), 270, 12));
-			im.state:SetText(pv.status == "ready" and L("Ready to import") or L("Importable, needs repair"));
+			im.state:SetText(pv.status == "ready" and (ns.Locale.lang=="frFR" and "Prêt à importer (local)" or "Ready to import (local)") or L("Importable, needs repair"));
 			local col = pv.status == "ready" and COLOR.info or COLOR.warn;
 			im.state:SetTextColor(col[1], col[2], col[3]);
 			for i, w in ipairs(im.phases) do
