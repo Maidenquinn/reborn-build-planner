@@ -946,7 +946,11 @@ function UI:BuildEditor(v)
 	for p = 1, 4 do
 		ed.phaseTabs[p] = button(v, "", 92, 22, 8 + (p - 1) * 94, 64, function() c:SetPhase(p); end);
 	end
-	ed.adv = button(v, "", 170, 22, 392, 64, function() c:ToggleAdvanced(); end);
+	ed.adv = button(v, "", 170, 22, 392, 64, function()
+		-- Opening Notes always starts in reading mode; editing is explicit.
+		if ed.nt then ed.nt.editing = false; end
+		c:ToggleAdvanced();
+	end);
 	-- spells: number | icon | name | keep/banish-after | compact move and remove controls
 	ed.spellHead = header(v, 8, 92, 280);
 	ed.summary = text(v, 292, 92, 270, "GameFontNormal", "RIGHT");
@@ -1023,9 +1027,29 @@ function UI:BuildEditor(v)
 		ed.groups[g] = grp;
 	end
 	-- advanced block (replaces the detail area when open)
-	local nt = {};
+	local nt = { editing = false };
 	ed.nt = nt;
 	nt.head = header(v, 8, 430, EW);
+	-- Read-only first view. Fields and SavedVariables are untouched until the
+	-- player explicitly selects Edit; this keeps notes useful during a run.
+	nt.switch = button(v, "", 166, 24, 394, 427, function()
+		nt.editing = not nt.editing;
+		self:RefreshEditor();
+	end);
+	nt.switch.role = "primary";
+	nt.previewNotes = wrapped(v, 12, 458, 538, 82, "GameFontHighlight");
+	nt.previewNotes:SetTextColor(.91, .94, .97);
+	nt.previewLink = button(v, "", 542, 25, 12, 545, function()
+		-- 3.3.5a does not expose a supported OS-browser launch API.
+		-- Display/select the URL for Ctrl+C rather than claiming to open it.
+		nt.editing = true;
+		self:RefreshEditor();
+		if nt.link.SetFocus then nt.link:SetFocus(); end
+		if nt.link.HighlightText then nt.link:HighlightText(); end
+	end);
+	nt.previewLink.role = "quiet";
+	nt.previewAvoid = wrapped(v, 12, 580, 538, 42, "GameFontNormalSmall");
+	nt.previewAvoid:SetTextColor(.78, .83, .88);
 	nt.counter = text(v, 400, 432, 160, "GameFontNormalSmall", "RIGHT");
 	nt.notes = multiline(v, "RebornBuildPlannerNotes", EW, 52, 8, 452, function(t) c:SetNotes(t); end);
 	nt.linkLabel = text(v, 8, 512, 50, "GameFontNormal");
@@ -1069,8 +1093,12 @@ function UI:RefreshEditor()
 	setShown(ed.emptyHint, not on);
 	setShown(ed.emptyCreate, not on);
 	local adv = on and e.adv;
-	for _, w in ipairs({ ed.nt.head, ed.nt.counter, ed.nt.notes.scroll, ed.nt.linkLabel, ed.nt.link, ed.nt.talentsLabel, ed.nt.talents,
-		ed.nt.warn, ed.nt.avoidHead, ed.nt.kept }) do setShown(w, adv); end
+	local editing = adv and ed.nt.editing;
+	setShown(ed.nt.head, adv);
+	setShown(ed.nt.switch, adv);
+	for _, w in ipairs({ ed.nt.counter, ed.nt.notes.scroll, ed.nt.linkLabel, ed.nt.link, ed.nt.talentsLabel, ed.nt.talents,
+		ed.nt.warn, ed.nt.avoidHead, ed.nt.kept }) do setShown(w, editing); end
+	for _, w in ipairs({ ed.nt.previewNotes, ed.nt.previewLink, ed.nt.previewAvoid }) do setShown(w, adv and not editing); end
 	if not on then
 		ed.empty:SetText(L("Choose your next build"));
 		ed.emptyHint:SetText(L("Select a saved build on the left, or create a new one."));
@@ -1207,9 +1235,26 @@ function UI:RefreshEditor()
 	end
 	-- advanced block contents
 	local manyPhases = c:ShowAllPhases();
-	setShown(ed.nt.label, adv and manyPhases);
-	setShown(ed.nt.labelLabel, adv and manyPhases);
+	setShown(ed.nt.label, editing and manyPhases);
+	setShown(ed.nt.labelLabel, editing and manyPhases);
 	if adv then
+		setLabel(ed.nt.switch, ed.nt.editing and L("View notes") or L("Edit notes"));
+		if not ed.nt.editing then
+			ed.nt.head:SetText(L("Build notes"));
+			local notes = type(ph.notes) == "string" and ph.notes or "";
+			ed.nt.previewNotes:SetText(notes ~= "" and notes or L("No notes for this stage."));
+			ed.nt.previewNotes:SetTextColor(notes ~= "" and .91 or .65, notes ~= "" and .94 or .72, notes ~= "" and .97 or .78);
+			local url = type(ph.link) == "string" and ph.link or "";
+			setShown(ed.nt.previewLink, url ~= "");
+			if url ~= "" then setLabel(ed.nt.previewLink, fitText(url, 505, 12) .. "  (Ctrl+C)"); end
+			local count = #pv.banish;
+			ed.nt.previewAvoid:SetText(string.format(L("Avoid list: %d spells"), count) ..
+				(count > 0 and ("  |  " .. fitText(table.concat((function()
+					local names = {};
+					for _, item in ipairs(pv.banish) do names[#names + 1] = item.name; end
+					return names;
+				end)(), ", "), 345, 11)) or ""));
+		end
 		ed.nt.head:SetText(string.format(L("Notes (%s)"), c:PhaseTitle(e.phase)));
 		setEdit(ed.nt.notes, ph.notes);
 		local units = ns.Utf8 and ns.Utf8.Len16(ph.notes) or #ph.notes;
@@ -1226,7 +1271,7 @@ function UI:RefreshEditor()
 		ed.nt.kept:SetText(#hidden == 0 and L("No hidden data in this build.") or fitText(table.concat(hidden, " | "), EW, 10));
 		ed.nt.avoidHead:SetText(string.format(L("Avoid list: banish if offered (%d/%d)"), #pv.banish, BM.LIMITS.banish));
 		for i, r in ipairs(ed.nt.avoid) do
-			local it = pv.banish[i];
+			local it = editing and pv.banish[i] or nil;
 			if it then
 				r.key = it.key;
 				r.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 80, 10));
