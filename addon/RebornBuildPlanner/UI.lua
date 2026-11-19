@@ -625,6 +625,10 @@ function UI:Build()
 		return f;
 	end
 	self.views = { editor = self.centre, import = mode("Import"), export = mode("Export") };
+	-- Import is a dedicated two-step workspace, spanning the otherwise unused
+	-- editor and catalogue columns. Library remains visible; browser is hidden.
+	self.views.import:SetWidth(CP_W+8+RP_W);
+
 	self:BuildLibrary(self.leftPanel);
 	self:BuildEditor(self.centre);
 	self:BuildDetail(self.centre);
@@ -1656,64 +1660,58 @@ end
 
 -- ------------------------------------------------------------------ import (centre)
 function UI:BuildImport(v)
-	local c = self.c;
-	local im = {};
-	self.im = im;
-	im.head = text(v, 8, 8, EW, "GameFontNormal");
-	im.box = multiline(v, "RebornBuildPlannerImportBox", EW, 90, 8, 30, nil);
-	im.paste = button(v, "", 160, 24, 8, 126, function()
-		local pv=c:ImportState() and c:ImportState().preview;
-		if pv and pv.ok and pv.kind=="plan" then
-			im.detail=not im.detail;im.offset=0;self:RefreshImport();
-		else
-			im.box:SetFocus();
-		end
-	end);
-	im.paste.role = "primary";
-	im.analyze = button(v, "", 140, 24, 178, 126, function() c:AnalyzeImport(im.box:GetText()); end);
-	im.analyze.role = "primary";
-	im.back = button(v, "", 120, 24, 336, 126, function() c:SetView("editor"); end);
-	im.hint = text(v, 8, 156, EW, "GameFontNormalSmall");
-	im.name = text(v, 8, 180, EW, "GameFontNormalLarge", "LEFT", 18);
-	im.class = text(v, 8, 202, 270, "GameFontNormal");
-	im.state = text(v, 290, 202, 280, "GameFontNormal", "RIGHT");
-	im.phases = {};
-	for i = 1, 4 do im.phases[i] = text(v, 8, 226 + (i - 1) * 16, EW, "GameFontHighlightSmall"); end
-	im.issues = {};
-	for i = 1, ns.Controller.ISSUE_PAGE do im.issues[i] = text(v, 8, 298 + (i - 1) * 16, EW, "GameFontNormalSmall"); end
-	im.pager = pager(v, 8, 404, function()
-		if im.detail then im.offset=math.max(0,im.offset-4);self:RefreshImport()
-		else c:SetImportPage(c.state.import.page-1) end
-	end, function()
-		if im.detail then im.offset=im.offset+4;self:RefreshImport()
-		else c:SetImportPage(c.state.import.page+1) end
-	end);
-	im.loss = text(v, 210, 408, 350, "GameFontNormalSmall");
-	im.classCycle = cycler(v, 8, 440, 250, function()
-		if im.detail then im.stage=(im.stage+2)%4+1;im.offset=0;self:RefreshImport()
-		else self:CycleImportClass(-1) end
-	end, function()
-		if im.detail then im.stage=im.stage%4+1;im.offset=0;self:RefreshImport()
-		else self:CycleImportClass(1) end
-	end);
-	im.nameLabel = text(v, 270, 444, 80, "GameFontNormal");
-	im.nameEdit = edit(v, 128, 354, 440, function(t) c:SetImportName(t); end, "RebornBuildPlannerImportName");
-	im.commit = button(v, "", 150, 28, 8, 480, function() local id = c:CommitImport(); if id then c.state.import = nil; c:SetView("editor", true); end end);
-	im.commit.role = "primary";
-	-- Detailed preview uses the otherwise empty middle area. Fixed pools and
-	-- page controls avoid rebuilding widgets for long imported plans.
-	im.detail=false;im.stage=1;im.offset=0;im.previewRef=nil;
-	im.detailRows={};
-	for i=1,4 do
-		local y=254+(i-1)*31;
-		local row={};
-		row.icon=v:CreateTexture(nil,"OVERLAY");
-		row.icon:SetSize(15,15);
-		row.icon:SetPoint("TOPLEFT",v,"TOPLEFT",12,-y);
-		row.label=text(v,32,y,522,"GameFontHighlightSmall");
-		im.detailRows[i]=row;
-	end
-
+  local c=self.c;
+  local im={detail=false,stage=1,previewRef=nil};
+  self.im=im;
+  im.head=text(v,20,20,900,"GameFontNormalLarge","LEFT",20);
+  im.box=multiline(v,"RebornBuildPlannerImportBox",908,200,20,90,nil);
+  im.paste=button(v,"",160,27,20,325,function()
+    if im.detail then
+      im.detail=false;self:RefreshImport();
+    else im.box:SetFocus() end
+  end);
+  im.paste.role="primary";
+  im.analyze=button(v,"",155,27,195,325,function()
+    im.detail=true;im.stage=1;im.previewRef=nil;
+    c:AnalyzeImport(im.box:GetText());
+    self:RefreshImport();
+  end);
+  im.analyze.role="primary";
+  im.back=button(v,"",150,27,370,325,function() c:SetView("editor");end);
+  im.hint=text(v,20,378,880,"GameFontNormal");
+  im.name=text(v,20,58,620,"GameFontNormalLarge","LEFT",20);
+  im.class=text(v,20,86,390,"GameFontNormal");
+  im.state=text(v,620,86,308,"GameFontNormal","RIGHT");
+  -- Existing label pools are reused for the read-only preview: no growing
+  -- widget tree, no hidden browser inputs, and no ambiguous item pagination.
+  im.phases={};
+  for i=1,4 do im.phases[i]=text(v,470,152+(i-1)*31,458,"GameFontHighlightSmall");end
+  im.issues={};
+  for i=1,ns.Controller.ISSUE_PAGE do im.issues[i]=text(v,470,276+(i-1)*29,458,"GameFontHighlightSmall");end
+  im.pager=pager(v,20,504,function() c:SetImportPage(c.state.import.page-1);end,
+    function() c:SetImportPage(c.state.import.page+1);end);
+  im.loss=text(v,470,128,450,"GameFontNormal");
+  im.classCycle=cycler(v,274,112,390,function()
+    im.stage=(im.stage+2)%4+1;self:RefreshImport();
+  end,function()
+    im.stage=im.stage%4+1;self:RefreshImport();
+  end);
+  im.nameLabel=text(v,20,521,92,"GameFontNormal");
+  im.nameEdit=edit(v,250,115,517,function(t)c:SetImportName(t);end,"RebornBuildPlannerImportName");
+  im.commit=button(v,"",210,32,718,550,function()
+    local id=c:CommitImport();
+    if id then c.state.import=nil;c:SetView("editor",true);end
+  end);
+  im.commit.role="primary";
+  im.detailRows={};
+  for i=1,4 do
+    local row={};
+    row.icon=v:CreateTexture(nil,"OVERLAY");
+    row.icon:SetSize(24,24);
+    row.icon:SetPoint("TOPLEFT",v,"TOPLEFT",24,-(155+(i-1)*37));
+    row.label=text(v,58,157+(i-1)*37,365,"GameFontHighlight");
+    im.detailRows[i]=row;
+  end
 end
 
 function UI:CycleImportClass(dir)
@@ -1727,113 +1725,167 @@ function UI:CycleImportClass(dir)
 end
 
 function UI:RefreshImport()
-	local c, im = self.c, self.im;
-	local st = c:ImportState();
-	im.head:SetText((ns.Locale.lang=="frFR" and "Cliquez dans la zone pour écrire ou coller (Ctrl+V), puis analysez." or "Click the field to type or paste (Ctrl+V), then Analyze."));
-	local current=c:ImportState() and c:ImportState().preview;
-	setLabel(im.paste,current and current.ok and current.kind=="plan" and
-		(im.detail and (ns.Locale.lang=="frFR" and "Résumé" or "Summary") or
-		(ns.Locale.lang=="frFR" and "Voir le build" or "Inspect build")) or
-		(ns.Locale.lang=="frFR" and "Saisir / coller" or "Type / paste"));
-	setLabel(im.analyze, L("Analyze"));
-	setLabel(im.back, L("Back"));
-	im.hint:SetText(L("Nothing is saved until you press Import. The new build is never active."));
-	local pv = st and st.preview;
-	if pv and pv.ok and pv.kind=="plan" then
-		im.hint:SetText(ns.Locale.lang=="frFR" and
-			"Code décodé localement. Vérifiez les détails ; rien n'est enregistré avant Import." or
-			"Decoded locally. Inspect the build; nothing is saved until Import.");
-	end
-	local show = pv ~= nil;
-	if pv~=im.previewRef then
-		im.previewRef=pv;im.stage=1;im.offset=0;im.detail=false;
-	end
-	local detailed=show and pv.ok and pv.kind=="plan" and im.detail;
-	for _,row in ipairs(im.detailRows) do
-		setShown(row.label,detailed);
-		setShown(row.icon,detailed);
-	end
-	if detailed then
-		local all=importPreviewLines(pv,im.stage,c:Catalog(),c:Lang());
-		local pages=math.max(1,math.ceil(#all/4));
-		im.offset=math.min(im.offset,(pages-1)*4);
-		im.classCycle.label:SetText((pv.build.phases[im.stage].label~="" and
-			pv.build.phases[im.stage].label or L(BM.DEFAULT_LABELS[im.stage])).." ("..im.stage.."/4)");
-		im.pager.label:SetText("Items "..math.min(im.offset+1,#all).."-"..math.min(im.offset+4,#all).." / "..#all);
-		enable(im.pager.prev,im.offset>0);
-		enable(im.pager.next,im.offset+4<#all);
-		for i,row in ipairs(im.detailRows) do
-			local entry=all[im.offset+i];
-			if entry then
-				row.label:SetText(fitText(entry.text,510,11));
-				if entry.heading then row.label:SetTextColor(.95,.77,.39);
-				elseif entry.known==false then row.label:SetTextColor(COLOR.warn[1],COLOR.warn[2],COLOR.warn[3]);
-				else row.label:SetTextColor(.90,.93,.95) end
-				setIcon(row.icon,entry.icon);
-			else
-				row.label:SetText("");
-				row.icon:Hide();
-			end
-		end
-	end
-	for _, w in ipairs({ im.name, im.class, im.state }) do setShown(w, show); end
-	for _, w in ipairs(im.phases) do setShown(w, show and not detailed); end
-	for _, w in ipairs(im.issues) do setShown(w, show and not detailed); end
-	setShown(im.pager.prev, show); setShown(im.pager.next, show); setShown(im.pager.label, show); setShown(im.loss, show and not detailed);
-	local talents = show and pv.ok and pv.kind == "talents";
-	setShown(im.classCycle.prev,talents or detailed); setShown(im.classCycle.next,talents or detailed); setShown(im.classCycle.label,talents or detailed);
-	setShown(im.nameLabel, show and pv.ok and not detailed); setShown(im.nameEdit, show and pv.ok and not detailed); setShown(im.commit, show);
-	if not show then return; end
-	im.nameLabel:SetText(L("Name:"));
-	setLabel(im.commit, L("Import"));
-	enable(im.commit, c:ImportReady());
-	if not pv.ok then
-		im.name:SetText(L("Cannot import this text"));
-		im.class:SetText("");
-		im.state:SetText(L("Refused"));
-		im.state:SetTextColor(COLOR.error[1], COLOR.error[2], COLOR.error[3]);
-		for _, w in ipairs(im.phases) do w:SetText(""); end
-	else
-		if pv.kind == "talents" then
-			im.name:SetText(L("Talent string only"));
-			im.class:SetText(fitText(pv.talents, 270, 12));
-			im.state:SetText(st.class and L("Ready") or L("Choose a class"));
-			im.state:SetTextColor(COLOR.info[1], COLOR.info[2], COLOR.info[3]);
-			im.classCycle.label:SetText(st.class and c:ClassName(st.class) or L("Class?"));
-			for _, w in ipairs(im.phases) do w:SetText(""); end
-		else
-			im.name:SetText(fitText(pv.name ~= "" and pv.name or L("(no name)"), EW, 16));
-			im.class:SetText(fitText(L("Class:") .. " " .. c:ClassName(pv.class) .. (pv.classKnown and "" or " (" .. L("unknown") .. ")"), 270, 12));
-			im.state:SetText(pv.status == "ready" and (ns.Locale.lang=="frFR" and "Prêt à importer (local)" or "Ready to import (local)") or L("Importable, needs repair"));
-			local col = pv.status == "ready" and COLOR.info or COLOR.warn;
-			im.state:SetTextColor(col[1], col[2], col[3]);
-			for i, w in ipairs(im.phases) do
-				local p = pv.phases[i];
-				w:SetText(p.empty and string.format(L("%s: empty"), L(BM.DEFAULT_LABELS[i])) or fitText(string.format(L("%s: %d spell(s), %d banish, %d ring(s), %d trinket(s), %d amulet(s)"),
-					p.label ~= "" and p.label or L(BM.DEFAULT_LABELS[i]), p.spells, p.banish, p.rings, p.trinkets, p.amulets), EW, 10));
-			end
-		end
-	end
-	local list = c:ImportIssues();
-	local first = (st.page - 1) * ns.Controller.ISSUE_PAGE;
-	for i, w in ipairs(im.issues) do
-		local it = list[first + i];
-		if it then
-			local tag = it.level == "error" and L("Error") or it.level == "conflict" and L("Conflict") or L("Notice");
-			w:SetText(fitText(tag .. ": " .. it.message .. (it.key and (" [" .. tostring(it.key) .. "]") or ""), EW, 10));
-			local col = it.level == "error" and COLOR.error or (it.level == "conflict" and COLOR.warn or { 0.8, 0.8, 0.84 });
-			w:SetTextColor(col[1], col[2], col[3]);
-		else
-			w:SetText("");
-		end
-	end
-	if not detailed then
-		im.pager.label:SetText(string.format(L("Page %d/%d"), st.page, c:ImportPageCount()));
-		enable(im.pager.prev, st.page > 1);
-		enable(im.pager.next, st.page < c:ImportPageCount());
-	end
-	local loss = pv.exportReport and pv.exportReport.intentLosses or 0;
-	im.loss:SetText(loss > 0 and fitText(string.format(L("%d thing(s) the official planner would not keep if exported back"), loss), 350, 10) or "");
+  local c,im=self.c,self.im;
+  local st=c:ImportState();
+  local pv=st and st.preview;
+  if pv~=im.previewRef then
+    im.previewRef=pv;
+    im.stage=1;
+    if pv and not pv.ok then im.detail=false end
+  end
+  local preview=im.detail and pv and pv.ok and pv.kind=="plan";
+  local fr=ns.Locale.lang=="frFR";
+  local function place(widget,x,y,w,h)
+    widget:ClearAllPoints();
+    widget:SetPoint("TOPLEFT",self.views.import,"TOPLEFT",x,-y);
+    if w then widget:SetWidth(w) end
+    if h then widget:SetHeight(h) end
+  end
+  local function visible(widget,yes) setShown(widget,yes) end
+  -- Reading a code is an intentional full-contrast task regardless of the
+  -- general window background preference; do not dim labels or buttons.
+  local surface=self.views.import;
+  if surface.standardMatte then surface.standardMatte:SetAlpha(.97) end
+  if surface.nine and surface.nine.tex and surface.nine.tex[9] then
+    surface.nine.tex[9]:SetAlpha(.97);
+  end
+  visible(im.box.scroll,not preview);
+  visible(im.box.surround,not preview);
+  visible(im.paste,true);
+  visible(im.analyze,not preview);
+  visible(im.back,true);
+  setLabel(im.paste,preview and (fr and "Modifier le code" or "Edit code") or (fr and "Écrire / coller" or "Type / paste"));
+  setLabel(im.analyze,fr and "Analyser le code" or "Analyze code");
+  setLabel(im.back,fr and "Annuler" or "Cancel");
+  visible(im.name,preview or (pv~=nil and not pv.ok));
+  visible(im.class,preview);
+  visible(im.state,preview);
+  visible(im.classCycle.prev,preview);
+  visible(im.classCycle.next,preview);
+  visible(im.classCycle.label,preview);
+  visible(im.commit,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
+  visible(im.nameLabel,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
+  visible(im.nameEdit,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
+  visible(im.loss,preview);
+  for _,w in ipairs(im.phases) do visible(w,preview);end
+  for _,w in ipairs(im.issues) do visible(w,preview);end
+  for _,row in ipairs(im.detailRows) do visible(row.icon,preview);visible(row.label,preview);end
+  visible(im.pager.prev,not preview and pv~=nil);
+  visible(im.pager.next,not preview and pv~=nil);
+  visible(im.pager.label,not preview and pv~=nil);
+
+  if not preview then
+    im.head:SetText(fr and "1 / 2  —  Coller un build" or "STEP 1 / 2  —  Paste a build");
+    im.hint:SetText(fr and "Colle un code azsb1: ou rbp1:, puis clique sur Analyser. Aucun build n'est modifié."
+      or "Paste an azsb1: or rbp1: build code, then Analyze. Your builds remain unchanged.");
+    place(im.hint,20,375,900);
+    if pv and not pv.ok then
+      im.name:SetText(fr and "Impossible de lire ce code" or "This code could not be decoded");
+      place(im.name,20,423,900);
+      im.name:SetTextColor(COLOR.error[1],COLOR.error[2],COLOR.error[3]);
+    end
+    if pv and pv.kind=="talents" and pv.ok then
+      im.head:SetText(fr and "Code de talents uniquement" or "Talent-only code");
+      im.nameLabel:SetText(fr and "Nom :" or "Name:");
+      im.classCycle.label:SetText(st.class or "?");
+      setLabel(im.commit,fr and "Importer les talents" or "Import talents");
+      enable(im.commit,c:ImportReady());
+    end
+    if pv then
+      local issues=c:ImportIssues();
+      if #issues>0 then
+        im.hint:SetText(fitText((fr and "Diagnostic : " or "Diagnostic: ")..
+          tostring(issues[1].message or issues[1].code or ""),890,12));
+      end
+      im.pager.label:SetText(string.format(L("Page %d/%d"),st.page,c:ImportPageCount()));
+      enable(im.pager.prev,st.page>1);
+      enable(im.pager.next,st.page<c:ImportPageCount());
+    end
+    return
+  end
+  -- STEP 2: identity, named build choices and independent phase selection.
+  -- All visible data is decoded locally; it is not fetched from the website.
+  im.head:SetText(fr and "2 / 2  —  Vérifier avant d'importer" or "STEP 2 / 2  —  Review before importing");
+  im.name:SetText(fitText(pv.name~="" and pv.name or L("(no name)"),650,19));
+  im.name:SetTextColor(.94,.79,.46);
+  im.class:SetText(L("Class:").." "..c:ClassName(pv.class));
+  local ready=pv.status=="ready";
+  im.state:SetText(ready and (fr and "✓ Valide localement" or "✓ Locally valid") or
+    (fr and "Vérifications nécessaires" or "Needs review"));
+  local tone=ready and COLOR.info or COLOR.warn;
+  im.state:SetTextColor(tone[1],tone[2],tone[3]);
+  im.hint:SetText(fr and "SORTS • Ordre de priorité" or "SPELLS • Priority order");
+  place(im.hint,22,128,418);
+  im.hint:SetTextColor(.95,.77,.4);
+  im.loss:SetText(fr and "ÉQUIPEMENT • Principaux et alternatives" or "EQUIPMENT • Main and alternatives");
+  im.loss:SetTextColor(.95,.77,.4);
+  local phase=pv.build.phases[im.stage];
+  im.classCycle.label:SetText((phase.label~="" and phase.label or L(BM.DEFAULT_LABELS[im.stage]))..
+     "  ("..im.stage.."/4)");
+  local rows=importPreviewLines(pv,im.stage,c:Catalog(),c:Lang());
+  local spellItems={},jewelItems={},warnings={};
+  for _,item in ipairs(rows) do
+    if item.key and item.kind=="spell" then spellItems[#spellItems+1]=item
+    elseif item.key then jewelItems[#jewelItems+1]=item end
+  end
+  -- A stable 4-icon pool highlights the first goals; the remaining goals
+  -- are printed as text below. No scrolling/paging to discover the six goals.
+  for i,row in ipairs(im.detailRows) do
+    local item=spellItems[i];
+    if item then
+      row.label:SetText(fitText(item.text,360,13));
+      setIcon(row.icon,item.icon);
+      row.label:SetTextColor(item.known and .9 or 1,item.known and .91 or .7,item.known and .94 or .3);
+    else row.label:SetText("");row.icon:Hide() end
+  end
+  -- All remaining spell lines and jewelry are rendered in existing text slots.
+  local leftBase=310;
+  for i=1,2 do
+    local w=im.issues[i];
+    local item=spellItems[i+4];
+    place(w,24,leftBase+(i-1)*36,400,18);
+    w:SetText(item and fitText(item.text,390,12) or "");
+    w:SetTextColor(.91,.92,.95);
+  end
+  local labels={};
+  for _,name in ipairs({"RINGS","TRINKETS","AMULETS"}) do
+    local keys=phase[name:lower()] or {};
+    labels[#labels+1]=(name=="RINGS" and (fr and "ANNEAUX" or "RINGS") or
+      name=="TRINKETS" and (fr and "BIJOUX" or "TRINKETS") or
+      (fr and "AMULETTES" or "AMULETS"))..":";
+    for i,key in ipairs(keys) do
+      if type(key)=="string" and key~="" then
+        local kind=name=="AMULETS" and "amulet" or "jewel";
+        local catalog=c:Catalog();
+        local value=catalog and catalog:Name(kind,key,c:Lang()) or key;
+        local main=i<=(BM.MAIN_SLOTS[name:lower()] or 1);
+        labels[#labels+1]="  "..(main and "• " or "↳ ")..fitText(tostring(value),390,12);
+      end
+    end
+    if #keys==0 then labels[#labels+1]=fr and "  Aucun" or "  None" end
+  end
+  local slots={im.phases[1],im.phases[2],im.phases[3],im.phases[4]};
+  for i=3,#im.issues do slots[#slots+1]=im.issues[i] end
+  for i,w in ipairs(slots) do
+    place(w,478,152+(i-1)*29,440,19);
+    local value=labels[i];
+    w:SetText(value or "");
+    w:SetTextColor(value and value:sub(-1)==":" and .95 or .89,
+      value and value:sub(-1)==":" and .77 or .90,
+      value and value:sub(-1)==":" and .4 or .93);
+  end
+  im.nameLabel:SetText(fr and "Nom :" or "Name:");
+  place(im.nameLabel,20,504,95);
+  place(im.nameEdit,115,498,340,25);
+  local more=math.max(0,#labels-#slots);
+  setLabel(im.commit,fr and "Importer ce build" or "Import this build");
+  enable(im.commit,c:ImportReady());
+  place(im.paste,20,550,174,28);
+  place(im.back,204,550,136,28);
+  if more>0 then
+    im.loss:SetText((fr and "ÉQUIPEMENT • +" or "EQUIPMENT • +")..more..
+      (fr and " autres éléments (voir phase après import)" or " more items (open after import)"));
+  end
 end
 
 -- ------------------------------------------------------------------ export (centre)
@@ -2287,6 +2339,7 @@ function UI:Refresh()
 	enable(self.nav.export, st.export ~= nil or st.editor ~= nil);
 	self.banner:SetText(c:StorageStatusText() or "");
 	for name, f in pairs(self.views) do setShown(f, name == st.view); end
+	setShown(self.rightPanel,st.view~="import");
 	local msg = st.message;
 	self.msg:SetText(msg and fitText(msg.text, 980, 12) or "");
 	if msg then self.msg:SetTextColor(unpack(COLOR[msg.level])); end
