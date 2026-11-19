@@ -11,7 +11,7 @@
 -- Media path and lists every file so that this is obvious on a screenshot. No OnUpdate, no timer, no HookScript.
 local ADDON, ns = ...;
 ns = ns or {};
-local T = { mode = "textures" };
+local T = { mode = "textures", surfaces = {} };
 ns.Theme = T;
 
 local WHITE = "Interface\\Buttons\\WHITE8X8";
@@ -169,6 +169,7 @@ end
 -- A framed surface. In "textures" mode: a nine-slice file; in "backdrop" mode: the flat 0.4.x look.
 function T.Surface(frame, kind)
 	frame.surfaceKind = kind;
+	T.surfaces[#T.surfaces+1] = frame;
 	if T.mode == "backdrop" then
 		local s = T.SURFACE[kind] or T.SURFACE.panel;
 		local m = mid(s.top, s.bottom);
@@ -193,6 +194,34 @@ function T.Surface(frame, kind)
 		frame.standardMatte:SetVertexColor(.014,.020,.023,.96);
 	end
 	return frame;
+end
+
+-- Only the painted interiors fade. Never lower a parent Frame's alpha:
+-- that would also fade its labels, icons, outlines and interactive children.
+function T.ApplyBackgroundOpacity(root, opacity)
+  if not root then return end
+  opacity=type(opacity)=="number" and math.max(0,math.min(1,opacity)) or 1;
+  for _,surface in ipairs(T.surfaces) do
+    local node=surface;
+    local inWindow=false;
+    while node do
+      if node==root then inWindow=true;break end
+      node=type(node.GetParent)=="function" and node:GetParent() or nil;
+    end
+    if inWindow then
+      if T.mode=="backdrop" then
+        local palette=T.SURFACE[surface.surfaceKind] or T.SURFACE.panel;
+        local m=mid(palette.top,palette.bottom);
+        surface:SetBackdropColor(m[1],m[2],m[3],opacity);
+      else
+        -- Nine tex[9] is the interior tile; the other 8 are the engraved rim.
+        if surface.nine and surface.nine.tex and surface.nine.tex[9] then
+          surface.nine.tex[9]:SetAlpha(opacity);
+        end
+        if surface.standardMatte then surface.standardMatte:SetAlpha(opacity) end
+      end
+    end
+  end
 end
 
 function T.Frame(parent, w, h, kind, name)
