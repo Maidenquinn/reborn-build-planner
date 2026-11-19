@@ -5,6 +5,63 @@ return function(H)
 	local ns = H.loadAddon({ only = { "Util.lua", "Locale.lua", "Utf8.lua", "Base64Url.lua", "Json.lua" } });
 	local J, B64, Utf8 = ns.Json, ns.Base64Url, ns.Utf8;
 	local PREFIX = "azsb1:";
+	-- First Lot 4 checks run without the proprietary game and without a catalogue.
+	local trackNS = H.loadAddon({ only = { "Util.lua", "BuildModel.lua", "LiveTracker.lua" } });
+	local tracking = trackNS.LiveTracker;
+	local trackedBuild = { phases = { {
+		spells = { {key="auto_shot",mode="acquire"}, {key="aimed_shot",mode="rank",rank=3},
+			{key="rapid_fire",mode="acquire"} },
+		banish = { "serpent_sting" },
+		banishAfter = { "rapid_fire" },
+		rings = {"blooddrinker", "accuria", "quick_strike", "" },
+		trinkets = {"blackhand","","",""}, amulets = {"darkmoon","","",""}
+	} } };
+
+	test("Lot4: unknown state never reports missing, incomplete or acquired",function()
+		local state=tracking.Evaluate(trackedBuild,1,{ inRun=true, spellsKnown=false,gearKnown=false });
+		eq(state.spells[1].status,"UNKNOWN");
+		eq(state.spells[2].status,"UNKNOWN");
+		eq(state.spells[3].status,"UNKNOWN");
+		eq(state.jewelry[1].state,"UNKNOWN");
+		eq(state.achieved,0);
+		eq(state.total,3);
+	end);
+	test("Lot4: ranks, known acquisitions, banish-after and stable gear keys",function()
+		local snap={inRun=true,spellsKnown=true,gearKnown=true,
+			spells={{key="auto_shot",rank=1},{key="aimed_shot",rank=2},{key="rapid_fire",rank=1}},
+			gear={{key="blooddrinker",slot="ring"},{key="quick_strike",slot="ring"}}};
+		local state=tracking.Evaluate(trackedBuild,1,snap);
+		eq(state.spells[1].status,"ACHIEVED");eq(state.spells[2].status,"PENDING");
+		eq(state.spells[3].status,"ACHIEVED");
+		ok(state.spells[3].remindAfter);eq(state.achieved,2);eq(state.total,3);
+		eq(state.jewelry[1].state,"EQUIPPED");
+		eq(state.jewelry[2].state,"ALTERNATIVE");
+		eq(state.jewelry[3].state,"MISSING");
+		local unnamed={inRun=true,spellsKnown=true,gearKnown=true,spells={},
+			gear={{name="Some ring",text="Unidentified but equipped"}}};
+		local unknown=tracking.Evaluate(trackedBuild,1,unnamed);
+		eq(unknown.jewelry[1].state,"UNKNOWN","unnamed game item is not proof of missing ring");
+		local zero=tracking.Evaluate(trackedBuild,1,{inRun=true,spellsKnown=true,spells={{key="auto_shot",rank=0}}});
+		eq(zero.spells[1].status,"PENDING","rank zero is not an acquired spell");
+	end);
+	test("Lot4: cards are suggestions only; first-acquire and avoid remain distinct",function()
+		local snap={inRun=true,spellsKnown=true,spells={{key="auto_shot",rank=1}},cards={kind="spell"}};
+		eq(tracking.CardHint(trackedBuild,1,snap,{key="rapid_fire"}),"wanted");
+		eq(tracking.CardHint(trackedBuild,1,snap,{key="serpent_sting"}),"avoid");
+		local nextSnap={inRun=true,spellsKnown=true,spells={{key="rapid_fire",rank=1}},cards={kind="spell"}};
+		eq(tracking.CardHint(trackedBuild,1,nextSnap,{key="rapid_fire"}),"banish_after");
+		eq(tracking.CardHint(trackedBuild,1,nextSnap,{key="unknown"}),nil);
+		local noOffer={inRun=true,spellsKnown=true,spells={},cards={kind="jewel"}};
+		eq(tracking.CardHint(trackedBuild,1,noOffer,{key="rapid_fire"}),nil);
+		local jewelry={inRun=true,cards={kind="jewel"}};
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{key="blooddrinker",slot="ring"}),"wanted");
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{key="quick_strike",slot="ring"}),"alternative");
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{key="blackhand",slot="trinket"}),"wanted");
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{key="blackhand",slot="ring"}),nil,"mismatched slot cannot highlight");
+		eq(tracking.CardHint(trackedBuild,1,jewelry,{name="Blooddrinker's Band"}),nil,"never match by name alone");
+		eq(tracking.CardHint(trackedBuild,1,{inRun=false,cards={kind="spell"}},{key="serpent_sting"}),nil);
+	end);
+
 
 	local golden = assert(J.Decode(H.readFile(H.root .. "/tests/fixtures/codec/golden.json"), { maxBytes = 8000000, maxDepth = 12, maxNodes = 3000000 }));
 	local codes = {};
@@ -53,6 +110,66 @@ return function(H)
 		eq(J.Encode(v2), enc, "stable after one normalisation");
 		ok(J.Decode("[1,") == nil, "truncated JSON refused");
 		ok(J.Decode('{"a":1,}') == nil, "trailing comma refused");
+	end);
+
+
+	test("jewelry: local coefficients use honest base units without requiring the game catalogue", function()
+		local j = H.loadAddon({ only = { "JewelryEffects.lua" } });
+		j.GeneratedJewelryMechanics = { items = {
+			accuria = { slot = "ring", behavior = "damage", base = 0.17 },
+			blackhand = { slot = "trinket", behavior = "crit_damage", base = 0.195 }
+		} };
+		local item = assert(j.JewelryEffects.Sections("accuria", "ring", true));
+		eq(item[1].lines[1].text, "17 % de dégâts supplémentaires.", "effect first in plain language");
+		eq(item[2].title, "Origine", "no duplicate raw coefficient for a simple percent bonus");
+		ok(item[1].lines[2].text:find("Valeur de base", 1, true), "not represented as an actual run value");
+		eq(j.JewelryEffects.Sections("accuria", "trinket", true), nil, "wrong slot cannot match");
+		eq(j.JewelryEffects.Sections("none", "ring", true), nil, "unknown must stay unavailable");
+		j.GeneratedJewelryMechanics.items.blooddrinker = { slot = "ring", behavior = "lifesteal", base = 0.01 };
+		local blood = j.JewelryEffects.Sections("blooddrinker", "ring", true);
+		eq(blood[1].lines[1].text, "1 % des dégâts que tu infliges te soignent.", "lifesteal is explained in concrete gameplay language");
+	end);
+
+	test("jewelry: supplementary passive and conditional effects remain sourced and labelled", function()
+		local j = H.loadAddon({ only = { "JewelryEffects.lua" } });
+		j.GeneratedJewelryMechanics = { items = {
+			accuria = {
+				slot = "ring", behavior = "damage", base = 0.17,
+				effects = { { "crit", 0.04 }, { "regen", 2.5 } },
+				specials = { { "on_hit", 0.18 }, { "jump", 3 } }
+			}
+		} };
+		local e = j.JewelryEffects.Sections("accuria", "ring", true);
+		eq(e[2].title, "Autres effets déclarés");
+		eq(e[2].lines[1].text, "Chance de critique: 4 %");
+		eq(e[2].lines[2].text, "Régénération: 2,5");
+		eq(e[3].title, "Effets conditionnels");
+		eq(e[3].lines[1].text, "on_hit: 0,18");
+		ok(e[3].lines[3].text:find("interprétation dépend du jeu", 1, true));
+	end);
+
+	test("jewelry: live text is read only for an exact unique identity during an active run", function()
+		local snapshots = {
+			AZS_RUN = { ph = "playing" }, AZS_ZONE = { hub = 0 },
+			AZS_GEAR = { { name = "Band of Accuria", slot = "ring", text = "Game-provided effect" } }
+		};
+		local j = H.loadAddon({ only = { "JewelryEffects.lua" }, extra = snapshots });
+		local candidates = { { key = "accuria" } };
+		local catalog = {
+			FindByName = function(self, kind, name, lang)
+				return kind == "rings" and name == "Band of Accuria" and candidates or {};
+			end
+		};
+		local e = j.JewelryEffects;
+		eq(e.LiveSections(catalog, "accuria", "ring", false)[1].lines[1].text, "Game-provided effect");
+		eq(e.LiveSections(catalog, "blackhand", "trinket", false), nil);
+		candidates = { { key = "accuria" }, { key = "other" } };
+		eq(e.LiveSections(catalog, "accuria", "ring", false), nil, "ambiguous names never match");
+		candidates = { { key = "accuria" } };
+		snapshots.AZS_ZONE.hub = 1;
+		eq(e.LiveSections(catalog, "accuria", "ring", false), nil, "hub cannot reuse old snapshot");
+		snapshots.AZS_ZONE.hub = 0; snapshots.AZS_RUN.ph = "ready";
+		eq(e.LiveSections(catalog, "accuria", "ring", false), nil, "no run, no live text");
 	end);
 
 	test("UTF-16 length accounting (the site counts UTF-16 units)", function()

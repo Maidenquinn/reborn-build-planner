@@ -75,15 +75,20 @@ def edit_json(d, name, f):
 def refuses(label, fn, want_code):
     d = mutate(fn)
     out = os.path.join(d, "out.lua")
-    open(out, "w").write("-- previous good output\n")
+    open(out, "w", encoding="utf-8").write("-- previous good output\n")
     code, so, se = run(d, out)
     ok(code == want_code, "%s: exit %d (wanted %d) %s" % (label, code, want_code, se.strip()[:80]))
-    ok(open(out).read() == "-- previous good output\n", label + ": existing output was touched")
+    ok(open(out, encoding="utf-8").read() == "-- previous good output\n", label + ": existing output was touched")
     ok(not os.path.exists(out + ".tmp") and not os.path.exists(out + ".report"), label + ": partial files left")
     shutil.rmtree(d, ignore_errors=True)
 
 
 def main():
+    source_index = json.load(open(os.path.join(SRC, "index.json"), encoding="utf-8"))
+    expected_content = source_index["content"]
+    ok(source_index["schema"] == 1 and isinstance(expected_content, str) and
+       len(expected_content) == 16 and all(c in "0123456789abcdef" for c in expected_content),
+       "source index uses supported schema and a valid content hash")
     before = tree_hash(SRC)
     d = tempfile.mkdtemp(prefix="gen_")
     a, b = os.path.join(d, "a.lua"), os.path.join(d, "b.lua")
@@ -93,21 +98,21 @@ def main():
     ok(open(a, "rb").read() == open(b, "rb").read(), "two runs give identical bytes (deterministic)")
     ok(sha(a) == sha(OUT), "committed GeneratedCatalog.lua is exactly what the generator produces")
     ok(so1 == so2, "report is deterministic")
-    ok("source content hash : 384db000d5ac311d" in so1 and "errors             : 0" in so1, "report shows hash and 0 errors")
+    ok("source content hash : " + expected_content in so1 and "errors             : 0" in so1, "report shows hash and 0 errors")
     ok("generated sha256   : " + sha(a) in so1, "report carries the sha256 of the generated file")
     ok("LEGENDARY_FLAG_WITHOUT_LEGEND" in so1 and "call_of_flame" in so1, "report names the call_of_flame anomaly")
     ok(tree_hash(SRC) == before, "source JSON untouched")
     lua = open(a, encoding="utf-8").read()
     ok('code="LEGENDARY_FLAG_WITHOUT_LEGEND",key="call_of_flame"' in lua, "anomaly recorded in the catalogue")
     ok('key="legendary:call_of_flame"' not in lua and 'spell="call_of_flame"' not in lua, "no legend/amulet record invented for call_of_flame")
-    ok('meta={schema=1,content="384db000d5ac311d"' in lua, "meta carries schema and content hash")
+    ok('meta={schema=1,content="' + expected_content + '"' in lua, "meta carries schema and content hash")
     ok("\r" not in lua and lua.endswith("};\n"), "LF newlines, clean ending")
 
     # other catalogue content hash with the same schema: accepted, hash propagated
     d2 = mutate(lambda x: edit_json(x, "index.json", lambda i: i.update(content="aaaaaaaaaaaaaaaa")))
     out2 = os.path.join(d2, "o.lua")
     code, so, se = run(d2, out2)
-    ok(code == 0 and 'content="aaaaaaaaaaaaaaaa"' in open(out2).read(), "different content hash accepted and recorded")
+    ok(code == 0 and 'content="aaaaaaaaaaaaaaaa"' in open(out2, encoding="utf-8").read(), "different content hash accepted and recorded")
     # missing translation: warning + fallback, still generated
     d3 = mutate(lambda x: os.remove(os.path.join(x, "i18n", "frFR.json")))
     out3 = os.path.join(d3, "o.lua")
@@ -131,7 +136,7 @@ def main():
     refuses("bad content hash", lambda x: edit_json(x, "index.json", lambda i: i.update(content="not hex!")), 3)
     refuses("missing required file", lambda x: os.remove(os.path.join(x, "jewelry.json")), 3)
     refuses("count mismatch", lambda x: edit_json(x, "index.json", lambda i: i["files"]["spells.json"].update(count=240)), 3)
-    refuses("invalid json", lambda x: open(os.path.join(x, "amulets.json"), "w").write("{oops"), 3)
+    refuses("invalid json", lambda x: open(os.path.join(x, "amulets.json"), "w", encoding="utf-8").write("{oops"), 3)
     refuses("not an array", lambda x: edit_json(x, "legends.json", lambda l: {"a": 1}), 3)
     refuses("duplicate spell key", lambda x: edit_json(x, "spells.json", lambda s: s[1].update(key=s[0]["key"])), 3)
     refuses("duplicate spell id", lambda x: edit_json(x, "spells.json", lambda s: s[1].update(id=s[0]["id"])), 3)

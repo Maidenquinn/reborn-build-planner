@@ -433,7 +433,100 @@ end
 --   plan: build (model, id "pending"), class, classKnown, name, phases (summary), status ("ready"|"needs_repair"),
 --         canActivate, exportReport (what a re-export to the site would lose)
 --   talents: talents, class (from the link path, or nil), needsClass
+-- RBP-native exchange: all model fields (including banishAfter, alternatives,
+-- notes and extensions) are preserved. It is deliberately distinct from the
+-- lossy official azsb1 format. Decoding remains bounded JSON data only.
+C.RBP_PREFIX="rbp1:";
+-- The official JSON writer intentionally serializes arrays only. Wrap the
+-- native model's named tables in typed arrays; never eval user-controlled Lua.
+local function packNative(v,depth)
+  depth=depth or 0;
+  if depth>9 then error("native export too deep") end
+  if type(v)~="table" then
+    if type(v)=="string" or type(v)=="number" or type(v)=="boolean" then return v end
+    error("unsupported native field");
+  end
+  local entries={};
+  for k,val in pairs(v) do
+    if type(k)~="string" and type(k)~="number" then error("invalid native key") end
+    entries[#entries+1]={k,packNative(val,depth+1)};
+  end
+  table.sort(entries,function(a,b)
+    if type(a[1])~=type(b[1]) then return type(a[1])<type(b[1]) end
+    return a[1]<b[1]
+  end);
+  return {"t",entries};
+end
+local function unpackNative(v,depth)
+  depth=depth or 0;
+  if depth>9 then return nil end
+  if type(v)~="table" then return v end
+  if v[1]~="t" or type(v[2])~="table" or #v~=2 then return nil end
+  local out={};
+  for _,row in ipairs(v[2]) do
+    if type(row)~="table" or #row~=2 or
+       (type(row[1])~="string" and type(row[1])~="number") or out[row[1]]~=nil then return nil end
+    local value=unpackNative(row[2],depth+1);
+    if value==nil then return nil end
+    out[row[1]]=value;
+  end
+  return out;
+end
+function C.EncodeRBP(build,catalog)
+  local valid=BM.Validate(build,catalog);
+  if not valid.ok then return nil,{code="INVALID_BUILD",message="build validation failed"} end
+  local fine,packed=pcall(packNative,build,0);
+  if not fine then return nil,{code="INVALID_NATIVE_MODEL",message=tostring(packed)} end
+  local text,err=Json.Encode({"RBP1",packed});
+  if not text then return nil,err end
+  if #text>C.LIMITS.decodedBytes then return nil,{code="PAYLOAD_TOO_LARGE"} end
+  return C.RBP_PREFIX..B64.Encode(text),{ok=true,lossless=true};
+end
+local function decodeNative(text,catalog)
+  local issues=newIssues();
+  local pv={ok=false,issues=issues,official=false,
+    source={chars=#text,text=sub(text,1,C.LIMITS.sourceKeep),truncated=#text>C.LIMITS.sourceKeep}};
+  local raw=text:sub(#C.RBP_PREFIX+1);
+  if #raw>C.LIMITS.encodedChars then
+    pv.errorCode="INPUT_TOO_LARGE";add(issues,"error",pv.errorCode,"payload");return pv
+  end
+  local bytes,why=B64.Decode(raw,C.LIMITS.encodedChars);
+  if not bytes or #bytes>C.LIMITS.decodedBytes then
+    pv.errorCode="BASE64_INVALID";add(issues,"error",pv.errorCode,"payload",nil,why);return pv
+  end
+  local fine=Utf8.Validate(bytes);
+  if not fine then pv.errorCode="INVALID_UTF8";add(issues,"error",pv.errorCode,"payload");return pv end
+  local value,err=Json.Decode(bytes,{maxBytes=C.LIMITS.decodedBytes,
+    maxDepth=28,maxNodes=C.LIMITS.jsonNodes});
+  if err or type(value)~="table" or value[1]~="RBP1" or #value~=2 then
+    pv.errorCode="JSON_INVALID";add(issues,"error",pv.errorCode,"payload");return pv
+  end
+  local raw=unpackNative(value[2],0);
+  if type(raw)~="table" then
+    pv.errorCode="INVALID_NATIVE_MODEL";add(issues,"error",pv.errorCode,"payload");return pv
+  end
+  local build,rep=BM.Normalize(raw,catalog);
+  if not build then
+    pv.errorCode="INVALID_BUILD";add(issues,"error",pv.errorCode,"build");return pv
+  end
+  for _,item in ipairs(rep.issues or {}) do
+    add(issues,item.level,item.code,item.path,item.key,item.detail);
+  end
+  pv.ok,pv.kind,pv.build=true,"plan",build;
+  pv.name,pv.class=build.name,build.class;
+  pv.classKnown=catalog~=nil and catalog:IsClass(build.class);
+  pv.phases=summary(build);
+  pv.canActivate=rep.clean and pv.classKnown;
+  pv.status=rep.clean and "ready" or "needs_repair";
+  pv.exportReport=C.PlanExport(build,catalog);
+  pv.native=true;
+  return pv
+end
+
 function C.Decode(text, catalog, opts)
+	if type(text)=="string" and sub(text,1,#C.RBP_PREFIX)==C.RBP_PREFIX then
+		return decodeNative(text,catalog);
+	end
 	opts = opts or {};
 	local iss = newIssues();
 	local pv = { ok = false, issues = iss };

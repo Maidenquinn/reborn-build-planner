@@ -85,7 +85,7 @@ end
 
 function Controller:ClassName(key)
 	local cat = self:Catalog();
-	return cat and cat:ClassName(key, self:Lang() == "frFR" and "frFR" or nil) or tostring(key);
+	return cat and cat:ClassName(key, self:Lang()) or tostring(key);
 end
 
 -- dir = 1 / -1 cycles: all classes (nil) -> first class -> ... -> last -> all
@@ -137,7 +137,7 @@ function Controller:SetSort(sort)
 end
 
 function Controller:CycleSort(dir)
-	local order, cur = { "name", "used", "modified" }, self:Sort();
+	local order, cur = { "name", "created", "modified", "used", "class" }, self:Sort();
 	local i = (Util.IndexOf(order, cur) or 1) + dir;
 	if i < 1 then i = #order; end
 	if i > #order then i = 1; end
@@ -170,6 +170,7 @@ function Controller:IndexOf(b)
 		if cat and cat:Get(kind, k) then
 			parts[#parts + 1] = cat:Name(kind, k, nil);
 			parts[#parts + 1] = cat:Name(kind, k, "frFR");
+			parts[#parts + 1] = cat:Name(kind, k, self:Lang());
 		end
 	end
 	for _, ph in ipairs(b.phases or {}) do
@@ -179,7 +180,7 @@ function Controller:IndexOf(b)
 		for _, k in ipairs(ph.trinkets or {}) do name("jewel", k); end
 		for _, k in ipairs(ph.amulets or {}) do name("amulet", k); end
 	end
-	local text = string.lower(table.concat(parts, " \n "));
+	local text = ns.Utf8.CaseFold(table.concat(parts, " \n "));
 	self.searchIndex[b.id] = { rev = b.revision, lang = Locale.lang, text = text };
 	return text;
 end
@@ -201,7 +202,7 @@ function Controller:Rows()
 		return out;
 	end
 	local words = {};
-	for w in string.gmatch(string.lower(st.search or ""), "%S+") do words[#words + 1] = w; end
+	for w in string.gmatch(ns.Utf8.CaseFold(st.search or ""), "%S+") do words[#words + 1] = w; end
 	local filter = self:Filter();
 	local builds = h.db and type(h.db.builds) == "table" and h.db.builds or {};
 	for _, e in ipairs(h:List(st.classFilter)) do
@@ -210,15 +211,15 @@ function Controller:Rows()
 		if filter == "favorites" and not meta.fav then keep = false; end
 		if filter == "recent" and not meta.used then keep = false; end
 		if keep and #words > 0 then
-			local text = builds[e.id] and self:IndexOf(builds[e.id]) or string.lower(e.name or "");
+			local text = builds[e.id] and self:IndexOf(builds[e.id]) or ns.Utf8.CaseFold(e.name or "");
 			for _, w in ipairs(words) do
 				if not string.find(text, w, 1, true) then keep = false; break; end
 			end
 		end
 		if keep then
 			out[#out + 1] = { id = e.id, name = e.name, class = e.class, className = self:ClassName(e.class), revision = e.revision,
-				clean = e.clean, active = h:GetActive(e.class) == e.id, fav = meta.fav, used = meta.used, modified = meta.modified,
-				lname = string.lower(e.name or "") };
+				clean = e.clean, active = h:GetActive(e.class) == e.id, fav = meta.fav, used = meta.used, modified = meta.modified, created = meta.created,
+				lname = ns.Utf8.CaseFold(e.name or "") };
 		end
 	end
 	local sort = self:Sort();
@@ -241,6 +242,14 @@ function Controller:Rows()
 			return x.id < y.id;
 		end);
 		while #out > Controller.RECENT_MAX do out[#out] = nil; end
+	elseif sort == "class" then
+		table.sort(out, function(x, y)
+			if x.fav ~= y.fav then return x.fav; end
+			local a, b = ns.Utf8.CaseFold(x.className), ns.Utf8.CaseFold(y.className)
+			if a ~= b then return a < b; end
+			if x.lname ~= y.lname then return x.lname < y.lname; end
+			return x.id < y.id;
+		end);
 	elseif sort == "name" then
 		table.sort(out, function(x, y)
 			if x.fav ~= y.fav then return x.fav; end
@@ -248,7 +257,7 @@ function Controller:Rows()
 			return x.id < y.id;
 		end);
 	else
-		table.sort(out, newer(sort == "used" and "used" or "modified"));
+		table.sort(out, newer((sort == "used" or sort == "created") and sort or "modified"));
 	end
 	return out;
 end
@@ -423,6 +432,7 @@ function Controller:Activate(id)
 	if not ok then self:Say("error", explain(err)); return false; end
 	h:Touch(id);
 	self:Say("info", L("Active build for this class"));
+	if ns.Runtime then ns.Runtime.Refresh() end
 	return true;
 end
 
@@ -432,6 +442,7 @@ function Controller:Deactivate(id)
 	if not b then return false; end
 	h:ClearActive(b.class);
 	self:Say("info", L("No active build for this class"));
+	if ns.Runtime then ns.Runtime.Refresh() end
 	return true;
 end
 
@@ -678,7 +689,7 @@ function Controller:TargetInfo()
 	local list = e.draft.phases[e.phase][e.group];
 	local main = BM.MAIN_SLOTS[e.group];
 	local key = list[e.slot] or "";
-	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local lang = self:Lang();
 	local kind = e.group == "amulets" and "amulet" or "jewel";
 	return { group = e.group, slot = e.slot, main = e.slot <= main, altIndex = e.slot - main, key = key,
 		name = key ~= "" and (cat and cat:Get(kind, key) and cat:Name(kind, key, lang) or key) or "" };
@@ -727,9 +738,9 @@ end
 -- ---- catalogue lists for the editor (identifiers are the catalogue keys; names are display only)
 local function matches(entryNames, filter)
 	if filter == "" then return true; end
-	local f = string.lower(filter);
+	local f = ns.Utf8.CaseFold(filter);
 	for _, n in ipairs(entryNames) do
-		if string.find(string.lower(n), f, 1, true) then return true; end
+		if string.find(ns.Utf8.CaseFold(n), f, 1, true) then return true; end
 	end
 	return false;
 end
@@ -740,7 +751,7 @@ function Controller:CatalogEntries()
 	local out = {};
 	if not e or not cat then return out; end
 	local class = e.draft.class;
-	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local lang = self:Lang();
 	local ph = e.draft.phases[e.phase];
 	local keys, kind = {}, "spell";
 	if e.cat == "spells" then
@@ -834,7 +845,7 @@ end
 -- display rows of the plan (wanted spells, banish, slot lists) with localized names; unknown keys shown raw
 function Controller:PlanView()
 	local e, cat = self.state.editor, self:Catalog();
-	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local lang = self:Lang();
 	local ph = e.draft.phases[e.phase];
 	local function nm(kind, k)
 		if k == "" then return ""; end
@@ -895,7 +906,7 @@ local RARITY = { common = "Common", uncommon = "Uncommon", rare = "Rare", epic =
 function Controller:TooltipData(kind, key)
 	local cat, e = self:Catalog(), self.state.editor;
 	if not cat or type(key) ~= "string" or key == "" then return nil; end
-	local lang = self:Lang() == "frFR" and "frFR" or nil;
+	local lang = self:Lang();
 	local entry = cat:Get(kind, key);
 	local ph = e and e.draft.phases[e.phase];
 	local d = { lines = {}, state = {}, facts = {} };
@@ -947,8 +958,31 @@ function Controller:TooltipData(kind, key)
 				end
 			end
 		end
-		line(L("Detailed effect unavailable"), "dim");
-		line(L("The Reborn catalogue gives no statistics for this piece."), "dim");
+		-- Prefer explicitly sourced client metadata. Never turn a base value into a live stat.
+		local localSections = ns.JewelryEffects and ns.JewelryEffects.Sections(key, entry.slot, lang == "frFR") or nil;
+		local liveSections = ns.JewelryEffects and ns.JewelryEffects.LiveSections(cat, key, entry.slot, lang == "frFR") or nil;
+		if liveSections then
+			-- Native equipped-item text is the player's actual benefit in this run.
+			-- Never stack an unscaled base coefficient beside a different rarity value:
+			-- that looked contradictory (e.g. 1% vs 1.5% lifesteal).
+			d.sections = liveSections;
+			d.sourceKind = "jewelry_live";
+		else
+			d.sections = localSections;
+			if d.sections then d.sourceKind = "jewelry_local"; end
+		end
+		if d.sections then
+			-- The first line is now the meaningful bonus, not a technical label.
+			d.preview = ns.Describe and ns.Describe.Preview(d.sections, 2) or {};
+		else
+			line(L("Detailed effect unavailable"), "dim");
+			line(L("The Reborn catalogue gives no statistics for this piece."), "dim");
+			local count = ns.JewelryEffects and ns.JewelryEffects.MetadataStatus() or 0;
+			if count == 0 then
+				line(lang == "frFR" and "Cette recette n'inclut pas les mécaniques locales. Consultez /rbp diag." or
+					"This recipe has no local jewelry mechanics. See /rbp diag.", "warn");
+			end
+		end
 	else
 		local isLegend = entry.spell ~= nil;
 		d.subtitle = isLegend and (L("Legendary amulet") .. " | " .. self:ClassName(entry.class)) or (L("Amulet") .. " | " .. L(RARITY[entry.rarity or ""] or "Unknown"));
@@ -1065,6 +1099,18 @@ function Controller:PrepareExport(id, source)
 	self.state.export = x;
 	self:Notify();
 	return x;
+end
+
+-- A native export retains every build-specific rule; it never needs the
+-- official planner's lossy confirmation and cannot overwrite the original.
+function Controller:ExportNative()
+  local x=self.state.export;
+  if not x then return false end
+  local code,err=ns.PlannerCodec.EncodeRBP(x.build,self:Catalog());
+  if not code then self:Say("error",explain(err));return false end
+  x.code,x.native,x.accepted=code,true,true;
+  self:Notify();
+  return true;
 end
 
 function Controller:AcceptLosses()

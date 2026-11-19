@@ -671,6 +671,27 @@ return function(H)
 		fh:close();
 	end);
 
+	test("lossless rbp1 exchange retains banish-after and is safely importable", function()
+		local build=assert(BM.New({id="orig",name="Native exchange",class="hunter"},cat));
+		local p=build.phases[1];
+		p.spells={{key="aimed_shot",mode="acquire"}};
+		p.banishAfter={"aimed_shot"};
+		p.notes="RBP only";
+		local code,rep=C.EncodeRBP(build,cat);
+		ok(code and code:sub(1,5)=="rbp1:","native format produced");
+		ok(rep.lossless,"native code has no intentional losses");
+		local pv=C.Decode(code,cat);
+		ok(pv.ok,"native code decodes");
+		eq(pv.build.phases[1].banishAfter,{"aimed_shot"});
+		eq(pv.build.phases[1].notes,"RBP only");
+		local h=S.Open(nil,{catalog=cat,now=now});
+		local id=C.CommitImport(h,pv);
+		ok(id and id~="orig","import receives its own unique id");
+		eq(h:Get(id).phases[1].banishAfter,{"aimed_shot"});
+		local bad=C.Decode("rbp1:@@@@",cat);
+		no(bad.ok,"hostile payload refused");
+	end);
+
 	test("no code path executes imported text", function()
 		for _, f in ipairs({ "Utf8.lua", "Base64Url.lua", "Json.lua", "PlannerCodec.lua" }) do
 			local src = H.readFile(H.root .. "/addon/RebornBuildPlanner/" .. f):gsub("%-%-[^\n]*", "");

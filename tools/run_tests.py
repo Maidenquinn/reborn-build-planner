@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import glob
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
@@ -59,7 +60,9 @@ def suite_catalog():
     print("[catalog-identity]")
     cat = M.Catalog(CATALOG)
     idx = cat.index
-    ok(idx["content"] == "384db000d5ac311d" and idx["schema"] == 1, "index content/schema")
+    ok(idx["schema"] == 1 and isinstance(idx["content"], str) and
+       re.fullmatch(r"[0-9a-f]{16}", idx["content"]) is not None,
+       "index content/schema")
     for name, lst in (("spells.json", cat.spells), ("jewelry.json", cat.jewelry), ("amulets.json", cat.amulets),
                       ("legends.json", cat.legends), ("classes.json", cat.classes)):
         ok(idx["files"][name]["count"] == len(lst), "count " + name)
@@ -164,6 +167,43 @@ def suite_scenarios():
     ok(m.identities()["card[1]"]["recommendable"] is False, "even verified, an unresolved jewel is never recommended")
 
 
+# ------------------------------------------------------------------ 4a. safe relocation regression
+def suite_anchor_drift_regression():
+    print("[anchor relocation regression]")
+    spec = importlib.util.spec_from_file_location("check_anchors", os.path.join(HERE, "check_anchors.py"))
+    A = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(A)
+    with tempfile.TemporaryDirectory(prefix="rbp-anchor-") as tmp:
+        native = os.path.join(tmp, "AzerothSurvivors")
+        os.mkdir(native)
+        filename = os.path.join(native, "Cards.lua")
+        spec_path = os.path.join(tmp, "anchors.json")
+        rows = [{"id":"C%02d" % i, "file":"AzerothSurvivors/Cards.lua",
+                 "pattern":"^contract_%d$" % i, "line":i} for i in range(1,14)]
+        with open(spec_path,"w",encoding="utf-8") as f:
+            json.dump(rows,f)
+        def probe(lines):
+            with open(filename,"w",encoding="utf-8") as f:
+                f.write("\n".join(lines))
+            return A.check(tmp,spec_path)
+        baseline=["contract_%d" % i for i in range(1,14)]
+        current=probe(baseline)
+        ok(all(r["ok"] and "resolved_line" not in r for r in current),
+           "unchanged anchor positions pass strictly")
+        moved=probe(["-- inserted"]*11+baseline)
+        ok(all(r["ok"] and r.get("resolved_line")==r["line"]+11 for r in moved),
+           "13 unchanged contracts uniformly shifted by +11 pass with warning")
+        partial=probe(baseline[:5]+["-- inserted"]*11+baseline[5:])
+        ok(any(not r["ok"] for r in partial),
+           "partial file shift remains a hard failure")
+        changed=list(baseline)
+        changed[6]="changed_contract_7"
+        ok(any(not r["ok"] for r in probe(["-- inserted"]*11+changed)),
+           "missing or changed contract remains a hard failure")
+        ok(any(not r["ok"] for r in probe(["-- inserted"]*21+baseline)),
+           "large shift remains a hard failure")
+
+
 # ------------------------------------------------------------------ 4. static anchors
 def suite_anchors(native_root):
     print("[static anchors]")
@@ -211,6 +251,7 @@ def main():
     suite_catalog()
     suite_grammar()
     suite_scenarios()
+    suite_anchor_drift_regression()
     if native:
         suite_anchors(native)
     else:

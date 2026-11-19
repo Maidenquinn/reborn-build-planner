@@ -1,0 +1,51 @@
+name: Ultimate UI source checks
+on:
+  push:
+    branches: [dev/ultimate-ui]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone:
+    name: Static, synthetic, Lua 5.1 (no proprietary inputs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install isolated test tools
+        run: |
+          python -m venv .devtools/venv
+          .devtools/venv/bin/python -m pip install --upgrade pip
+          .devtools/venv/bin/python -m pip install lupa==2.8 pillow
+      - name: Generate original fantasy textures
+        run: |
+          .devtools/venv/bin/python -I tools/make_ultimate_art.py addon_lab/RebornPlannerThemeLab/Media
+          .devtools/venv/bin/python -I tools/make_textures.py addon_lab/RebornPlannerThemeLab/Media
+      - name: Test local jewelry extraction (synthetic)
+        run: .devtools/venv/bin/python -I tests/py/test_jewelry_extractor.py
+      - name: Test Lua 5.1 independent modules
+        run: .devtools/venv/bin/python -I tools/run_lua_tests.py test_standalone
+      - name: Compile Python tools
+        run: .devtools/venv/bin/python -m compileall -q tools tests/py
+      - name: Verify Windows PowerShell 5.1 recipe scripts
+        shell: pwsh
+        run: |
+          foreach ($file in @("tools/recette_ultimate_windows.ps1", "tools/build_local_equipment_recipe.ps1")) {
+            $source = [IO.File]::ReadAllText((Resolve-Path $file).Path)
+            if ($source.ToCharArray() | Where-Object { [int][char]$_ -gt 127 }) {
+              throw "Non-ASCII source can break Windows PowerShell 5.1: $file"
+            }
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file).Path, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              throw "PowerShell parse failure in $file : $($errors | Out-String)"
+            }
+          }
+

@@ -1,16 +1,19 @@
 ## Interface: 30300
 ## Title: Reborn Build Planner
-## Notes: Build planner for Azeroth Survivors Reborn (Lot 3: library, editor, import/export window over the validated modules; no live tracking).
-## Version: 0.4.3-proto1
+## Notes: Build library, planner, import/export and read-only live tracker for Azeroth Survivors Reborn (beta candidate).
+## Version: 0.5.0-beta.1
 ## Dependencies: AzerothSurvivors, AzerothSurvivorsAPI
 ## SavedVariables: RebornBuildPlannerDB
 # Load order = dependency order: Util -> Locale -> catalogue data -> Catalog -> BuildModel -> Storage -> Utf8 -> Base64Url -> Json -> PlannerCodec -> UIStrings -> Controller -> UI -> Commands -> Core.
 Util.lua
 Locale.lua
 GeneratedCatalog.lua
+GeneratedJewelryMechanics.lua
 Glossary.lua
 Catalog.lua
+ClassVisual.lua
 Describe.lua
+JewelryEffects.lua
 Theme.lua
 BuildModel.lua
 Storage.lua
@@ -19,6 +22,10 @@ Base64Url.lua
 Json.lua
 PlannerCodec.lua
 UIStrings.lua
+AdditionalLocales.lua
+LiveTracker.lua
+TrackHUD.lua
+Runtime.lua
 Controller.lua
 UI.lua
 Commands.lua

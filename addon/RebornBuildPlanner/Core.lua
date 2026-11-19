@@ -5,7 +5,9 @@
 -- Lua 5.1 syntax only.
 local ADDON, ns = ...;
 ns = ns or {};
-ns.VERSION = "0.4.3-proto1";
+-- Prefer the installed .toc metadata so diagnostics cannot drift behind release packaging.
+local metaVersion = type(GetAddOnMetadata) == "function" and GetAddOnMetadata(ADDON, "Version") or nil;
+ns.VERSION = (type(metaVersion) == "string" and metaVersion ~= "") and metaVersion or "0.5.0-alpha-live1";
 RebornBuildPlanner = ns;
 
 -- existingDb: the loaded SavedVariables table (nil on first run); now: clock function.
@@ -17,12 +19,9 @@ function ns.Init(existingDb, now)
 	ns.catalogMessage = msg;
 	local h = ns.Storage.Open(existingDb, { catalog = cat, now = now });
 	ns.storage = h;
-	-- interface language: the saved choice, else the client's locale (French only for frFR, English otherwise)
-	local want = h:GetSetting("lang");
-	if want == "auto" then
-		want = (type(GetLocale) == "function" and GetLocale() == "frFR") and "frFR" or "enUS";
-	end
-	ns.Locale.SetLang(want);
+	-- Keep the user's selected locale (including Automatic) separate from the
+	-- currently resolved language. Missing translations fall back per key.
+	ns.Locale.SetLang(h:GetSetting("lang") or "auto");
 	ns.playerClassToken = function()
 		if type(UnitClass) == "function" then
 			local _, token = UnitClass("player");
@@ -42,6 +41,7 @@ function ns.Start(existingDb, now)
 		RebornBuildPlannerDB = h.db;
 	end
 	ns.Commands.Register(ns.ui, ns.controller);
+	if ns.Runtime then ns.Runtime.Start() end
 	return h;
 end
 

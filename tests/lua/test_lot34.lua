@@ -69,7 +69,7 @@ return function(H)
 			n = n + 1;
 		end
 		eq(n, 237);
-		eq(cat:Content(), "384db000d5ac311d", "the content hash is the published one");
+		eq(cat:Content(), fixture("index.json").content, "the generated content matches the actually installed official snapshot");
 	end);
 
 	test("3.4 data: jewelry (rings, trinkets) has no published effect: no effect is described, none invented", function()
@@ -83,6 +83,48 @@ return function(H)
 		for _, l in ipairs(d.lines) do text[#text + 1] = l.text; end
 		ok(table.concat(text, "|"):find("Detailed effect unavailable", 1, true));
 		eq(D.Amulet(cat, cat:Get("jewel", "accuria"), nil), nil);
+	end);
+
+
+	test("jewelry metadata: only exact key and slot get a sourced effect; fallback remains honest", function()
+		local e = boot();
+		local source = e.ns.GeneratedJewelryMechanics;
+		eq(e.c:TooltipData("jewel", "accuria").sections, nil);
+		source.items.accuria = { slot = "ring", behavior = "damage", base = 0.17 };
+		local report = e.c:TooltipData("jewel", "accuria");
+		ok(report.sections and #report.sections == 2, "plain benefit and source, no duplicate technical percentage");
+		local joined = plain(report.sections);
+		ok(joined:find("extra damage", 1, true), joined);
+		ok(joined:find("17%", 1, true), joined);
+		ok(joined:find("Base value: actual bonus depends", 1, true), joined);
+		source.items.accuria.slot = "trinket";
+		eq(e.c:TooltipData("jewel", "accuria").sections, nil, "wrong slot rejected");
+		source.items.accuria = nil;
+	end);
+
+
+	test("jewelry live API: exact unique slot/name only, never stale hub data", function()
+		local snapshots = {
+			AZS_RUN = { ph = "playing" },
+			AZS_ZONE = { hub = 0 },
+			AZS_GEAR = { { slot = "ring", name = "Band of Accuria", text = "Damage +17% (game snapshot)" } }
+		};
+		local ns = H.loadAddon({ extra = snapshots });
+		local c = ns.Catalog.New(ns.GeneratedCatalog);
+		snapshots.AZS_GEAR[1].name = c:Name("jewel", "accuria");
+		local hits = c:FindByName("rings", snapshots.AZS_GEAR[1].name, "enUS");
+		ok(#hits == 1 and hits[1].key == "accuria", "current catalogue must uniquely resolve the chosen ring, candidates " .. tostring(#hits));
+		local live = ns.JewelryEffects.LiveSections(c, "accuria", "ring", false);
+		ok(live and live[1] and live[1].lines[1].text:find("Damage +17%", 1, true), "trusted equipped item text; name=" .. tostring(snapshots.AZS_GEAR[1].name));
+		eq(ns.JewelryEffects.LiveSections(c, "blackhand", "trinket", false), nil, "different key");
+		snapshots.AZS_GEAR[1].slot = "trinket";
+		eq(ns.JewelryEffects.LiveSections(c, "accuria", "ring", false), nil, "slot mismatch");
+		snapshots.AZS_GEAR[1].slot = "ring";
+		snapshots.AZS_ZONE.hub = 1;
+		eq(ns.JewelryEffects.LiveSections(c, "accuria", "ring", false), nil, "hub snapshot must not leak into a run");
+		snapshots.AZS_ZONE.hub = 0;
+		snapshots.AZS_RUN.ph = "ready";
+		eq(ns.JewelryEffects.LiveSections(c, "accuria", "ring", false), nil, "ready is not a run");
 	end);
 
 	-- ------------------------------------------------------------------ official rules
@@ -102,7 +144,7 @@ return function(H)
 		ok(t:find("Damage: 15%", 1, true), t);
 		ok(t:find("(rank 5: 37.8%)", 1, true), t);
 		ok(t:find("Growth 0.6: x1.60 at rank 2", 1, true), t);
-		ok(t:find("Official rule", 1, true));
+		ok(t:find("affected effects become stronger", 1, true), "growth explained without raw formula");
 		ok(t:find("Classes: every class", 1, true) and t:find("World: every world", 1, true), t);
 		-- a special with a share, a special without number, a world, a heal requirement
 		local seen = {};
@@ -170,7 +212,7 @@ return function(H)
 		for _, l in ipairs(fixture("legends.json")) do if l.fixed then fixedKey = l.key; break; end end
 		ok(fixedKey);
 		local ft = plain(D.Amulet(cat, cat:Get("amulet", fixedKey), nil));
-		ok(ft:find("Fixed value", 1, true) and ft:find("not offered past rank 11", 1, true), ft);
+		ok(ft:find("Damage and area:", 1, true) and ft:find("not offered past rank 11", 1, true), ft);
 		no(ft:find("Growth 0.2", 1, true));
 		-- a generic entry says which shape picked it
 		for _, l in ipairs(fixture("legends.json")) do
@@ -191,7 +233,7 @@ return function(H)
 	test("3.4 legendary names: canonical head + translated spell only when the spell IS translated", function()
 		eq(cat:Name("amulet", "legendary:cleave", nil), "Medallion of the Bladestorm: Cleave");
 		eq(cat:Name("amulet", "legendary:cleave", "frFR"), "Médaillon de la Tempête de lames: Enchaînement");
-		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: Cleave", "language not embedded: English");
+		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: " .. ((cat.i18n.deDE or {})["Cleave"] or "Cleave"), "official translated spell when available");
 		-- search finds it by the English title and by the French spell part
 		local e = boot({ locale = "frFR" });
 		local id, ed = newEditor(e);
@@ -272,6 +314,14 @@ return function(H)
 	end);
 
 	-- ------------------------------------------------------------------ inspector with sections and scroll
+	test("3.4 inspector: full-width readable detail area and source without sidebar clipping", function()
+		local e = boot();
+		local d = e.ui.det;
+		ok(d.area.hold:GetWidth() >= 520, "inspector body uses the full centre panel width");
+		no(d.source:IsVisible(), "old 162px source sidebar is hidden");
+		ok(d.rows[1]:GetWidth() >= 500, "detail rows can show long natural-language bonuses");
+	end);
+
 	test("3.4 inspector: sections (In this build / Information / Effects / Growth / Availability), source line, honest limits", function()
 		local e = boot();
 		local id, ed = newEditor(e);

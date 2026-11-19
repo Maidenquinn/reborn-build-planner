@@ -53,7 +53,7 @@ return function(H)
 		eq(cat:Name("amulet", "legendary:cleave", "frFR"), p.title);
 		-- fallbacks
 		eq(cat:Name("amulet", "legendary:cleave", nil), "Medallion of the Bladestorm: Cleave");
-		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: Cleave");
+		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: " .. ((cat.i18n.deDE or {})["Cleave"] or "Cleave"));
 		eq(cat:LegendParts("legendary:cleave", "deDE").headOrigin, "english");
 		eq(cat:LegendParts("legendary:nope", "frFR"), nil);
 		-- a spell whose name i18n does not carry (same in French) stays English; entries without a spell part show the head only

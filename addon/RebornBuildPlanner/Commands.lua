@@ -33,10 +33,59 @@ function Commands.Handle(ui, controller, msg)
 	elseif arg == "reset" then
 		ui:ResetPosition();
 		say(Locale.T("Window position and size reset."));
+	elseif arg == "hud" then
+		if ns.Runtime and ns.Runtime.ready then say("HUD " .. tostring(ns.Runtime.ToggleHud())); else say("Live API unavailable"); end
+	elseif arg == "theme" then
+		if ns.Runtime and ns.Runtime.ready then say("HUD theme: " .. tostring(ns.Runtime.ToggleTheme())); else say("Live API unavailable"); end
+	elseif arg == "theme standard" or arg == "theme elwynn" then
+		if ns.Runtime and ns.Runtime.ready then say("HUD theme: " .. tostring(ns.Runtime.SetTheme(arg:sub(7)))); else say("Live API unavailable"); end
+	elseif arg == "profile on" or arg == "profile off" then
+		if ns.Runtime then
+			ns.Runtime.profileEnabled=arg=="profile on";
+			if ns.Runtime.profileEnabled then ns.Runtime.ResetProfile() end
+			say("Refresh profiling "..(ns.Runtime.profileEnabled and "enabled" or "disabled"));
+		end
+	elseif arg == "profile" or arg == "profile report" then
+		if ns.Runtime and ns.Runtime.ProfileSummary then
+			local p=ns.Runtime.ProfileSummary();
+			say(string.format("Refreshes %d, total %.2fms, average %.3fms, peak %.2fms, API callbacks %d",
+				p.calls,p.totalMs,p.averageMs,p.maxMs,p.callbacks));
+		end
+	elseif arg == "history" then
+		local h=controller:Handle();
+		local history=h and h.RevisionHistory and h:RevisionHistory() or {};
+		if #history==0 then say("No saved revisions yet."); end
+		local perBuild={};
+		for _,entry in ipairs(history) do
+			perBuild[entry.id]=(perBuild[entry.id] or 0)+1;
+			say(string.format("%s: index %d, revision %s, %s",tostring(entry.id),
+				perBuild[entry.id],tostring(entry.revision),tostring(entry.name)));
+		end
+	elseif string.match(arg,"^restore%s+") then
+		local id,index=string.match(arg,"^restore%s+(%S+)%s+(%d+)$");
+		local h=controller:Handle();
+		if not id or not index then
+			say("Usage: /rbp restore <build-id> <history-index>; see /rbp history");
+		elseif not h or h.readOnly then
+			say("Saved data is read-only.");
+		else
+			local ok,reason=h:RestoreRevision(id,tonumber(index));
+			if ok then
+				say("Build revision restored as a new saved version: "..id);
+				if controller.Notify then controller:Notify() end
+			else
+				say("Restore refused: "..tostring(reason and (reason.message or reason.code) or "unknown"));
+			end
+		end
 	elseif arg == "diag" then
 		local h = controller:Handle();
 		say(string.format("version %s, storage %s%s, catalogue %s (%s)", tostring(ns.VERSION), h and h.status or "none",
 			(h and h.readOnly) and " (read only)" or "", ns.catalog and ns.catalog:Content() or "none", tostring(ns.catalogStatus)));
+		say("Live tracker: " .. (ns.Runtime and ns.Runtime.ready and "events connected" or "API not connected"));
+		if ns.JewelryEffects then
+			local total, runtime, expected = ns.JewelryEffects.MetadataStatus();
+			say(string.format("bijoux : %d/%s mecanique(s) locale(s), AZS_GEN %s, effets live uniquement pour objets equipes et identifies", total, expected and tostring(expected) or "?", runtime and "present" or "absent"));
+		end
 	else
 		say(Locale.T("Usage: /rbp (open or close) | /rbp reset | /rbp diag"));
 	end

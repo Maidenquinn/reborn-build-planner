@@ -1,0 +1,27 @@
+# Proposed addon index entry — NOT SUBMITTED
+
+# Copy to Syiana/azs-addons/addons/reborn-build-planner.toml only after
+# a public, immutable, redistributable stable GitHub release exists.
+# Syiana's pinning workflow ignores drafts AND GitHub pre-releases.
+id = "reborn-build-planner"
+name = "Reborn Build Planner"
+author = "Maidenquinn / Maidenhead"
+repo = "Maidenquinn/reborn-build-planner"
+description = "Plan, import and track Reborn class builds with a read-only live HUD, spell priorities, jewellery alternatives and stage notes."
+category = "Combat"
+# No public software license has been selected yet. Replace after rights review.
+license = "NOASSERTION"
+folders = ["RebornBuildPlanner"]
+# These are bundled native game addons, not separately indexed third-party addons.
+requires = []
+
+[source]
+type = "release"
+# The release must have exactly ONE asset matching this pattern.
+asset = "RebornBuildPlanner-*.zip"
+
+[reborn]
+# Do not advertise untested compatibility or a game version not recorded.
+status = "untested"
+tested = ""
+notes = "Private Windows/client beta recipe approved by the author. Public distribution pending catalogue and artwork rights review. Requires the game's AzerothSurvivors and AzerothSurvivorsAPI addons; planning and HUD remain read-only."

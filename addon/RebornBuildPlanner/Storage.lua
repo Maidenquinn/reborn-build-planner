@@ -20,14 +20,19 @@ local type, pairs, ipairs, pcall, tostring, tonumber, string, table = type, pair
 
 -- Documented, tested, tunable: not universal. 200 builds is the official planner's own library size.
 S.LIMITS = { builds = 200, trash = 20, quarantine = 50, dbNodes = 400000, dbDepth = 12 };
-S.SETTING_DEFAULTS = { lang = "auto", advancedPhases = false, scale = 1, lastClass = "", libSort = "name", libFilter = "all" };
+S.SETTING_DEFAULTS = { lang = "auto", advancedPhases = false, scale = 1, lastClass = "", libSort = "name", libFilter = "all", trackerTheme = "standard", trackerEnabled = true, trackerCompact = false, windowOpacity = 1, trackerOpacity = 1 };
 local SETTING_CHECK = {
-	lang = function(v) return v == "auto" or v == "enUS" or v == "frFR"; end,
+	lang = function(v) return Locale.IsSupportedSelection(v); end,
 	advancedPhases = function(v) return type(v) == "boolean"; end,
 	scale = function(v) return type(v) == "number" and v >= 0.6 and v <= 1.5; end,
 	lastClass = function(v) return type(v) == "string" and #v <= 64; end,
-	libSort = function(v) return v == "name" or v == "used" or v == "modified"; end,
+	libSort = function(v) return v == "name" or v == "used" or v == "modified" or v == "created" or v == "class"; end,
 	libFilter = function(v) return v == "all" or v == "favorites" or v == "recent"; end,
+	trackerTheme = function(v) return v == "standard" or v == "elwynn"; end,
+	trackerEnabled = function(v) return type(v) == "boolean"; end,
+	trackerCompact = function(v) return type(v) == "boolean"; end,
+	windowOpacity = function(v) return type(v) == "number" and v == v and v >= 0 and v <= 1; end,
+	trackerOpacity = function(v) return type(v) == "number" and v == v and v >= 0 and v <= 1; end,
 	-- window position: anchor point, offsets from that point of UIParent (persistent, validated on use)
 	window = function(v)
 		return type(v) == "table" and type(v.point) == "string" and #v.point <= 16 and type(v.x) == "number" and type(v.y) == "number"
@@ -518,6 +523,55 @@ end
 
 -- candidate comes from the BuildModel edit functions applied to a copy returned by Get. It must carry the
 -- same id and a HIGHER revision than the stored one (a stale editor is refused, nothing is overwritten).
+-- Retain the last five previously saved revisions, globally, in ordinary
+-- SavedVariables. This is not a disk backup; the client persists it on logout.
+-- The history is bounded to avoid multiplying large 200-build libraries.
+S.HISTORY_LIMIT = 5;
+local function savedHistory(db, create)
+  local ext=db.ext;
+  if type(ext)~="table" then return nil end
+  if type(ext.rbpRevisionHistory)~="table" then
+    if not create then return {} end
+    ext.rbpRevisionHistory={};
+  end
+  return ext.rbpRevisionHistory;
+end
+local function recordPreviousRevision(db, build)
+  local hist=savedHistory(db,true);
+  if not hist or type(build)~="table" then return end
+  table.insert(hist,1,{ id=build.id, revision=build.revision, build=Util.DeepCopy(build) });
+  while #hist>S.HISTORY_LIMIT do table.remove(hist) end
+end
+function H:RevisionHistory(id)
+  local out={};
+  for _,entry in ipairs(savedHistory(self.db,false) or {}) do
+    if type(entry)=="table" and (id==nil or entry.id==id) then
+      out[#out+1]={id=entry.id,revision=entry.revision,name=type(entry.build)=="table" and entry.build.name or ""};
+    end
+  end
+  return out;
+end
+-- Restoring is a new revision, never an overwrite of the saved previous state.
+function H:RestoreRevision(id, index)
+  local ok,err=guard(self);if not ok then return nil,err end
+  if type(index)~="number" or index~=math.floor(index) or index<1 then
+    return nil,issue("INVALID_HISTORY_INDEX","history index must be a positive integer");
+  end
+  local current=self.db.builds[id];
+  if not current then return nil,issue("NOT_FOUND","build not found") end
+  local list=self:RevisionHistory(id);local row=list[index];
+  if not row then return nil,issue("NOT_FOUND","saved revision not found") end
+  for _,entry in ipairs(savedHistory(self.db,false)) do
+    if entry.id==row.id and entry.revision==row.revision and type(entry.build)=="table" then
+      local candidate=Util.DeepCopy(entry.build);
+      candidate.id=id;
+      candidate.revision=current.revision+1;
+      return self:Update(id,candidate);
+    end
+  end
+  return nil,issue("NOT_FOUND","historical snapshot missing");
+end
+
 function H:Update(id, candidate)
 	local ok, err = guard(self);
 	if not ok then return nil, err; end
@@ -534,6 +588,8 @@ function H:Update(id, candidate)
 		return nil, issue("INVALID_BUILD", "build refused", rep);
 	end
 	local copy = Util.DeepCopy(candidate);
+	-- Validation and candidate copy must succeed before modifying history.
+	recordPreviousRevision(self.db,cur);
 	if not rep.clean and self.db.active[cur.class] == id then
 		self.db.active[cur.class] = nil;      -- an active build must stay conflict-free
 	end

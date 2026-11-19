@@ -85,3 +85,25 @@ Lot 3 : recette client C1-C18 (`RECETTE_CLIENT_LOT3.md`) : chargement/`ADDON_LOA
 ## Transfert vers GPT
 * Le pilotage du code, de la direction artistique et de l'UI passe à GPT. Point d'entrée : `docs/HANDOFF_TO_GPT.md`. Branche de travail : `dev/ultimate-ui` ; `main` = état stable.
 * Kevin a explicitement refusé le rendu du prototype v2 (lab) : thème NON validé, non appliqué au planner.
+
+
+## 2026-11-18 — Jewellery effects research and implementation (GPT)
+
+- User validation: Ultimate UI v3 textures now render and are visually distinct in Reborn, but remain unpolished; `main` unchanged. Panel noise/corner rivets softened in `tools/make_ultimate_art.py` (not yet reviewed in client).
+- Compared public Reborn data/addon API docs and AlexEnotov/ASRAdvisor. Official `jewelry.json` does not contain bonus data; ASRAdvisor extracts behavior/base metadata from the locally installed game and combines it with `AZS_GEN` and runtime tables.
+- Added independent `tools/extract_jewelry_local.py`: read-only executable scan, strict key/slot reconciliation with local official jewelry.json, fail-closed output. Neither third-party code nor raw executable/game data is committed.
+- Added `GeneratedJewelryMechanics.lua` empty placeholder, `JewelryEffects.lua` display adapter, controller inspector integration, optional `RBP_GAME_EXE` packaging (generated metadata confined to `.local/generated/`), and synthetic extraction/Lua tests.
+- New descriptions display confirmed effect categories and raw game base values when locally generated metadata exists, clearly labeled NOT live/run values. Without metadata, existing unavailable fallback remains.
+- **Not yet executed:** local binary extraction against user's game; Lua 5.1 full-suite, actual 0.4.4 post-change packaging, new UI effects in client. No new release and no autopick/autobanish.
+- **Next:** test against the installed Reborn executable and its matching public snapshot, then inspect special/conditional effect formulas for accurate FR presentation. Validate visually after regenerating softer fantasy textures.
+
+## 2026-11-18 — Lot 3.6 (GPT direct on GitHub)
+
+- Root cause of missing ring/trinket bonuses: the public `jewelry.json` describes identity, not effect coefficients. ASRAdvisor merges `AZS_GEN` with locally extracted game mechanics already bundled in its pre-generated `Mechanics.lua`. Our public-source preview bundled an intentionally empty `GeneratedJewelryMechanics.lua`.
+- Our **independent** `tools/extract_jewelry_local.py` now parses `slot`, `behavior`, `base`, `effects`, `special` from the installed client using read-only, bounded parsing. It validates identity and slot against the official JSON and atomically writes the Lua output under ignored `.local/generated`.
+- Local game/catalog mismatch yields clearly reported partial coverage (at least 30 valid entries, no unknown/wrong-slot records); `--require-complete` enforces every key for a stricter release. Nothing is silently invented.
+- `JewelryEffects.lua` supports passive and conditional metadata with cautious units, native text for uniquely matched equipped items, and source/coverage diagnostics. `/rbp diag` reports n/N metadata, and version comes from the installed `.toc`.
+- Windows recipe: `tools/build_local_equipment_recipe.ps1` generates a **private local** ZIP without modifying the game or committing extracted files. Version staged: `0.4.7-alpha-equipment`.
+- CI checks on the pre-version-change implementation succeeded (source checks and full Lua 5.1 / public-data private-preview workflow, runs 44206032445 and 44206032438). Subsequent commits only change version and recipe documentation; final run validation pending.
+- **Not tested:** actual extraction against Kevin's Windows executable, actual jewelry values in-game, full visual sign-off. Main untouched, PR #1 remains draft, no release.
+- Detailed implementation/recipe: `docs/JEWELRY_LOT36_RECETTE.md`.

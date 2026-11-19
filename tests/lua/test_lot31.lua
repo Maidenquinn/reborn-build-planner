@@ -248,6 +248,8 @@ return function(H)
 		local ed = e.ui.ed;
 		eq(e.c:EditorStatus(), "repair");
 		e.c:ToggleAdvanced();
+		ok(ed.nt.previewNotes:IsShown(), "notes overview comes first");
+		e.world.click(ed.nt.switch);
 		ok(ed.nt.avoid[1].conv:IsVisible(), "convert offered");
 		eq(e.c:Editor().draft.phases[1].banish, { "execute" }, "still untouched after opening");
 		no(e.c:Activate(id), "cannot follow while in conflict");
@@ -280,25 +282,24 @@ return function(H)
 	-- ------------------------------------------------------------------ look
 	test("3.1B look: the window and the dialog are opaque, above the HUD, with a separate panel per zone", function()
 		local e = boot();
-		eq(e.root.strata, "DIALOG");
-		ok(e.root.backdrop.bgFile:find("WHITE8X8", 1, true), "solid background texture, not the translucent dialog tile");
-		ok(e.root.backdropColor and e.root.backdropColor[4] >= 0.97, "alpha " .. tostring(e.root.backdropColor and e.root.backdropColor[4]));
+		eq(e.root.strata, "FULLSCREEN_DIALOG");
+		ok(e.root.nine and e.root.nine.file == "window_nine", "main window uses the opaque fantasy shell");
 		local m = e.G.RebornBuildPlannerModal;
 		eq(m.strata, "FULLSCREEN_DIALOG");
-		ok(m.backdropColor and m.backdropColor[4] >= 0.97);
+		ok(m.nine and m.nine.file == "window_nine", "modal uses same opaque themed shell");
 		ok(m.level > e.root.level, "dialog above the window");
 		for name, v in pairs({ library = e.ui.leftPanel, editor = e.ui.centre, inspector = e.ui.rightPanel, import = e.ui.views.import, export = e.ui.views.export }) do
-			ok(v.backdropColor and v.backdropColor[4] == 1, name .. " panel is opaque");
+			ok(v.nine and v.nine.file == "ultimate_panel", name .. " uses its independent framed panel");
 		end
-		local bg, pn = e.root.backdropColor, e.ui.leftPanel.backdropColor;
-		ok(pn[1] + pn[2] + pn[3] > bg[1] + bg[2] + bg[3] + 0.1, "panel contrasts with the window");
+		no(e.root.nine.file == e.ui.leftPanel.nine.file, "window and panel have distinct materials");
 	end);
 
 	test("3.1B look: the main action is coloured, secondary ones are quiet, a disabled button loses its colour; labels stay readable", function()
 		local e = boot(); local id, ed = newEditor(e);
-		pick(e, 1);
-		ok(ed.save:GetText():find("|cffffe6a0", 1, true), "Save is the accent colour while enabled");
-		ok(ed.revert:GetText():find("|cffc9ccd6", 1, true), "Discard is quiet");
+		e.c:AddSpell("whirlwind"); -- a real draft change, unlike merely selecting an item
+		ok(e.c:EditorDirty(), "editing made Save available");
+		ok(ed.save.nine and ed.save.nine.file == "button_primary_nine", "Save has the visible primary theme");
+		ok(ed.revert.nine and ed.revert.nine.file == "button_secondary_nine", "Discard uses a quiet secondary theme");
 		e.world.click(ed.save);
 		no(ed.save:IsEnabled());
 		no(ed.save:GetText():find("|cff", 1, true), "disabled: plain text, greyed by the client");

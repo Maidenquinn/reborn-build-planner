@@ -11,7 +11,7 @@
 -- Media path and lists every file so that this is obvious on a screenshot. No OnUpdate, no timer, no HookScript.
 local ADDON, ns = ...;
 ns = ns or {};
-local T = { mode = "textures" };
+local T = { mode = "textures", surfaces = {} };
 ns.Theme = T;
 
 local WHITE = "Interface\\Buttons\\WHITE8X8";
@@ -22,10 +22,10 @@ T.Media = M;
 
 -- ------------------------------------------------------------------ palette
 T.C = {
-	ink = { 0.035, 0.043, 0.075 }, slate = { 0.090, 0.106, 0.160 }, slate2 = { 0.125, 0.145, 0.215 }, field = { 0.035, 0.043, 0.070 },
-	ivory = { 0.95, 0.92, 0.82 }, mute = { 0.74, 0.76, 0.82 }, dim = { 0.52, 0.54, 0.60 },
-	gold = { 0.93, 0.78, 0.40 }, bronze = { 0.59, 0.45, 0.24 }, bronzeDim = { 0.35, 0.26, 0.14 },
-	blue = { 0.18, 0.34, 0.66 }, green = { 0.45, 0.80, 0.52 }, red = { 0.80, 0.30, 0.26 },
+	ink = { 0.020, 0.050, 0.102 }, slate = { 0.075, 0.122, 0.210 }, slate2 = { 0.115, 0.180, 0.290 }, field = { 0.025, 0.050, 0.090 },
+	ivory = { 0.92, 0.96, 1 }, mute = { 0.73, 0.83, 0.94 }, dim = { 0.52, 0.64, 0.77 },
+	gold = { 0.71, 0.87, 0.98 }, bronze = { 0.35, 0.61, 0.77 }, bronzeDim = { 0.20, 0.36, 0.56 },
+	blue = { 0.25, 0.52, 0.84 }, green = { 0.48, 0.88, 0.72 }, red = { 0.85, 0.40, 0.43 },
 	rarity = { common = { 0.88, 0.88, 0.92 }, uncommon = { 0.30, 0.90, 0.35 }, rare = { 0.35, 0.62, 1 },
 		epic = { 0.70, 0.40, 0.95 }, legendary = { 1, 0.58, 0.14 } },
 };
@@ -36,10 +36,10 @@ T.FONT = { window = "GameFontNormalLarge", section = "GameFontNormal", name = "G
 
 -- label colour per role; the texture of each role is button_<role>_nine
 T.ROLES = {
-	primary = { text = { 1, 0.93, 0.68 }, flat = { 0.40, 0.30, 0.12 }, border = { 0.87, 0.71, 0.34 } },
-	secondary = { text = { 0.90, 0.90, 0.95 }, flat = { 0.17, 0.19, 0.27 }, border = { 0.49, 0.39, 0.23 } },
+	primary = { text = { 0.95, 0.98, 1 }, flat = { 0.15, 0.35, 0.62 }, border = { 0.50, 0.79, 0.95 } },
+	secondary = { text = { 0.87, 0.93, 1 }, flat = { 0.10, 0.18, 0.31 }, border = { 0.33, 0.53, 0.72 } },
 	danger = { text = { 1, 0.80, 0.76 }, flat = { 0.34, 0.12, 0.11 }, border = { 0.69, 0.29, 0.24 } },
-	selected = { text = { 1, 0.96, 0.82 }, flat = { 0.15, 0.27, 0.50 }, border = { 0.93, 0.78, 0.40 } },
+	selected = { text = { 0.95, 0.99, 1 }, flat = { 0.16, 0.34, 0.61 }, border = { 0.70, 0.88, 1 } },
 	disabled = { text = { 0.55, 0.57, 0.63 }, flat = { 0.11, 0.12, 0.16 }, border = { 0.21, 0.22, 0.27 } },
 };
 
@@ -56,6 +56,8 @@ T.Mid = mid;
 
 -- texture files of the theme: name -> { pixel size, corner (nine-slice only) }; mirrored by the generator and the tests
 T.FILES = {
+	ultimate_panel = { 256, 20 }, ultimate_corner = { 128 }, ultimate_crest = { 128 }, ultimate_titlebar = { 512 },
+	ultimate_fav_off = { 64 }, ultimate_fav_on = { 64 }, ultimate_class_monk = { 64 }, ultimate_class_dh = { 64 },
 	panel_nine = { 64, 16 }, window_nine = { 128, 28 }, inset_nine = { 32, 6 }, titlebar_nine = { 64, 12, 32 }, tooltip_nine = { 64, 14 },
 	slot_normal_nine = { 32, 8 }, slot_selected_nine = { 32, 8 }, slot_empty_nine = { 32, 8 },
 	button_primary_nine = { 32, 8 }, button_secondary_nine = { 32, 8 }, button_danger_nine = { 32, 8 }, button_selected_nine = { 32, 8 },
@@ -64,7 +66,7 @@ T.FILES = {
 };
 
 -- surface kind -> texture file
-local SURFACE = { window = "window_nine", panel = "panel_nine", inset = "inset_nine", card = "slot_normal_nine", tooltip = "tooltip_nine",
+local SURFACE = { window = "window_nine", panel = "ultimate_panel", inset = "inset_nine", card = "slot_normal_nine", tooltip = "tooltip_nine",
 	titlebar = "titlebar_nine" };
 T.SURFACE = {
 	window = { top = { 0.07, 0.085, 0.14 }, bottom = { 0.035, 0.043, 0.075 } },
@@ -108,6 +110,40 @@ function T.Nine(frame, file, layer)
 	return n;
 end
 
+-- Buttons only need horizontal stretching: 3 regions instead of 9.
+-- Preserves edge proportions and greatly reduces the static widget count.
+-- The caller retains the same :SetFile and .file contract as T.Nine.
+function T.Three(frame, file, layer)
+	local def = assert(T.FILES[file]);
+	local size, c = def[1], def[2];
+	local cut = c / size;
+	local n = { tex = {}, file = file };
+	local function mk(x1, x2)
+		local t = frame:CreateTexture(nil, layer or "BACKGROUND");
+		t:SetTexture(M(file));
+		t:SetTexCoord(x1, x2, 0, 1);
+		n.tex[#n.tex + 1] = t;
+		return t;
+	end
+	local left = mk(0, cut);
+	left:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0);
+	left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0);
+	left:SetWidth(c);
+	local right = mk(1 - cut, 1);
+	right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0);
+	right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0);
+	right:SetWidth(c);
+	local mid = mk(cut, 1 - cut);
+	mid:SetPoint("TOPLEFT", frame, "TOPLEFT", c, 0);
+	mid:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -c, 0);
+	function n:SetFile(nextFile)
+		if self.file == nextFile then return; end
+		self.file = nextFile;
+		for _, t in ipairs(self.tex) do t:SetTexture(M(nextFile)); end
+	end
+	return n;
+end
+
 -- text cut to a pixel budget with an ellipsis (UTF-8 aware; 0.62 x font size per glyph, a little pessimistic)
 function T.Fit(str, px, size)
 	local max = math.floor(px / ((size or 12) * 0.62));
@@ -133,6 +169,7 @@ end
 -- A framed surface. In "textures" mode: a nine-slice file; in "backdrop" mode: the flat 0.4.x look.
 function T.Surface(frame, kind)
 	frame.surfaceKind = kind;
+	T.surfaces[#T.surfaces+1] = frame;
 	if T.mode == "backdrop" then
 		local s = T.SURFACE[kind] or T.SURFACE.panel;
 		local m = mid(s.top, s.bottom);
@@ -142,7 +179,49 @@ function T.Surface(frame, kind)
 		return frame;
 	end
 	frame.nine = T.Nine(frame, SURFACE[kind] or "panel_nine", "BACKGROUND");
+	-- Standard mode follows the game's native dark cards rather than the
+	-- prototype's saturated blue panels. Keep the existing engraved corners
+	-- visible but use a near-black inset in all three main surfaces.
+	if kind=="window" or kind=="panel" or kind=="inset" then
+		for _,piece in ipairs(frame.nine.tex or {}) do
+			piece:SetVertexColor(.82,.80,.72,1);
+		end
+		local inset=kind=="window" and 18 or (kind=="panel" and 11 or 7);
+		frame.standardMatte=frame:CreateTexture(nil,"ARTWORK");
+		frame.standardMatte:SetTexture(WHITE);
+		frame.standardMatte:SetPoint("TOPLEFT",frame,"TOPLEFT",inset,-inset);
+		frame.standardMatte:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",-inset,inset);
+		frame.standardMatte:SetVertexColor(.014,.020,.023,.96);
+	end
 	return frame;
+end
+
+-- Only the painted interiors fade. Never lower a parent Frame's alpha:
+-- that would also fade its labels, icons, outlines and interactive children.
+function T.ApplyBackgroundOpacity(root, opacity)
+  if not root then return end
+  opacity=type(opacity)=="number" and math.max(0,math.min(1,opacity)) or 1;
+  for _,surface in ipairs(T.surfaces) do
+    local node=surface;
+    local inWindow=false;
+    while node do
+      if node==root then inWindow=true;break end
+      node=type(node.GetParent)=="function" and node:GetParent() or nil;
+    end
+    if inWindow then
+      if T.mode=="backdrop" then
+        local palette=T.SURFACE[surface.surfaceKind] or T.SURFACE.panel;
+        local m=mid(palette.top,palette.bottom);
+        surface:SetBackdropColor(m[1],m[2],m[3],opacity);
+      else
+        -- Nine tex[9] is the interior tile; the other 8 are the engraved rim.
+        if surface.nine and surface.nine.tex and surface.nine.tex[9] then
+          surface.nine.tex[9]:SetAlpha(opacity);
+        end
+        if surface.standardMatte then surface.standardMatte:SetAlpha(opacity) end
+      end
+    end
+  end
 end
 
 function T.Frame(parent, w, h, kind, name)
@@ -158,6 +237,18 @@ function T.Window(parent, w, h, name)
 	f:SetFrameStrata("FULLSCREEN_DIALOG");
 	f:SetFrameLevel(100);
 	if f.SetToplevel then f:SetToplevel(true); end
+	if T.mode == "textures" then
+		-- Fantasy corners are decoration only; mouse handling stays on the parent frame.
+		for i, place in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+			local tex = f:CreateTexture(nil, "BORDER");
+			tex:SetTexture(M("ultimate_corner"));
+			tex:SetWidth(42); tex:SetHeight(42);
+			tex:SetPoint(place, f, place, 0, 0);
+			if i == 2 then tex:SetTexCoord(1, 0, 0, 1);
+			elseif i == 3 then tex:SetTexCoord(0, 1, 1, 0);
+			elseif i == 4 then tex:SetTexCoord(1, 0, 1, 0); end
+		end
+	end
 	f:EnableMouse(true);
 	return f;
 end
@@ -175,14 +266,14 @@ function T.Text(parent, font, color, x, y, w, h, justify)
 	return fs;
 end
 
--- section title: gold text, then the ornamented separator texture under it (not a 1 px line)
+-- Section title uses a quiet steel label and subtle fading divider.
 function T.SectionTitle(parent, label, x, y, w)
-	local fs = T.Text(parent, T.FONT.section, C.gold, x, y, w, 16);
+	local fs = T.Text(parent, T.FONT.section, C.mute, x, y, w, 16);
 	fs:SetText(label);
 	local sep = parent:CreateTexture(nil, "ARTWORK");
 	sep:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -(y + 17));
 	sep:SetWidth(w);
-	sep:SetHeight(8);
+	sep:SetHeight(5);
 	if T.mode == "backdrop" then sep:SetTexture(0.35, 0.28, 0.17, 1); sep:SetHeight(1); else sep:SetTexture(M("separator")); end
 	fs.rule = sep;
 	return fs;
@@ -199,9 +290,14 @@ function T.TitleBar(parent, label, x, y, w, h)
 		bar:SetBackdropColor(0.10, 0.11, 0.16, 1);
 		bar:SetBackdropBorderColor(0.35, 0.28, 0.17, 1);
 	else
-		bar.nine = T.Nine(bar, "titlebar_nine", "BACKGROUND");
+		local art = bar:CreateTexture(nil, "BACKGROUND");
+		art:SetTexture(M("ultimate_titlebar")); art:SetAllPoints(bar);
+		local crest = bar:CreateTexture(nil, "ARTWORK");
+		crest:SetTexture(M("ultimate_crest"));
+		crest:SetWidth(28); crest:SetHeight(28); -- restrained small emblem, not a giant RPG crest
+		crest:SetPoint("LEFT", bar, "LEFT", 8, 0);
 	end
-	bar.title = T.Text(bar, T.FONT.window, C.ivory, 0, math.floor(((h or 34) - 16) / 2), w, 18, "CENTER");
+	bar.title = T.Text(bar, T.FONT.window, C.ivory, 43, math.floor(((h or 34) - 16) / 2), w - 52, 18, "LEFT");
 	bar.title:SetText(label or "");
 	return bar;
 end
@@ -228,7 +324,7 @@ function T.Button(parent, label, w, h, role, onClick, name)
 	if T.mode == "backdrop" then
 		b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, tile = false, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } });
 	else
-		b.nine = T.Nine(b, "button_secondary_nine", "BACKGROUND");
+		b.nine = T.Three(b, "button_secondary_nine", "BACKGROUND");
 	end
 	local fs = b.GetFontString and b:GetFontString();
 	if not fs then

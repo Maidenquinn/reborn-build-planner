@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-beta.1 (candidate — non publié, 2026-11-19)
+- Bibliothèque de builds, import/export et aperçu multi-phase, éditeur des 6 sorts (priorité et banish-after) et équipements principaux/alternatifs.
+- Ultimate UI : navigateur de catalogue, statuts mieux alignés, bijoux distincts, panneau Détails à contraste renforcé, consultation des notes avant modification.
+- Suivi live en lecture seule : HUD compact/détaillé, sans sélection ni bannissement automatique.
+- Recette Windows approuvée par le testeur ; validations Lua 5.1 et packaging privé en CI.
+- Préflight structurel compatible avec le format ZIP de l'index Syiana/azs-addons et candidature TOML préparée, non soumise.
+- Publication publique bloquée par la provenance/licence des données du catalogue et par les règles de l'index (pré-releases exclues). Voir docs/BETA_RELEASE_0.5.0.md.
+
 ## Lab 0.4.3-proto2 (Lot 3.5b)
 * Lab v2 : textures TGA originales (19), neuf segments, boutons en relief, états visibles, strata `FULLSCREEN_DIALOG`, bande de contrôle des fichiers, `/rbplab diag` étendu. Planner inchangé.
 

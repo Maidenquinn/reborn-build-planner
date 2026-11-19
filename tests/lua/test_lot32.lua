@@ -98,11 +98,11 @@ return function(H)
 		-- the star on a row
 		local row;
 		for _, r in ipairs(e.ui.lib.rows) do if r.rowId == a then row = r; end end
-		ok(row.star:GetText():find("-", 1, true), "not a favourite: '-'");
+		ok(row.star.tex.texture:find("ultimate_fav_off", 1, true), "outline heart for nonfavorite");
 		e.world.click(row.star);
 		ok(e.h():Meta(a).fav);
 		eq(names(e), { "Alpha", "Charlie", "Bravo" });
-		no(row.star:GetText():find("-", 1, true), "favourite shows '*'");
+		ok(row.star.tex.texture:find("ultimate_fav_on", 1, true), "filled heart for favorite");
 		-- duplicate: a new build, NOT a favourite, never used
 		e.c:Duplicate(a);
 		local copy;
@@ -149,7 +149,8 @@ return function(H)
 		e.c:SetSort("name");
 		eq(names(e), { "A", "B", "C" });
 		eq(e.h():GetSetting("libSort"), "name");
-		e.world.click(e.ui.lib.sortCycle.next);
+		e.world.click(e.ui.lib.sortButton);
+		e.world.click(e.ui.lib.sortOptions[4]); -- last used
 		eq(e.c:Sort(), "used");
 		ok(e.world.hasText("Sort: Last used"), e.texts());
 		local again = reload(e);
@@ -173,7 +174,11 @@ return function(H)
 		local w, m = e.c:Create("Same", "warrior"), e.c:Create("Same", "mage");
 		e.world.type(e.ui.lib.search, "same");
 		eq(#e.c:Rows(), 2);
-		e.world.click(e.ui.lib.classCycle.next);
+		e.world.click(e.ui.lib.classButton);
+		local which;
+		for i, row in ipairs(e.ui.lib.classOptions) do if row.classKey == "warrior" then which = i; end end
+		ok(which);
+		e.world.click(e.ui.lib.classOptions[which]);
 		eq(#e.c:Rows(), 1);
 		eq(e.c:Rows()[1].id, w);
 		local row = e.ui.lib.rows[1];

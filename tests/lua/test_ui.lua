@@ -60,6 +60,151 @@ return function(H)
 		ok(f ~= nil, "the loader frame unregistered ADDON_LOADED");
 	end);
 
+	test("Lot4: real event subscriptions drive compact HUD and native card overlay without actions", function()
+		local events={};
+		local e=boot({preset={
+			AZS={On=function(event,fn) events[event]=fn end},
+			AZS_RUN={ph="playing"}, AZS_ZONE={hub=0,run="run-a"},
+			AZS_SPELLS={{key="whirlwind",rank=1}}, AZS_GEAR={},
+			AZS_CARDS={kind="spell",cards={{key="whirlwind"},{key="execute"},{key="rend"}}}
+		}});
+		ok(e.ns.Runtime.ready,"live API available");
+		ok(type(events.AZSSPELLS)=="function" and type(events.AZSCARDS)=="function");
+		local h=e.h();local id=assert(h:Create({name="Warrior plan",class="warrior"}));
+		local b=assert(e.ns.BuildModel.AddSpell(h:Get(id),1,"whirlwind",nil,e.ns.catalog));
+		b=assert(e.ns.BuildModel.AddSpell(b,1,"execute",nil,e.ns.catalog));
+		b=assert(e.ns.BuildModel.SetBanishAfter(b,1,"execute",true,e.ns.catalog));
+		ok(h:Update(id,b));ok(e.c:Activate(id));
+		events.AZSSPELLS();
+		eq(e.ns.Runtime.progress.achieved,1);
+		ok(e.ns.Runtime.hud:IsShown(),"compact tracker visible in a real run");
+		ok(h:SetSetting("trackerOpacity",0));
+		events.AZSSPELLS();
+		local tracker=e.ns.TrackHUD.frame;
+		eq(tracker.backdropColor[4],0,"only native tracker background is transparent");
+		eq(tracker.art.alpha,0,"tracker background art fades to zero");
+		ok(tracker.alpha==nil or tracker.alpha==1,"whole tracker stays fully opaque");
+		ok(tracker.title.alpha==nil or tracker.title.alpha==1,"labels stay legible");
+		ok(h:SetSetting("trackerOpacity",1));events.AZSSPELLS();
+		eq(tracker.backdropColor[4],1,"HUD background becomes solid again");
+
+		ok(e.ns.TrackHUD.frame.openButton,"HUD has a dedicated planner button");
+		e.world.click(e.ns.TrackHUD.frame.openButton);
+		ok(e.ns.ui:IsShown(),"planner opens directly from the live HUD");
+
+		eq(e.ns.TrackHUD.frame.rows[1].state.text,"R1","acquired spell shows its actual rank");
+		e.G.AZS_SPELLTIPS={whirlwind="Hits the nearest enemy for 175 arcane damage."};
+		events.AZSSPELLTIP();
+		eq(e.ns.TrackHUD.frame.rows[1].spellTip.native,
+		"Hits the nearest enemy for 175 arcane damage.","tooltip uses authoritative AZSSPELLTIP");
+		ok(e.ns.TrackHUD.frame.rows[1].spellTip.rank==1);
+
+		local cardRoot=e.G.CreateFrame("Frame","AZSCardsFrame",e.G.UIParent);
+		cardRoot:Show();
+		for i=1,3 do e.G.CreateFrame("Frame","AZSCard"..i,cardRoot); end
+		events.AZSCARDS();
+		ok(e.ns.TrackHUD.marks[1] and e.ns.TrackHUD.marks[1]:IsShown(),"wanted card outlined");
+		ok(e.ns.TrackHUD.marks[2] and e.ns.TrackHUD.marks[2]:IsShown(),"unowned banish-after remains wanted");
+		ok(e.ns.TrackHUD.marks[1].mouse==false,"overlay cannot capture card clicks");
+		local goldMark=e.ns.TrackHUD.marks[1];
+		eq(#goldMark.rim,8,"ornate card border has four corners and four edges");
+		eq(#goldMark.halo,8,"soft halo uses same eight decorative slices");
+		ok(goldMark.shineEnabled,"recommended build card activates shape-matched breathing glow");
+		ok(goldMark.rim[1].texture:find("elwynn_material_v3",1,true)~=nil or
+		   goldMark.rim[1].texture:find("window_nine",1,true)~=nil,
+		   "render uses decorative material, never WHITE8X8 fill strips");
+		ok(goldMark.halo[1].coords~=nil,"glow segments use corner-preserving atlas UVs");
+		ok(goldMark.rim[1].coords~=nil,"frame corners sample decorative material");
+		eq(#goldMark.ember,8,"second ornate ADD rim highlights the engraving at pulse peak");
+		eq(goldMark.shineStrength,1,"BUILD is allowed a clearly visible external halo");
+		ok(goldMark.haloFrame.points and #goldMark.haloFrame.points>=2,
+		  "halo frame extends beyond decorative rim");
+		ok(type(goldMark.scripts.OnUpdate)=="function","visible card owns its animation");
+		goldMark.scripts.OnUpdate(goldMark,0);
+		local low=goldMark.halo[1].alpha;
+		goldMark.scripts.OnUpdate(goldMark,1/120);
+		eq(goldMark.halo[1].alpha,low,"tiny frame delta does not force texture alpha updates");
+		goldMark.scripts.OnUpdate(goldMark,1);
+		local high=goldMark.halo[1].alpha;
+		ok(high>low+.25,"halo opacity changes visibly throughout the pulse");
+		eq(goldMark.rim[1].vertex[4],.95,"static ornate frame remains steady");
+		ok(goldMark.mouse==false,"gold rim cannot block native card clicks");
+
+		local reroll=e.G.CreateFrame("Button","AZSCardsReroll",cardRoot);
+		local skip=e.G.CreateFrame("Button","AZSCardsSkip",cardRoot);
+		reroll:Show();skip:Show();
+		e.G.AZS_RUN.gold=300;
+		e.G.AZS_CARDS={kind="spell",cards={{key="rend"}},rr=0,rc=30};
+		events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),true,"reroll gold frame when no build cards");
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),false,"skip not highlighted while reroll available");
+		e.G.AZS_RUN.gold=0;events.AZSRUN();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false);
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),true,"skip highlighted when reroll unaffordable");
+		-- Even free rerolls are not suggested when the native control is off.
+		reroll.off=true;e.G.AZS_CARDS.rr=3;events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false,"disabled reroll is ignored");
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),true);
+		reroll.off=nil;
+		-- Jewelry offers use the same fallback rules as spell offers.
+		local firstJewel=e.ns.catalog.data.jewelry[1].key;
+		e.G.AZS_CARDS={kind="jewel",cards={{key=firstJewel}},rr=1,rc=200};
+		events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),true,"unwanted jewelry offers highlight reroll");
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),false);
+
+		e.G.AZS_CARDS={kind="spell",cards={{key="whirlwind"}},rr=2,rc=0};
+		events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false,"no fallback while wanted card offered");
+		eq(e.ns.TrackHUD.actions.skip.frame:IsShown(),false);
+		e.G.AZS_CARDS={kind="spell",cards={{key="totally_unknown_spell"}},rr=2,rc=0};
+		events.AZSCARDS();
+		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),false,"unknown cards do not trigger false fallback");
+		e.G.AZS_CARDS={kind="spell",cards={{key="whirlwind"},{key="execute"},{key="rend"}}};
+		events.AZSCARDS();
+
+		-- Ban confirmation is observational only: do not mark a spell until
+		-- the native offer acknowledges one consumed banishment.
+		e.G.AZS_CARDS={kind="spell",bn=3,cards={{key="execute"}}};
+		e.G.AZS_ZONE.run="run-a";
+		e.ns.Runtime.ObserveBanishCommand("AZS","banish 1");
+		eq(e.ns.Runtime.bans.execute,nil,"ban not yet acknowledged");
+		e.G.AZS_CARDS.bn=2;events.AZSCARDS();
+		eq(e.ns.Runtime.bans.execute,true,"native decrement confirms ban");
+		eq(#e.ns.Runtime.progress.banishedSpells,1);
+		e.G.AZS_ZONE.run="run-b";events.AZSZONE();
+		eq(e.ns.Runtime.bans.execute,nil,"next run clears previous bans");
+		e.G.AZS_ZONE.run="run-a";events.AZSZONE();
+		e.G.AZS_CARDS={kind="spell",cards={{key="whirlwind"},{key="execute"},{key="rend"}}};events.AZSCARDS();
+		-- In-game build selection must use the same validated active pointer as the planner.
+		local second=assert(h:Create({name="Second warrior plan",class="warrior"}));
+		ok(e.ns.Runtime.SelectBuild(second));
+		eq(h:GetActive("warrior"),second);
+		eq(e.ns.Runtime.Active().name,"Second warrior plan");
+		ok(e.ns.Runtime.SelectBuild(id));
+		eq(h:GetActive("warrior"),id);
+		local menu=e.ns.TrackHUD.frame.menu;
+		ok(menu and menu.options and #menu.options==2,"tracked build selector populated");
+		eq(e.ns.Runtime.ToggleCompact(),true);
+		eq(h:GetSetting("trackerCompact"),true);
+		eq(e.ns.TrackHUD.frame:GetHeight(),167);
+		eq(e.ns.Runtime.ToggleCompact(),false);
+		eq(e.ns.TrackHUD.frame:GetHeight(),272);
+		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
+		eq(h:GetSetting("trackerTheme"),"elwynn");
+		eq(e.ns.Runtime.CycleStage(),2,"HUD moves to next manually selected phase");
+		eq(e.ns.Runtime.progress.stage,2);
+		for _=1,3 do e.ns.Runtime.CycleStage(); end
+		eq(e.ns.Runtime.progress.stage,1,"cycles 4 stages without gameplay assumptions");
+		eq(e.ns.Runtime.ToggleHud(),false);
+		no(e.ns.Runtime.hud:IsShown(),"HUD can be disabled separately");
+		ok(e.ns.TrackHUD.marks[1]:IsShown(),"card marks remain informational when HUD hidden");
+		e.G.AZS_ZONE.hub=1;events.AZSZONE();
+		no(e.ns.Runtime.hud:IsShown(),"no phantom tracker in hub");
+		no(e.ns.TrackHUD.marks[1]:IsShown(),"stale proposed cards cleared in hub");
+		eq(h:Get(id).name,"Warrior plan","tracking does not edit build data");
+	end);
+
 	test("3A: only the planned globals are written; nothing foreign is read", function()
 		local e = boot();
 		e.open();
@@ -69,8 +214,60 @@ return function(H)
 		end
 		local reads = {};
 		for k in pairs(e.sb.reads) do reads[#reads + 1] = k; end
-		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" then table.remove(reads, i); end end
+		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" or reads[i] == "GetAddOnMetadata" or reads[i] == "AZS" then table.remove(reads, i); end end
 		eq(reads, {}, "non-client globals read");
+	end);
+
+	test("3A: fifteen-language dropdown, automatic client language and fallback persist", function()
+		local e = boot({ locale = "frFR" }); e.open();
+		eq(e.ns.Locale.lang, "frFR");
+		eq(e.ns.Locale.Selection(), "auto");
+		eq(#e.ns.Locale.LANGUAGES, 15);
+		ok(e.ui.languageButton:GetText():find("Automatic", 1, true));
+		e.world.click(e.ui.languageButton);
+		ok(e.ui.languageMenu:IsShown() and #e.ui.languageMenu.buttons == 15);
+		ok(e.ui.languageDismiss:IsShown(), "outside-click catcher is active when menu opens");
+		ok(e.ui.languageDismiss:GetFrameLevel() < e.ui.languageMenu:GetFrameLevel(), "menu above click-away catcher");
+		local en = e.ui.languageMenu.buttons[2];
+		e.world.click(en);
+		eq(e.ns.Locale.lang, "enUS");
+		eq(e.ns.Locale.Selection(), "enUS");
+		eq(e.h():GetSetting("lang"), "enUS");
+		no(e.ui.languageMenu:IsShown(), "menu closes after selection");
+		no(e.ui.languageDismiss:IsShown(), "click-away catcher removed after selection");
+		e.world.click(e.ui.languageButton);
+		e.world.click(e.ui.languageMenu.buttons[5]); -- German, not yet translated
+		eq(e.ns.Locale.lang, "deDE");
+		eq(e.ns.Locale.T("Search:"), "Suchen:", "German navigation uses its starter dictionary");
+		eq(e.ns.Locale.T("Wanted spells, in priority order (%d/%d)"), "Wanted spells, in priority order (%d/%d)", "untranslated German keys fall back to English");
+		local nextWorld = reload(e, { locale = "frFR" });
+		eq(nextWorld.ns.Locale.lang, "deDE", "explicit locale remains selected");
+		nextWorld.open();
+		nextWorld.world.click(nextWorld.ui.languageButton);
+		nextWorld.world.click(nextWorld.ui.languageMenu.buttons[1]); -- Automatic
+		eq(nextWorld.ns.Locale.Selection(), "auto");
+		eq(nextWorld.ns.Locale.lang, "frFR");
+		eq(nextWorld.h():GetSetting("lang"), "auto");
+	end);
+
+	test("3A: unsaved changes modal has explicit visible footer with 3 actions above main window", function()
+		local e = boot({ locale = "frFR" }); e.open();
+		e.ui:ShowModal({ title = "Modifications non enregistrées",
+			body = "Ce build a été modifié.", buttons = { "Enregistrer", "Ignorer", "Continuer" },
+			cancelIndex = 3, onChoose = function() end });
+		local m = e.ui.modal;
+		ok(m:IsShown() and m.footer and m.footer:IsShown());
+		ok(m.dim and m.dim:IsShown(), "modal draws a focus scrim");
+		ok(m.dim:GetFrameLevel() < m:GetFrameLevel(), "scrim below dialog");
+		ok(m.footer:GetFrameLevel() > e.root:GetFrameLevel(), "footer above planner");
+		for i = 1, 3 do
+			ok(m.b[i]:IsShown(), "action " .. i .. " visible");
+			ok(m.b[i]:GetFrameLevel() > m.footer:GetFrameLevel(), "action above footer");
+			ok(#m.b[i]:GetText() > 0, "action has a label");
+		end
+		e.ui:ModalCancel();
+		no(m:IsShown());
+		no(m.dim:IsShown(), "focus scrim cleared after cancel");
 	end);
 
 	test("3A: command collisions are left alone", function()
@@ -93,10 +290,11 @@ return function(H)
 		e.G.SlashCmdList.REBORNPLANNER("toggle");
 		ok(root:IsShown());
 		e.G.SlashCmdList.REBORNPLANNER("diag");
-		ok(e.world.chat[#e.world.chat]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat]);
+		ok(e.world.chat[#e.world.chat - 2]:find("storage CREATED", 1, true), e.world.chat[#e.world.chat - 2]);
+			ok(e.world.chat[#e.world.chat]:find("bijoux :", 1, true));
 		e.G.SlashCmdList.REBORNPLANNER("what");
 		ok(e.world.chat[#e.world.chat]:find("Usage", 1, true));
-		eq(e.root.strata, "DIALOG");
+		eq(e.root.strata, "FULLSCREEN_DIALOG", "fantasy theme must remain above the game HUD");
 		ok(e.root.clamped, "window is clamped to the screen");
 	end);
 
@@ -106,7 +304,8 @@ return function(H)
 		local en = boot({ locale = "enUS" }); en.open();
 		ok(en.world.hasText("Search:") and en.world.hasText("Create a build"));
 		local de = boot({ locale = "deDE" }); de.open();
-		ok(de.world.hasText("Search:"), "unsupported locale falls back to English");
+		ok(de.world.hasText("Suchen:"), "German has a starter translation");
+		ok(de.world.hasText("Create a build") == false, "translated navigation label is used");
 		-- the saved choice wins over the client locale
 		local e = boot({ locale = "frFR" });
 		e.h():SetSetting("lang", "enUS");
@@ -148,6 +347,53 @@ return function(H)
 		eq(e.h():GetActive("mage"), nil, "creating never activates");
 	end);
 
+	test("3B: empty editor has no floating separators, hidden slots or inspector lines", function()
+		local e = boot(); e.open();
+		ok(e.ui.ed.empty:IsShown());
+		ok(e.ui.ed.emptyMark:IsShown() and e.ui.ed.emptyHint:IsShown(), "centered empty state present");
+		ok(e.ui.ed.emptyCreate:IsShown(), "central create build action available");
+		no(e.ui.ed.spellHead.rule:IsShown(), "spell line hidden with title");
+		no(e.ui.ed.equipHead.rule:IsShown(), "equipment line hidden with title");
+		no(e.ui.ed.nt.head.rule:IsShown(), "advanced section separator hidden");
+		no(e.ui.det.head.rule:IsShown(), "detail separator hidden");
+		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
+			no(e.ui.ed.groups[g].sep:IsShown(), g .. " vertical guide hidden");
+		end
+		local id = e.c:Create("Existing build", "warrior");
+		e.ui:OpenEditor(id);
+		no(e.ui.ed.emptyCreate:IsShown(), "empty-state CTA removed when editing");
+		ok(e.ui.ed.spellHead.rule:IsShown(), "spell line restored after opening build");
+		ok(e.ui.ed.equipHead.rule:IsShown(), "equipment line restored after opening build");
+		for _, g in ipairs({ "rings", "trinkets", "amulets" }) do
+			ok(e.ui.ed.groups[g].sep:IsShown(), g .. " vertical guide restored");
+		end
+		e.c:CloseEditor();
+		no(e.ui.ed.spellHead.rule:IsShown(), "spell divider hidden again");
+	end);
+
+	test("3B: new-build modal input and class arrows sit above the opaque window", function()
+		local e = boot({ classToken = "MAGE", className = "Mage" }); e.open();
+		e.ui:AskCreate();
+		local m = e.ui.modal;
+		ok(m.form and m.form:IsShown(), "separate high-level form exists");
+		ok(m.form:GetFrameLevel() > m:GetFrameLevel(), "form above opaque modal");
+		ok(m.edit:IsShown() and m.edit:GetFrameLevel() > m.form:GetFrameLevel(), "visible input above form");
+		ok(m.editSurface and m.editSurface:IsShown(), "visible inset behind input");
+		ok(m.editSurface:GetFrameLevel() < m.edit:GetFrameLevel(), "field in front of its inset");
+		ok(m.cycle.prev:IsShown() and m.cycle.next:IsShown(), "both class arrows available");
+		ok(m.cycle.prev:GetFrameLevel() > m.form:GetFrameLevel(), "previous arrow above surface");
+		ok(m.cycle.next:GetFrameLevel() > m.form:GetFrameLevel(), "next arrow above surface");
+		local starting = m.class;
+		e.world.click(m.cycle.next);
+		no(m.class == starting, "cycler changes class in create modal");
+		e.world.type(m.edit, "Mage test");
+		e.world.click(m.b[1]);
+		local created = e.c.state.selectedId;
+		ok(created ~= nil, "button submits entered name");
+		eq(e.h():Get(created).name, "Mage test");
+		eq(e.h():Get(created).class, m.class);
+	end);
+
 	local function populate(e)
 		local ids = {};
 		for _, spec in ipairs({ { "W one", "warrior" }, { "W two", "warrior" }, { "M one", "mage" }, { "R one", "rogue" } }) do
@@ -161,10 +407,18 @@ return function(H)
 		local e = boot(); e.open();
 		local ids = populate(e);
 		ok(e.world.hasText("W one") and e.world.hasText("M one") and e.world.hasText("R one"));
-		e.world.click(e.ui.lib.classCycle.next);
+		e.world.click(e.ui.lib.classButton);
+		ok(e.ui.lib.classMenu:IsShown(), "class dropdown opens");
+		local keys = e.c:ClassKeys();
+		local warriorIndex = nil;
+		for i, key in ipairs(keys) do if key == "warrior" then warriorIndex = i + 1; end end
+		ok(warriorIndex, "warrior is selectable");
+		e.world.click(e.ui.lib.classOptions[warriorIndex]);
 		eq(e.c.state.classFilter, "warrior");
 		ok(e.world.hasText("W two") and not e.world.hasText("M one"), e.texts());
-		e.world.click(e.ui.lib.classCycle.prev);
+		no(e.ui.lib.classMenu:IsShown(), "class dropdown closes on selection");
+		e.world.click(e.ui.lib.classButton);
+		e.world.click(e.ui.lib.classOptions[1]);
 		eq(e.c.state.classFilter, nil);
 		for _ = 1, 20 do e.c:Create("many", "paladin"); end
 		e.c:SetView("library");
@@ -176,6 +430,71 @@ return function(H)
 		eq(e.c.state.libOffset, max, "clamped");
 		e.world.click(e.ui.lib.rows[1]);
 		eq(e.c.state.selectedId, e.ui.lib.rows[1].rowId);
+	end);
+
+	test("3B: class artwork, readable class colors and per-row favorite hearts", function()
+		local e = boot(); e.open();
+		local ids = populate(e);
+		local lib, visuals = e.ui.lib, e.ns.ClassVisual;
+		local first = lib.rows[1];
+		ok(first.classIcon and first.classIcon.texture, "class texture assigned to row");
+		ok(first.star.tex and first.star.tex.texture:find("ultimate_fav_off", 1, true),
+			"outline heart means not favourite");
+		local d = first.rowData;
+		local r, g, b = visuals.Color(d.class);
+		eq(first.name.color, { r, g, b }, "name uses appropriate class color");
+		local rowId = first.rowId;
+		e.world.click(first.star);
+		eq(e.h():Meta(rowId).fav, true, "heart toggles favourite without selecting build");
+		ok(e.ui.lib.rows[1].star.tex.texture:find("ultimate_fav_on", 1, true),
+			"filled heart is displayed after favorite click");
+		local path = visuals.Icon("demonhunter", e.c:Catalog());
+		eq(path, "Interface\\AddOns\\RebornBuildPlanner\\Media\\ultimate_class_dh", "demon-hunter icon is bundled and deterministic");
+		local monk = visuals.Icon("monk", e.c:Catalog());
+		eq(monk, "Interface\\AddOns\\RebornBuildPlanner\\Media\\ultimate_class_monk", "monk icon is bundled and deterministic");
+	end);
+
+	test("3B: banish-after remains a requested spell with distinct red editor/browser treatment", function()
+		local e = boot(); e.open();
+		local id = e.c:Create("Later ban", "warrior");
+		e.ui:OpenEditor(id);
+		local spell = e.c:Catalog():SpellsOfClass("warrior")[1];
+		ok(spell, "class spell available");
+		e.c:AddSpell(spell);
+		e.c:ToggleBanishAfter(spell);
+		local row = e.ui.ed.spells[1];
+		ok(row.afterMark:IsShown(), "editor red strip shown");
+		eq(row.tog.role, "danger", "red banish-after action");
+		ok(row.bg and row.bg:IsShown(), "editor keeps a visible background");
+		local found;
+		for _, r in ipairs(e.ui.bs.rows) do
+			if r.tipKey == spell then found = r; break end
+		end
+		ok(found, "requested spell appears in browser");
+		ok(found.afterMark:IsShown(), "browser red strip shown");
+		ok(found.tag.text:find("Banish after", 1, true), "browser explicitly states banish after");
+		e.c:ToggleBanishAfter(spell);
+		no(row.afterMark:IsShown(), "editor strip removed after toggle");
+		no(found.afterMark:IsShown(), "browser strip removed after toggle");
+	end);
+
+	test("3B: sort dropdown saves selection; all menu choices are direct and close on outside click", function()
+		local e = boot(); e.open(); populate(e);
+		local lib = e.ui.lib;
+		e.world.click(lib.sortButton);
+		ok(lib.sortMenu:IsShown() and lib.dismiss:IsShown());
+		eq(#lib.sortOptions, 5);
+		e.world.click(lib.sortOptions[5]); -- class
+		eq(e.c:Sort(), "class");
+		eq(e.h():GetSetting("libSort"), "class");
+		no(lib.sortMenu:IsShown());
+		e.world.click(lib.sortButton);
+		e.world.click(lib.dismiss);
+		no(lib.sortMenu:IsShown(), "outside click dismisses menu");
+		e.world.click(lib.sortButton);
+		e.world.click(lib.sortOptions[2]); -- created
+		eq(e.c:Sort(), "created");
+		eq(e.h():GetSetting("libSort"), "created");
 	end);
 
 	test("3B: duplicate, rename, activate / stop following, status shown", function()
@@ -301,8 +620,11 @@ return function(H)
 		e.world.click(ed.spells[1].del);
 		eq(#e.c:Editor().draft.phases[1].spells, 5);
 		ok(e.world.hasText("Spells to acquire, by priority (5/6)"), e.texts());
-		-- the avoid list is edited in the advanced block
+		-- Notes open read-only; the avoid-list editor is an explicit second step.
 		e.c:ToggleAdvanced();
+		ok(ed.nt.previewNotes:IsShown(), "advanced opens the notes overview");
+		no(ed.nt.notes.scroll:IsShown(), "editor stays hidden until requested");
+		e.world.click(ed.nt.switch);
 		ok(ed.nt.avoid[1].frame:IsShown());
 		e.world.click(ed.nt.avoid[1].del);
 		eq(#e.c:Editor().draft.phases[1].banish, 2);
@@ -342,6 +664,9 @@ return function(H)
 			for j, cell in ipairs(ed.groups[g].cells) do ok(cell:IsVisible(), g .. j); end
 		end
 		ok(e.world.hasText("Main 1") and e.world.hasText("Alt. 1"), e.texts());
+		-- Long status labels have reserved space rather than overlapping the item name.
+		ok(e.ui.bs.rows[1].tag:GetWidth() >= 98, "browser status column is legible");
+		ok(e.ui.bs.rows[1].name:GetWidth() <= 200, "browser item title does not overlap its status");
 		-- clicking an empty alternative ring slot: catalogue = rings, target = that slot, visible
 		e.world.click(ed.groups.rings.cells[3]);
 		eq(e.c:Editor().cat, "rings");
@@ -386,6 +711,11 @@ return function(H)
 	test("3C: notes, link, talents (advanced block); kept data is listed and never dropped by a save", function()
 		local e = boot(); local id, ed = openNew(e);
 		e.c:ToggleAdvanced();
+		ok(ed.nt.previewNotes:IsShown(), "notes overview is visible first");
+		no(ed.nt.notes.surround:IsShown(), "edit field frame cannot cover the note preview");
+		e.world.click(ed.nt.switch);
+		ok(ed.nt.notes.surround:IsShown(), "notes edit frame is shown only in edit mode");
+		ok(ed.nt.notes.scroll:IsShown(), "editable notes require an explicit click");
 		e.world.type(ed.nt.notes, "Ligne 1\nLigne 2 \195\169");
 		e.world.type(ed.nt.link, "https://azreborn.com/planner/warrior");
 		e.world.type(ed.nt.talents, "10203-000-0110");
@@ -393,6 +723,13 @@ return function(H)
 		eq(d.phases[1].notes, "Ligne 1\nLigne 2 \195\169");
 		eq(d.phases[1].link, "https://azreborn.com/planner/warrior");
 		eq(d.talents, "10203-000-0110");
+		e.world.click(ed.nt.switch);
+		ok(ed.nt.previewNotes:GetText():find("Ligne 1",1,true), "overview displays saved draft notes");
+		no(ed.nt.notes.surround:IsShown(), "notes preview remains readable after editing");
+		ok(ed.nt.readingMatte:IsShown(), "note preview has its own opaque reading surface");
+		ok(ed.nt.previewLink:IsShown(), "existing link is available in the overview");
+		e.world.click(ed.nt.previewLink);
+		ok(ed.nt.link:IsShown(), "URL is selectable for Ctrl+C without an unsupported browser API");
 		ok(e.world.hasText("No hidden data"));
 		-- an imported build with hidden data (stats, rank goal, ext, 2nd stage)
 		local raw = { name = "Rich", class = "warrior", phases = { { spells = { { key = "whirlwind", mode = "rank", rank = 3 } }, stats = { damage = 50 }, notes = "n" },
@@ -403,6 +740,7 @@ return function(H)
 		ok(e.c:ShowAllPhases(), "an imported build with several stages shows them at once");
 		ok(ed.phaseTabs[2]:IsVisible());
 		e.c:ToggleAdvanced();
+		e.world.click(ed.nt.switch);
 		local hidden = e.c:HiddenData();
 		ok(#hidden >= 2, "hidden data listed: " .. H.fmt(hidden));
 		ok(e.world.hasText("kept"), e.texts());
@@ -564,9 +902,10 @@ return function(H)
 		local before = e.h():Counts().builds;
 		analyze(e, GOOD);
 		ok(e.world.hasText("Imported \195\169"), e.texts());
-		ok(e.world.hasText("Ready to import"));
-		ok(e.world.hasText("2 spell(s)"), e.texts());
-		ok(e.world.hasText("Mid Game") or e.world.hasText("Mid"), e.texts());
+		ok(e.world.hasText("Locally valid"),"decoded build validated locally");
+		ok(e.world.hasText("Whirlwind") and e.world.hasText("Execute"),"spell goals shown");
+		ok(e.ui.im.classCycle.label:GetText():find("1/4",1,true),"first phase shown");
+		ok(e.ui.im.nameEdit:GetText() == "Imported \195\169","decoded build name is prefilled");
 		eq(e.h():Counts().builds, before, "preview must not save");
 		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
 		eq(e.h():Counts().builds, before + 1);
@@ -576,6 +915,34 @@ return function(H)
 		eq(e.c.state.view, "editor");
 		ok(e.world.hasText("Imported (not active)"), e.texts());
 		eq(e.c:ImportState(), nil);
+	end);
+
+	test("3E: review immediately shows spells, bans and equipment without item pagination", function()
+		local e=boot();e.open();
+		local prior=e.h():Counts().builds;
+		analyze(e,GOOD);
+		ok(e.ui.im.classCycle.label:IsShown(),"phase selector available");
+		ok(not e.ui.im.box.scroll:IsShown(),"pasted code hidden during review");
+		ok(not e.ui.rightPanel:IsShown(),"browser hidden during import review");
+		local rows=e.ui.im.detailRows;
+		local function hasRow(term)
+			for _,row in ipairs(rows) do
+				if row.label:GetText():find(term,1,true) then return true end
+			end
+			return false
+		end
+		ok(hasRow("Whirlwind"),"first spell visible by name");
+		ok(hasRow("Execute"),"second spell visible by name");
+		ok(e.world.hasText("Rend"),"banish target visible");
+		ok(e.world.hasText("Accuria"),"equipped ring visible");
+		eq(e.h():Counts().builds,prior,"review does not write to SavedVariables");
+		e.world.click(e.ui.im.classCycle.next);
+		ok(e.ui.im.classCycle.label:GetText():find("2/4",1,true),"next phase opens");
+		e.world.click(e.ui.im.paste);
+		ok(e.ui.im.box.scroll:IsShown(),"Edit code returns to input");
+		ok(not e.ui.im.commit:IsShown(),"confirmation is hidden while editing code");
+		ok(e.ui.im.analyze:IsShown(),"Analyze is shown while editing the code");
+		ok(not e.ui.im.classCycle.label:IsShown(),"review controls hidden in input step");
 	end);
 
 	test("3E: a build with conflicts previews its problems and imports as 'needs repair', not followable", function()
@@ -601,7 +968,7 @@ return function(H)
 			ok(e.world.hasText("Cannot import this text"), "for " .. bad .. ": " .. e.texts());
 			no(e.ui.im.commit:IsEnabled());
 		end
-		e.world.click(e.ui.im.commit);
+		no(e.ui.im.commit:IsShown(),"invalid code cannot display the confirmation action");
 		ok(H.deepeq(snap, e.h().db), "refused import mutated storage");
 	end);
 
@@ -617,6 +984,39 @@ return function(H)
 		analyze(e, "https://azreborn.com/planner/rogue?b=0-1-2");
 		ok(e.ui.im.commit:IsEnabled());
 		ok(e.world.hasText("Rogue") or e.world.hasText("rogue") or e.world.hasText("Talent string"), e.texts());
+	end);
+
+	test("UI and HUD background opacity is independent, fully adjustable, and leaves contents opaque", function()
+		local e=boot();e.open();
+		e.world.click(e.ui.uiAlphaMinus);
+		eq(e.h():GetSetting("windowOpacity"),.9);
+		eq(e.ui.root.nine.tex[9].alpha,.9,"window background fades");
+		ok(e.ui.root.alpha==nil or e.ui.root.alpha==1,"window parent remains opaque");
+		ok(e.ui.root.nine.tex[1].alpha==nil or e.ui.root.nine.tex[1].alpha==1,"window decorative border not dimmed");
+		e.world.click(e.ui.hudAlphaMinus);
+		eq(e.h():GetSetting("trackerOpacity"),.9);
+		eq(e.h():GetSetting("windowOpacity"),.9);
+		for i=1,12 do e.world.click(e.ui.uiAlphaMinus);e.world.click(e.ui.hudAlphaMinus) end
+		eq(e.h():GetSetting("windowOpacity"),0);
+		eq(e.h():GetSetting("trackerOpacity"),0);
+		eq(e.ui.root.nine.tex[9].alpha,0,"window centre invisible at zero");
+		ok(e.ui.root.alpha==nil or e.ui.root.alpha==1,"buttons and labels stay opaque at zero");
+		for i=1,12 do e.world.click(e.ui.uiAlphaPlus);e.world.click(e.ui.hudAlphaPlus) end
+		eq(e.h():GetSetting("windowOpacity"),1);
+		eq(e.h():GetSetting("trackerOpacity"),1);
+		eq(e.ui.root.nine.tex[9].alpha,1);
+	end);
+
+	test("3E: import field is visibly framed and paste button focuses the input", function()
+		local e=boot();e.open();
+		e.world.click(e.ui.nav.import);
+		ok(e.ui.im.box.surround and e.ui.im.box.surround.backdrop,
+		  "import has a visible native-framed clipboard field");
+		ok(e.ui.im.box:IsShown(),"paste edit box available before Analyze");
+		e.world.click(e.ui.im.paste);
+		ok(e.ui.im.box:HasFocus(),"paste button focuses the multiline EditBox");
+		e.ui.im.box:SetText("azsb1:sample");
+		eq(e.ui.im.box:GetText(),"azsb1:sample");
 	end);
 
 	test("3E: export without loss shows a selectable code that imports back", function()
@@ -639,6 +1039,9 @@ return function(H)
 		-- the box is a copy source: focusing selects everything; typing is put back
 		box:SetFocus();
 		ok(box.highlighted);
+		ok(e.ui.ex.selectCode:IsShown(),"explicit select-code button shown on export");
+		e.world.click(e.ui.ex.selectCode);
+		ok(box.highlighted,"select-code control highlights the full export text");
 		local code = box.text;
 		e.world.type(box, "tampered");
 		eq(box.text, code);
@@ -670,6 +1073,18 @@ return function(H)
 		e.c:SetView("export");
 		ok(e.world.hasText("cannot be exported"), e.texts());
 		no(e.ui.ex.accept:IsVisible());
+	end);
+
+	test("3E: native lossless export button exposes a pasteable rbp1 code", function()
+		local e=boot();e.open();
+		local id=e.c:Create("Native", "hunter");
+		e.ui:OpenEditor(id);
+		e.world.click(e.ui.nav.export);
+		ok(e.ui.ex.native:IsShown(),"native exchange button visible");
+		e.world.click(e.ui.ex.native);
+		ok(e.ui.ex.box:GetText():sub(1,5)=="rbp1:","native export encoded");
+		ok(e.world.hasText("Complete RBP export"),"lossless state is explained");
+		no(e.ui.ex.accept:IsShown(),"official loss confirmation hidden for native code");
 	end);
 
 	test("3E: exporting the draft reflects unsaved edits and says so", function()
@@ -747,7 +1162,8 @@ return function(H)
 		e.c:PrepareExport(id, "saved"); e.c:SetView("export");
 		e.world.click(e.ui.ex.back);
 		eq(#e.world.all, n0, "frames/regions created after the first open");
-		ok(n0 < 900, "widget budget (all created once): " .. n0);
+		-- The import review uses one additional, pre-created overflow label; no widgets are created on refresh.
+		ok(n0 <= 1750, "static texture/button budget including the read-only notes view and inspector matte: " .. n0);
 	end);
 
 	-- ------------------------------------------------------------------ layout lint at several sizes
@@ -805,6 +1221,23 @@ return function(H)
 			end
 		end);
 	end
+
+	test("layout lint: initial editor has no clipped labels in any selectable language", function()
+		for _, item in ipairs(H.loadAddon().Locale.LANGUAGES) do
+			local loc = item.code == "auto" and "enUS" or item.code;
+			local e = boot({ width = 1365, height = 768, locale = loc }); e.open();
+			local id = e.c:Create("test", "warrior");
+			e.ui:OpenEditor(id);
+			eq(e.lint(), {}, "label layout in " .. loc);
+		end
+	end);
+
+	test("layout lint Russian: translated labels remain inside controls", function()
+		local e = boot({ width = 1365, height = 768, locale = "ruRU" }); e.open();
+		eq(e.ns.Locale.lang, "ruRU");
+		local problems = tour(e);
+		eq(problems, {}, "Russian full client workflow, 1365x768");
+	end);
 
 	test("layout lint: another UI scale and a moved window", function()
 		local e = boot({ width = 1365, height = 768, locale = "frFR" }); e.open();

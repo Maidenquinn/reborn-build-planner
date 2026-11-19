@@ -6,7 +6,7 @@ return function(H)
 
 	test("catalogue loads", function()
 		ok(cat ~= nil, "Catalog.New failed: " .. tostring(code));
-		eq(cat:Content(), "384db000d5ac311d");
+		eq(cat:Content(), data.meta.content, "generated content metadata must agree with the catalogue");
 		eq(data.meta.schema, 1);
 		eq(#data.meta.bodySha256, 64);
 	end);
@@ -62,9 +62,32 @@ return function(H)
 		eq(cat:Name("jewel", "accuria", "frFR"), "Anneau d'Accuria");
 		eq(cat:Name("amulet", "mark_of_fordring", "frFR"), "Marque de Fordring");
 		eq(cat:Name("amulet", "legendary:cleave", "frFR"), "Médaillon de la Tempête de lames: Enchaînement");   -- head: English only in the data; spell part translated
-		eq(cat:Name("amulet", "legendary:cleave", "deDE"), "Medallion of the Bladestorm: Cleave");   -- no embedded language: English
+		eq(cat:Name("amulet", "legendary:cleave", "deDE"),
+            "Medallion of the Bladestorm: " .. ((cat.i18n.deDE or {})["Cleave"] or "Cleave"));
 		eq(cat:Name("spell", "no_such_spell", "frFR"), "no_such_spell");
-		eq(cat:Name("spell", "whirlwind", "deDE"), "Whirlwind");                                    -- language not embedded
+		eq(cat:Name("spell", "whirlwind", "deDE"), (cat.i18n.deDE or {})["Whirlwind"] or "Whirlwind");
+	end);
+
+	test("Unicode catalogue search normalizes Cyrillic and European uppercase text", function()
+		eq(ns.Utf8.CaseFold("ПРИВЕТ ЁЛКА"), "привет ёлка");
+		eq(ns.Utf8.CaseFold("КЛАСС: ОХОТНИК"), "класс: охотник");
+		eq(ns.Utf8.CaseFold("ZAŻÓŁĆ"), "zażółć");
+		eq(ns.Utf8.CaseFold("ÄÖÜ ČŠ Ž"), "äöü čš ž");
+	end);
+
+	test("official Russian, German and Polish names are embedded for spells and jewelry", function()
+		for _, lang in ipairs({ "ruRU", "deDE", "plPL", "esES", "ptBR" }) do
+			local tr = cat.i18n[lang];
+			ok(type(tr) == "table", "official translation dictionary missing: " .. lang);
+			local translated = 0;
+			for _, spell in ipairs(data.spells) do
+				if tr and tr[spell.name] and tr[spell.name] ~= spell.name then
+					translated = translated + 1;
+					eq(cat:Name("spell", spell.key, lang), tr[spell.name]);
+				end
+			end
+			ok(translated >= 30, "not enough translated spell names in " .. lang .. ": " .. translated);
+		end
 	end);
 
 	test("legendary homonyms need the class; head and icon are never identifiers", function()
@@ -150,7 +173,7 @@ return function(H)
 	end);
 
 	test("catalogue version comparison", function()
-		eq(cat:Compare("384db000d5ac311d"), "same");
+		eq(cat:Compare(data.meta.content), "same");
 		eq(cat:Compare("0000000000000000"), "different");
 		eq(cat:Compare(""), "unknown");
 		eq(cat:Compare(nil), "unknown");
@@ -165,7 +188,7 @@ return function(H)
 	test("class names: localized with English fallback, unknown class shows its key", function()
 		eq(cat:ClassName("warrior"), "Warrior");
 		eq(cat:ClassName("warrior", "frFR"), "Guerrier");
-		eq(cat:ClassName("warrior", "deDE"), "Warrior");
+		eq(cat:ClassName("warrior", "deDE"), (cat.i18n.deDE or {})["Warrior"] or "Warrior");
 		eq(cat:ClassName("necromancer", "frFR"), "necromancer");
 		for _, k in ipairs(cat:ClassKeys()) do ok(cat:ClassName(k, "frFR") ~= "", k); end
 	end);

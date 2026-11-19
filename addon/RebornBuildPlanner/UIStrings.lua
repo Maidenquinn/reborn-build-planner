@@ -5,6 +5,22 @@ ns = ns or {};
 assert(ns.Locale, "RebornBuildPlanner: Locale.lua must load before UIStrings.lua");
 
 ns.Locale.Register({
+	["Language"] = "Langue",
+	["Created"] = "Date de création",
+	["Not followed"] = "Non suivi",
+	["Command %s is already used by another addon and was left alone."] = "La commande %s est déjà utilisée par un autre addon et n'a pas été modifiée.",
+	["Usage: /rbp (open or close) | /rbp reset | /rbp diag"] = "Utilisation : /rbp (ouvrir ou fermer) | /rbp reset | /rbp diag",
+	["Window position and size reset."] = "Position et taille de la fenêtre réinitialisées.",
+	["Choose your next build"] = "Choisissez votre prochain build",
+	["Nothing selected"] = "Aucune sélection",
+	["Build notes"] = "Notes du build",
+	["Edit notes"] = "Modifier les notes",
+	["View notes"] = "Consulter les notes",
+	["Select and copy build link"] = "Sélectionner et copier le lien du build",
+	["No notes for this stage."] = "Aucune note pour cette phase.",
+	["Avoid list: %d spells"] = "Sorts à éviter : %d",
+	["Choose a spell or piece to inspect"] = "Sélectionnez un sort ou un équipement à examiner",
+	["Select a saved build on the left, or create a new one."] = "Sélectionnez un build à gauche ou créez-en un nouveau.",
 	["Storage unavailable"] = "Stockage indisponible",
 	["Read only: the saved data comes from a newer version"] = "Lecture seule : les données enregistrées viennent d'une version plus récente",
 	["Read only: the saved data could not be repaired safely"] = "Lecture seule : les données enregistrées n'ont pas pu être réparées sans risque",

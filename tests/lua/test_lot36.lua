@@ -43,7 +43,11 @@ return function(H)
 			eq(d:byte(17), 32, name .. ": 32 bits per pixel");
 			eq(#d, 18 + w * h * 4, name .. ": file length = header + pixels");
 			ok(isPow2(w) and isPow2(h), name .. ": power of two " .. w .. "x" .. h);
-			ok(w <= 256 and h <= 256 and #d < 70000, name .. ": small");
+			if name:find("^ultimate_") then
+				ok(w <= 512 and h <= 256 and #d < 300000, name .. ": capped fantasy texture");
+			else
+				ok(w <= 256 and h <= 256 and #d < 70000, name .. ": small");
+			end
 			if name:find("_nine$") then
 				eq(w, def[1], name .. ": width as declared");
 				eq(h, def[3] or def[1], name .. ": height as declared");
@@ -58,14 +62,18 @@ return function(H)
 			if name == "icon_frame" then eq(centreA, 0, "icon frame: transparent centre (the icon shows through)"); end
 			if name == "veil_hover" or name == "veil_pressed" then ok(centreA > 40 and centreA < 255, name .. ": translucent veil: " .. centreA); end
 		end
-		eq(n, 19);
+		eq(n, 27);
 		-- nothing in Media that the theme does not declare (no stray / copied file)
-		local listing = io.popen and io.popen('dir /b "' .. MEDIA:gsub("/", "\\") .. '" 2>nul');
+		local listing;
+		if io.popen then
+			local worked, pipe = pcall(io.popen, 'dir /b "' .. MEDIA:gsub("/", "\\") .. '" 2>nul');
+			if worked then listing = pipe; end -- lupa's Lua 5.1 deliberately forbids popen
+		end
 		if listing then
 			local seen = 0;
 			for f in listing:lines() do if f:find("%.tga$") then seen = seen + 1; ok(T.FILES[f:gsub("%.tga$", "")], "undeclared file: " .. f); end end
 			listing:close();
-			if seen > 0 then eq(seen, 19, "inventory complete"); end
+			if seen > 0 then eq(seen, 27, "inventory complete"); end
 		end
 	end);
 
@@ -90,7 +98,7 @@ return function(H)
 		-- the strip of swatches draws every declared file
 		local n = 0;
 		for _ in pairs(world.G.RebornPlannerThemeLabFrame and ns.Lab.swatches or {}) do n = n + 1; end
-		eq(n, 19);
+		eq(n, 27);
 	end);
 
 	-- ------------------------------------------------------------------ nine-slice
@@ -101,7 +109,7 @@ return function(H)
 		local frame = T.Frame(world.G.UIParent, 200, 80, "panel");
 		local nine = frame.nine;
 		eq(#nine.tex, 9);
-		local def = T.FILES.panel_nine;
+		local def = T.FILES.ultimate_panel;
 		local c, size = def[2], def[1];
 		local u1, u2 = c / size, 1 - c / size;
 		local want = { { 0, u1, 0, u1 }, { u2, 1, 0, u1 }, { 0, u1, u2, 1 }, { u2, 1, u2, 1 }, { u1, u2, 0, u1 }, { u1, u2, u2, 1 }, { 0, u1, u1, u2 }, { u2, 1, u1, u2 }, { u1, u2, u1, u2 } };
@@ -198,7 +206,7 @@ return function(H)
 				end
 			end
 		end
-		ok(checked > 200, "surface textures checked: " .. checked);
+		ok(checked > 140 and checked < 900, "optimised textured surfaces inspected: " .. checked);
 		for _, fr in ipairs(world.all) do
 			if fr.kind == "Frame" and fr.strata == "TOOLTIP" then ok(true); end
 		end
@@ -253,7 +261,7 @@ return function(H)
 					eq(n, 2, label .. " in both columns");
 				end
 				ok(world.hasText("Ce client : SetGradientAlpha:oui"));
-				ok(world.hasText("laboratoire visuel v2"));
+				ok(world.hasText("laboratoire Ultimate UI v3"), "lab title identifies the currently tested fantasy theme");
 				-- columns: equal widths, side by side
 				local cols = {};
 				for _, f in ipairs(world.all) do if f.kind == "Frame" and f.w == 560 and f.h == 700 then cols[#cols + 1] = f; end end

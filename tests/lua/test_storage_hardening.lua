@@ -181,4 +181,34 @@ return function(H)
 		eq(last and last.name, "t1", "the build dropped by the cap is named in the return value");
 		eq(#h:Trash(), S.LIMITS.trash);
 	end);
+
+	test("saved-build revision history is bounded, restorable and survives reopening", function()
+		local h=mk(nil);
+		local id=h:Create({name="first",class="warrior"});
+		for i=1,7 do
+			local candidate=h:Get(id);
+			candidate.name="revision "..i;
+			candidate.revision=candidate.revision+1;
+			local changed,reason=h:Update(id,candidate);
+			ok(changed,"valid revision "..i);
+		end
+		eq(#h:RevisionHistory(id),5,"bounded history keeps five previous revisions");
+		eq(h:RevisionHistory(id)[1].revision,7);
+		local previousName=h:Get(id).name;
+		local restored=h:RestoreRevision(id,1);
+		ok(restored,"restore latest previous build");
+		eq(h:Get(id).name,"revision 6");
+		eq(h:Get(id).revision,9,"restoration creates a newer revision");
+		eq(h:RevisionHistory(id)[1].name,previousName,"restoration saves previous current state");
+		local db=H.roundtrip(h.db);
+		local reopened=mk(db);
+		eq(reopened.status,"OK");
+		eq(reopened:Get(id).name,"revision 6");
+		eq(#reopened:RevisionHistory(id),5);
+		local before=H.roundtrip(reopened.db);
+		local failed=reopened:RestoreRevision(id,77);
+		no(failed);
+		ok(H.deepeq(before,reopened.db),"invalid restore never changes storage");
+	end);
+
 end
