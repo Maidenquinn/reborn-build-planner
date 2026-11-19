@@ -56,5 +56,23 @@ class LocalExtractionTests(unittest.TestCase):
         data = b'[[jewel]] key = "accuria"\nslot = "ring"\nbehavior = "bad token"\nbase = 0.17\n'
         self.assertEqual(mod.read_records(data), {})
 
+
+class PackagingSafetyTests(unittest.TestCase):
+    def test_only_dedicated_output_is_allowed(self):
+        import tempfile
+        loader = importlib.util.spec_from_file_location("rbp_package", ROOT / "tools" / "package_addon.py")
+        package = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(package)
+        permitted = ROOT / "dist" / "ultimate-0.5.0-audit"
+        self.assertEqual(Path(package.safe_output_path(permitted)), permitted.resolve())
+        permitted_ci = ROOT / "dist" / "private-preview"
+        self.assertEqual(Path(package.safe_output_path(permitted_ci)), permitted_ci.resolve())
+        for unsafe in (ROOT, ROOT.parent, Path.home(),
+                       ROOT / "addon", ROOT / "dist", ROOT / "dist" / "ordinary",
+                       ROOT / "addon" / "RebornBuildPlanner"):
+            with self.subTest(path=unsafe):
+                with self.assertRaises(ValueError):
+                    package.safe_output_path(unsafe)
+
 if __name__=="__main__":
     unittest.main()
