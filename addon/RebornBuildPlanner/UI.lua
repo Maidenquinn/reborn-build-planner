@@ -1682,10 +1682,10 @@ function UI:BuildImport(v)
 	im.issues = {};
 	for i = 1, ns.Controller.ISSUE_PAGE do im.issues[i] = text(v, 8, 298 + (i - 1) * 16, EW, "GameFontNormalSmall"); end
 	im.pager = pager(v, 8, 404, function()
-		if im.detail then im.offset=math.max(0,im.offset-6);self:RefreshImport()
+		if im.detail then im.offset=math.max(0,im.offset-4);self:RefreshImport()
 		else c:SetImportPage(c.state.import.page-1) end
 	end, function()
-		if im.detail then im.offset=im.offset+6;self:RefreshImport()
+		if im.detail then im.offset=im.offset+4;self:RefreshImport()
 		else c:SetImportPage(c.state.import.page+1) end
 	end);
 	im.loss = text(v, 210, 408, 350, "GameFontNormalSmall");
@@ -1704,8 +1704,8 @@ function UI:BuildImport(v)
 	-- page controls avoid rebuilding widgets for long imported plans.
 	im.detail=false;im.stage=1;im.offset=0;im.previewRef=nil;
 	im.detailRows={};
-	for i=1,6 do
-		local y=254+(i-1)*21;
+	for i=1,4 do
+		local y=254+(i-1)*31;
 		local row={};
 		row.icon=v:CreateTexture(nil,"OVERLAY");
 		row.icon:SetSize(15,15);
@@ -1750,13 +1750,13 @@ function UI:RefreshImport()
 	end
 	if detailed then
 		local all=importPreviewLines(pv,im.stage,c:Catalog(),c:Lang());
-		local pages=math.max(1,math.ceil(#all/6));
-		im.offset=math.min(im.offset,(pages-1)*6);
+		local pages=math.max(1,math.ceil(#all/4));
+		im.offset=math.min(im.offset,(pages-1)*4);
 		im.classCycle.label:SetText((pv.build.phases[im.stage].label~="" and
 			pv.build.phases[im.stage].label or L(BM.DEFAULT_LABELS[im.stage])).." ("..im.stage.."/4)");
-		im.pager.label:SetText("Items "..math.min(im.offset+1,#all).."-"..math.min(im.offset+6,#all).." / "..#all);
+		im.pager.label:SetText("Items "..math.min(im.offset+1,#all).."-"..math.min(im.offset+4,#all).." / "..#all);
 		enable(im.pager.prev,im.offset>0);
-		enable(im.pager.next,im.offset+6<#all);
+		enable(im.pager.next,im.offset+4<#all);
 		for i,row in ipairs(im.detailRows) do
 			local entry=all[im.offset+i];
 			if entry then
