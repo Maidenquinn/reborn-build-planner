@@ -2075,7 +2075,13 @@ function UI:ApplyOpacity()
 	local h=self.c:Handle();
 	local v=h and h:GetSetting("windowOpacity") or 1;
 	if type(v)~="number" then v=1 end;
-	if self.root then self.root:SetAlpha(math.max(.45,math.min(1,v))) end
+	v=math.max(0,math.min(1,v));
+	if THEME and THEME.ApplyBackgroundOpacity then
+		THEME.ApplyBackgroundOpacity(self.root,v);
+	elseif self.root then
+		-- Plain backdrop fallback only; never SetAlpha on the parent.
+		self.root:SetBackdropColor(BG[1],BG[2],BG[3],v);
+	end
 end
 
 function UI:AdjustOpacity(setting, delta)
@@ -2084,7 +2090,7 @@ function UI:AdjustOpacity(setting, delta)
 	local v=h:GetSetting(setting);
 	if type(v)~="number" then v=1 end
 	v=math.floor((v+delta)*10+.5)/10;
-	v=math.max(setting=="trackerOpacity" and .4 or .5,math.min(1,v));
+	v=math.max(0,math.min(1,v));
 	if h:SetSetting(setting,v) then
 		self:ApplyOpacity();
 		if ns.Runtime and ns.Runtime.Refresh then ns.Runtime.Refresh() end
