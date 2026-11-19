@@ -52,3 +52,46 @@ after `/reload`. Do not paste whole SavedVariables containing personal data.
   full reuse of FieldKit's Elwynn artwork is not yet implemented.
 - The addon deliberately never chooses, rerolls, banishes, or sends commands.
 - Lua tests are source regressions; their presence is not proof of client QA.
+
+## Card highlight redesign — visual blueprint (2026-11-19)
+
+**Design reference:** the user's 2026-11-19 level-up screenshot showed two
+thick, opaque yellow strips on the sides and square, unstyled corners. These
+were caused by stretching the white fill texture into ADD-blended edge strips.
+The previous four square action-button glows also covered card interiors.
+Both approaches are forbidden for this redesign.
+
+### Three acceptance mockups
+
+**A / BUILD — selected goal, spell or jewelry:** native card remains 100% legible;
+an outer **gold engraved 8-piece rim** hugs its silhouette, with four intact
+corners and four richly textured edges. A second, offset copy of the **same
+engraved material** is ADD-blended at low intensity to create a shaped halo.
+Only the glow's opacity breathes; the frame itself is steady. A small labelled
+plaque above the card announces BUILD; it does not overlap the native NEW / UPGRADE
+header or the card number. At a glance, it should read as an enchanted WoW
+frame, never as warning tape or an illuminated rectangular fill.
+
+**B / Alternative and warnings:** same external geometry with subdued bronze
+(ALT), red (avoid) or amber (banish after). The existing badge text conveys
+status. Glow remains gentler than the main BUILD priority.
+
+**C / No matching card:** no highlight on the unselected cards. Existing
+read-only gold guidance targets Reroll, or Skip if reroll is unavailable.
+No card input/selection is intercepted, and native frames are never resized.
+
+### Implementation contract
+
+- **One texture atlas, eight slices** per pass (four corners, four edges),
+  excluding the centre tile entirely. Prefer FieldKit Reborn's existing
+  `elwynn_material_v3.tga` (512-square / 12px sliced corners), matching the
+  HUD's already-validated Elwynn frame. Fallback to the planner's own
+  `window_nine.tga` (128-square / 28px source corners), never the plain white
+  strip. Render only the edge/corner parts, with a fixed screen-space cap.
+- Two passes: steady thin rim and quieter ADD halo outside it, never 17px
+  solid yellow rectangles. Avoid the action-button border texture entirely.
+- The halo animates gently; rim colours and native card contents stay stable.
+- Must be tested on a rare spell, a normal jewel, a legendary amulet, and a
+  card to banish after acquisition; verify with each rarity's native border.
+- Headless Lua tests verify overlay structure/alpha/state lifecycle; **only a
+  live screenshot/video can establish aesthetic quality**.
