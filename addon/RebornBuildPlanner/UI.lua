@@ -1093,6 +1093,8 @@ function UI:RefreshEditor()
 	setShown(ed.emptyHint, not on);
 	setShown(ed.emptyCreate, not on);
 	local adv = on and e.adv;
+	-- Switching builds or leaving the advanced view always resets the edit sub-mode.
+	if not adv then ed.nt.editing = false; end
 	local editing = adv and ed.nt.editing;
 	setShown(ed.nt.head, adv);
 	setShown(ed.nt.switch, adv);
