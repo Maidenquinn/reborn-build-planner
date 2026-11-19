@@ -70,6 +70,13 @@ def main(argv):
             sys.stderr.write("REFUSED: local jewelry extraction failed; package not produced\\n")
             return 2
     if os.path.exists(out):
+        # Only replace a previous *completed* output from our own packager.
+        # An arbitrary directory with a coincidentally accepted name, or a
+        # half-written build, must never be recursively deleted.
+        marker = os.path.join(out, "SHA256SUMS.txt")
+        installed = os.path.join(out, "RebornBuildPlanner", "RebornBuildPlanner.toc")
+        if not os.path.isfile(marker) or not os.path.isfile(installed):
+            raise ValueError("Output exists but is not a completed RBP recipe; choose a fresh -OutputDir")
         shutil.rmtree(out)
     dest = os.path.join(out, "RebornBuildPlanner")
     os.makedirs(dest)
