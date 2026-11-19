@@ -1,5 +1,11 @@
 # Changelog
 
+## Beta hotfix candidate (unreleased)
+- Replaced the minimap's generic parchment icon with RBP's fantasy crest, retaining the standard minimap border.
+- Drag the launcher with the left mouse button to reposition it around the minimap; coordinates are saved in existing addon settings, including across /reload.
+- Left click opens/closes the planner; right click toggles the idle/live HUD.
+- Small HUD appears when no build is followed; explicit hide preference remains respected.
+
 ## 0.5.0-beta.1 (candidate — non publié, 2026-11-19)
 - Bibliothèque de builds, import/export et aperçu multi-phase, éditeur des 6 sorts (priorité et banish-after) et équipements principaux/alternatifs.
 - Ultimate UI : navigateur de catalogue, statuts mieux alignés, bijoux distincts, panneau Détails à contraste renforcé, consultation des notes avant modification.
