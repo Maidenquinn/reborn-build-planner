@@ -248,6 +248,8 @@ return function(H)
 		local ed = e.ui.ed;
 		eq(e.c:EditorStatus(), "repair");
 		e.c:ToggleAdvanced();
+		ok(ed.nt.previewNotes:IsShown(), "notes overview comes first");
+		e.world.click(ed.nt.switch);
 		ok(ed.nt.avoid[1].conv:IsVisible(), "convert offered");
 		eq(e.c:Editor().draft.phases[1].banish, { "execute" }, "still untouched after opening");
 		no(e.c:Activate(id), "cannot follow while in conflict");
