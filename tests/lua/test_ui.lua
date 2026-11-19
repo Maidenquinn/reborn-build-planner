@@ -886,6 +886,7 @@ return function(H)
 		ok(e.world.hasText("Locally valid"),"decoded build validated locally");
 		ok(e.world.hasText("Whirlwind") and e.world.hasText("Execute"),"spell goals shown");
 		ok(e.ui.im.classCycle.label:GetText():find("1/4",1,true),"first phase shown");
+		ok(e.ui.im.nameEdit:GetText() == "Imported \195\169","decoded build name is prefilled");
 		eq(e.h():Counts().builds, before, "preview must not save");
 		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
 		eq(e.h():Counts().builds, before + 1);
@@ -920,6 +921,8 @@ return function(H)
 		ok(e.ui.im.classCycle.label:GetText():find("2/4",1,true),"next phase opens");
 		e.world.click(e.ui.im.paste);
 		ok(e.ui.im.box.scroll:IsShown(),"Edit code returns to input");
+		ok(not e.ui.im.commit:IsShown(),"confirmation is hidden while editing code");
+		ok(e.ui.im.analyze:IsShown(),"Analyze is shown while editing the code");
 		ok(not e.ui.im.classCycle.label:IsShown(),"review controls hidden in input step");
 	end);
 
