@@ -1143,7 +1143,8 @@ return function(H)
 		e.c:PrepareExport(id, "saved"); e.c:SetView("export");
 		e.world.click(e.ui.ex.back);
 		eq(#e.world.all, n0, "frames/regions created after the first open");
-		ok(n0 < 1650, "static texture/button budget after three-slice optimisation: " .. n0);
+		-- The import review uses one additional, pre-created overflow label; no widgets are created on refresh.
+		ok(n0 <= 1650, "static texture/button budget including import overflow indicator: " .. n0);
 	end);
 
 	-- ------------------------------------------------------------------ layout lint at several sizes
