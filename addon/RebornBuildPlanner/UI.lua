@@ -1724,6 +1724,8 @@ function UI:BuildExport(v)
 	ex.pager = pager(v, 8, 170, function() c:SetExportPage(c.state.export.page - 1); end, function() c:SetExportPage(c.state.export.page + 1); end);
 	ex.accept = button(v, "", 340, 26, 210, 168, function() c:AcceptLosses(); end);
 	ex.accept.role = "warn";
+	ex.native = button(v, "", 195, 26, 8, 168, function() c:ExportNative(); end);
+	ex.native.role = "primary";
 	ex.codeLabel = text(v, 8, 204, EW, "GameFontNormal");
 	ex.box = multiline(v, "RebornBuildPlannerExportBox", EW, 110, 8, 224, nil, true);
 	ex.selectCode = button(v, "", 190, 24, 8, 342, function()
@@ -1755,7 +1757,10 @@ function UI:RefreshExport()
 	ex.pager.label:SetText(string.format(L("Page %d/%d"), x.page, c:ExportPageCount()));
 	enable(ex.pager.prev, x.page > 1);
 	enable(ex.pager.next, x.page < c:ExportPageCount());
-	if not r.ok then
+	if x.native then
+		ex.state:SetText(ns.Locale.lang=="frFR" and "Export RBP complet : copiez ce code et importez-le dans RBP." or "Complete RBP export: copy this code and import it into RBP.");
+		ex.state:SetTextColor(COLOR.info[1],COLOR.info[2],COLOR.info[3]);
+	elseif not r.ok then
 		ex.state:SetText(L("This build cannot be exported to the official planner."));
 		ex.state:SetTextColor(COLOR.error[1], COLOR.error[2], COLOR.error[3]);
 	elseif r.intentLosses == 0 then
@@ -1768,8 +1773,9 @@ function UI:RefreshExport()
 		ex.state:SetText(string.format(L("%d thing(s) would be lost. Read the list, then accept to see the code."), r.intentLosses));
 		ex.state:SetTextColor(COLOR.warn[1], COLOR.warn[2], COLOR.warn[3]);
 	end
+	setLabel(ex.native,(ns.Locale.lang=="frFR" and "Exporter RBP sans perte" or "Export RBP (lossless)"));
 	setLabel(ex.accept, (ns.Locale.lang=="frFR" and "Accepter les pertes pour exporter" or "Accept losses to export"));
-	setShown(ex.accept, r.ok and r.intentLosses > 0 and not x.accepted);
+	setShown(ex.accept, r.ok and r.intentLosses > 0 and not x.accepted and not x.native);
 	ex.codeLabel:SetText(x.code and (ns.Locale.lang=="frFR" and "Code généré : sélectionnez et copiez (Ctrl+C)" or "Generated code: select and copy (Ctrl+C)") or (ns.Locale.lang=="frFR" and "Le code apparaîtra ci-dessous après confirmation." or "The code appears below after confirmation."));
 	setLabel(ex.selectCode, (ns.Locale.lang=="frFR" and "Sélectionner le code" or "Select code"));
 	setShown(ex.selectCode, x.code ~= nil);
