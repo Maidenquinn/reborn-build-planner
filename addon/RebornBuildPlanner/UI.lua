@@ -1679,7 +1679,7 @@ function UI:BuildImport(v)
   im.analyze.role="primary";
   im.back=button(v,"",150,27,370,325,function() c:SetView("editor");end);
   im.hint=text(v,20,378,880,"GameFontNormal");
-  im.inputHelp=text(v,20,74,900,"GameFontHighlight");
+
   im.name=text(v,20,58,620,"GameFontNormalLarge","LEFT",20);
   im.class=text(v,20,86,390,"GameFontNormal");
   im.state=text(v,620,86,308,"GameFontNormal","RIGHT");
@@ -1692,16 +1692,7 @@ function UI:BuildImport(v)
   im.pager=pager(v,20,504,function() c:SetImportPage(c.state.import.page-1);end,
     function() c:SetImportPage(c.state.import.page+1);end);
   im.loss=text(v,470,158,450,"GameFontNormal");
-  -- Two quiet read-only surfaces group the information without creating
-  -- another panel tree or changing the configured UI opacity globally.
-  im.previewLeft=v:CreateTexture(nil,"BACKGROUND");
-  im.previewLeft:SetPoint("TOPLEFT",v,"TOPLEFT",14,-150);
-  im.previewLeft:SetSize(438,328);
-  im.previewLeft:SetTexture(.055,.105,.13,.65);
-  im.previewRight=v:CreateTexture(nil,"BACKGROUND");
-  im.previewRight:SetPoint("TOPLEFT",v,"TOPLEFT",466,-150);
-  im.previewRight:SetSize(466,328);
-  im.previewRight:SetTexture(.055,.105,.13,.65);
+
   im.classCycle=cycler(v,20,112,390,function()
     local pv=c:ImportState() and c:ImportState().preview;
     if pv and pv.kind=="talents" then self:CycleImportClass(-1);
@@ -1766,9 +1757,7 @@ function UI:RefreshImport()
   end
   visible(im.box.scroll,not preview);
   visible(im.box.surround,not preview);
-  visible(im.inputHelp,not preview);
-  visible(im.previewLeft,preview);
-  visible(im.previewRight,preview);
+
   visible(im.paste,true);
   visible(im.analyze,not preview);
   visible(im.back,true);
@@ -1796,10 +1785,8 @@ function UI:RefreshImport()
     im.head:SetText(fr and "1 / 2  —  Coller un build" or "STEP 1 / 2  —  Paste a build");
     im.hint:SetText(fr and "Colle un code azsb1: ou rbp1:, puis clique sur Analyser. Aucun build n'est modifié."
       or "Paste an azsb1: or rbp1: build code, then Analyze. Your builds remain unchanged.");
-    place(im.hint,20,384,900);
-    im.inputHelp:SetText(fr and
-      "Collez un code du site azreborn.com ou un code RBP. Le texte reste modifiable." or
-      "Paste a code from azreborn.com or a native RBP code. You can edit it freely.");
+    place(im.hint,20,75,900);
+    im.hint:SetTextColor(.85,.88,.93);
     place(im.paste,20,323,160,27);
     place(im.analyze,195,323,155,27);
     place(im.back,370,323,150,27);
