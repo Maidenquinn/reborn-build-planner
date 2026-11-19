@@ -1101,6 +1101,18 @@ function Controller:PrepareExport(id, source)
 	return x;
 end
 
+-- A native export retains every build-specific rule; it never needs the
+-- official planner's lossy confirmation and cannot overwrite the original.
+function Controller:ExportNative()
+  local x=self.state.export;
+  if not x then return false end
+  local code,err=ns.PlannerCodec.EncodeRBP(x.build,self:Catalog());
+  if not code then self:Say("error",explain(err));return false end
+  x.code,x.native,x.accepted=code,true,true;
+  self:Notify();
+  return true;
+end
+
 function Controller:AcceptLosses()
 	local x = self.state.export;
 	if not x or not x.report.ok then return false; end
