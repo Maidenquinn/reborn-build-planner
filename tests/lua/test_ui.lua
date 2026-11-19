@@ -620,8 +620,11 @@ return function(H)
 		e.world.click(ed.spells[1].del);
 		eq(#e.c:Editor().draft.phases[1].spells, 5);
 		ok(e.world.hasText("Spells to acquire, by priority (5/6)"), e.texts());
-		-- the avoid list is edited in the advanced block
+		-- Notes open read-only; the avoid-list editor is an explicit second step.
 		e.c:ToggleAdvanced();
+		ok(ed.nt.previewNotes:IsShown(), "advanced opens the notes overview");
+		no(ed.nt.notes.scroll:IsShown(), "editor stays hidden until requested");
+		e.world.click(ed.nt.switch);
 		ok(ed.nt.avoid[1].frame:IsShown());
 		e.world.click(ed.nt.avoid[1].del);
 		eq(#e.c:Editor().draft.phases[1].banish, 2);
@@ -708,6 +711,9 @@ return function(H)
 	test("3C: notes, link, talents (advanced block); kept data is listed and never dropped by a save", function()
 		local e = boot(); local id, ed = openNew(e);
 		e.c:ToggleAdvanced();
+		ok(ed.nt.previewNotes:IsShown(), "notes overview is visible first");
+		e.world.click(ed.nt.switch);
+		ok(ed.nt.notes.scroll:IsShown(), "editable notes require an explicit click");
 		e.world.type(ed.nt.notes, "Ligne 1\nLigne 2 \195\169");
 		e.world.type(ed.nt.link, "https://azreborn.com/planner/warrior");
 		e.world.type(ed.nt.talents, "10203-000-0110");
@@ -715,6 +721,11 @@ return function(H)
 		eq(d.phases[1].notes, "Ligne 1\nLigne 2 \195\169");
 		eq(d.phases[1].link, "https://azreborn.com/planner/warrior");
 		eq(d.talents, "10203-000-0110");
+		e.world.click(ed.nt.switch);
+		ok(ed.nt.previewNotes:GetText():find("Ligne 1",1,true), "overview displays saved draft notes");
+		ok(ed.nt.previewLink:IsShown(), "existing link is available in the overview");
+		e.world.click(ed.nt.previewLink);
+		ok(ed.nt.link:IsShown(), "URL is selectable for Ctrl+C without an unsupported browser API");
 		ok(e.world.hasText("No hidden data"));
 		-- an imported build with hidden data (stats, rank goal, ext, 2nd stage)
 		local raw = { name = "Rich", class = "warrior", phases = { { spells = { { key = "whirlwind", mode = "rank", rank = 3 } }, stats = { damage = 50 }, notes = "n" },
@@ -725,6 +736,7 @@ return function(H)
 		ok(e.c:ShowAllPhases(), "an imported build with several stages shows them at once");
 		ok(ed.phaseTabs[2]:IsVisible());
 		e.c:ToggleAdvanced();
+		e.world.click(ed.nt.switch);
 		local hidden = e.c:HiddenData();
 		ok(#hidden >= 2, "hidden data listed: " .. H.fmt(hidden));
 		ok(e.world.hasText("kept"), e.texts());
