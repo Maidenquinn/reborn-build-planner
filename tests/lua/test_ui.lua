@@ -926,6 +926,22 @@ return function(H)
 		ok(e.world.hasText("Rogue") or e.world.hasText("rogue") or e.world.hasText("Talent string"), e.texts());
 	end);
 
+	test("UI and live HUD opacities are saved independently and clamped", function()
+		local e=boot();e.open();
+		e.world.click(e.ui.uiAlphaMinus);
+		eq(e.h():GetSetting("windowOpacity"),.9);
+		eq(e.ui.root.alpha,.9);
+		e.world.click(e.ui.hudAlphaMinus);
+		eq(e.h():GetSetting("trackerOpacity"),.9);
+		eq(e.h():GetSetting("windowOpacity"),.9);
+		for i=1,12 do e.world.click(e.ui.uiAlphaMinus);e.world.click(e.ui.hudAlphaMinus) end
+		eq(e.h():GetSetting("windowOpacity"),.5);
+		eq(e.h():GetSetting("trackerOpacity"),.4);
+		for i=1,12 do e.world.click(e.ui.uiAlphaPlus);e.world.click(e.ui.hudAlphaPlus) end
+		eq(e.h():GetSetting("windowOpacity"),1);
+		eq(e.h():GetSetting("trackerOpacity"),1);
+	end);
+
 	test("3E: import field is visibly framed and paste button focuses the input", function()
 		local e=boot();e.open();
 		e.world.click(e.ui.nav.import);
