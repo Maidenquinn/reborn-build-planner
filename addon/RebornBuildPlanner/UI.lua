@@ -1763,7 +1763,7 @@ function UI:RefreshExport()
 		ex.box.fixed = x.code;
 		setEdit(ex.box, x.code);
 	end
-	ex.hint:SetText((x.source=="draft" and L("This is the draft shown in the editor, saved or not.") or L("This is the saved build.")) .. (x.code and "  Ctrl+C." or ""));
+	ex.hint:SetText(fitText((x.source=="draft" and L("This is the draft shown in the editor, saved or not.") or L("This is the saved build.")) .. (x.code and "  Ctrl+C." or ""),350,10));
 	setLabel(ex.back, L("Back"));
 end
 
