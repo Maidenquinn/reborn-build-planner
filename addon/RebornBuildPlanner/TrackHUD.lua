@@ -528,79 +528,69 @@ local CARD_STYLES={
 local function paint(t,rgb,alpha)
   t:SetVertexColor(rgb[1],rgb[2],rgb[3],alpha or 1);
 end
--- Anchor the highlight to the actual card frame perimeter. The earlier
--- 35px top / 37px bottom insets accidentally framed the card's contents.
-local function cardEdge(parent,side,thickness,offset,layer)
-  local t=parent:CreateTexture(nil,layer or "OVERLAY");
-  t:SetTexture(WHITE);
-  if side=="TOP" or side=="BOTTOM" then
-    t:SetHeight(thickness);
-    t:SetPoint(side.."LEFT",parent,side.."LEFT",-offset,0);
-    t:SetPoint(side.."RIGHT",parent,side.."RIGHT",offset,0);
-  else
-    t:SetWidth(thickness);
-    t:SetPoint("TOP"..side,parent,"TOP"..side,0,offset);
-    t:SetPoint("BOTTOM"..side,parent,"BOTTOM"..side,0,-offset);
+-- Premium card frame (blueprint docs/LOT4_LIVE_RECIPE.md).
+-- Reuse exactly the material already proven on the Elwynn FieldKit HUD.
+-- Draw ONLY 4 corners + 4 edge slices; the centre is deliberately omitted.
+-- A second textured copy makes a soft, shape-matched external halo.
+local function cardMaterial()
+  if type(IsAddOnLoaded)=="function" then
+    if IsAddOnLoaded("AzerothFieldKitReborn") then
+      return "Interface\\AddOns\\AzerothFieldKitReborn\\media\\ReferenceHUD\\elwynn_material_v3.tga",512,12
+    end
+    if IsAddOnLoaded("AzerothFieldKit") then
+      return "Interface\\AddOns\\AzerothFieldKit\\media\\ReferenceHUD\\elwynn_material_v3.tga",512,12
+    end
   end
-  return t;
+  return "Interface\\AddOns\\RebornBuildPlanner\\Media\\window_nine.tga",128,28
 end
--- ADD-blended outer-edge aura. Anchors extend beyond all four edges.
--- Thin diffuse strips avoid ASBuilder's square action-button texture artifacts.
-local function outerAura(parent,side,thickness)
-  local t=parent:CreateTexture(nil,"ARTWORK");
-  t:SetTexture(WHITE);
-  if t.SetBlendMode then t:SetBlendMode("ADD") end
-  local spread=4;
-  if side=="TOP" then
-    t:SetHeight(thickness);
-    t:SetPoint("BOTTOMLEFT",parent,"TOPLEFT",-spread,2);
-    t:SetPoint("BOTTOMRIGHT",parent,"TOPRIGHT",spread,2);
-  elseif side=="BOTTOM" then
-    t:SetHeight(thickness);
-    t:SetPoint("TOPLEFT",parent,"BOTTOMLEFT",-spread,-2);
-    t:SetPoint("TOPRIGHT",parent,"BOTTOMRIGHT",spread,-2);
-  elseif side=="LEFT" then
-    t:SetWidth(thickness);
-    t:SetPoint("TOPRIGHT",parent,"TOPLEFT",-2,spread);
-    t:SetPoint("BOTTOMRIGHT",parent,"BOTTOMLEFT",-2,-spread);
-  else
-    t:SetWidth(thickness);
-    t:SetPoint("TOPLEFT",parent,"TOPRIGHT",2,spread);
-    t:SetPoint("BOTTOMLEFT",parent,"BOTTOMRIGHT",2,-spread);
-  end
-  return t;
+local function ornateSlices(parent,material,sourceSize,sourceCap,screenCap,layer,additive)
+  local cells={};local u=sourceCap/sourceSize;
+  local spans={{0,u},{u,1-u},{1-u,1}};
+  local cap=screenCap;
+  for y=1,3 do for x=1,3 do
+    if x~=2 or y~=2 then
+      local t=parent:CreateTexture(nil,layer);
+      t:SetTexture(material);
+      t:SetTexCoord(spans[x][1],spans[x][2],spans[y][1],spans[y][2]);
+      if additive and t.SetBlendMode then t:SetBlendMode("ADD") end
+      local xAnchor=x==1 and "LEFT" or x==3 and "RIGHT" or nil;
+      local yAnchor=y==1 and "TOP" or y==3 and "BOTTOM" or nil;
+      if xAnchor and yAnchor then
+        local corner=yAnchor..xAnchor;
+        t:SetSize(cap,cap);t:SetPoint(corner,parent,corner,0,0);
+      elseif yAnchor then
+        t:SetHeight(cap);
+        t:SetPoint(yAnchor.."LEFT",parent,yAnchor.."LEFT",cap,0);
+        t:SetPoint(yAnchor.."RIGHT",parent,yAnchor.."RIGHT",-cap,0);
+      else
+        t:SetWidth(cap);
+        t:SetPoint("TOP"..xAnchor,parent,"TOP"..xAnchor,0,-cap);
+        t:SetPoint("BOTTOM"..xAnchor,parent,"BOTTOM"..xAnchor,0,cap);
+      end
+      cells[#cells+1]=t;
+    end
+  end end
+  return cells;
+end
+local function ornamentalFrame(card,outerGap)
+  local frame=CreateFrame("Frame",nil,card);
+  frame:SetFrameLevel(card:GetFrameLevel()+15);
+  frame:EnableMouse(false);
+  frame:SetPoint("TOPLEFT",card,"TOPLEFT",-outerGap,outerGap);
+  frame:SetPoint("BOTTOMRIGHT",card,"BOTTOMRIGHT",outerGap,-outerGap);
+  return frame;
 end
 local function createCardMark(card)
-  local mark=CreateFrame("Frame",nil,card);
-  mark:SetFrameLevel(card:GetFrameLevel()+15);
-  mark:SetAllPoints(card);
-  mark:EnableMouse(false);
-  mark.border={};mark.glow={};mark.corners={};
-  -- Two continuous ADD-blended layers per OUTER side, never square stamps.
-  -- The broad layer provides visible ambience; the thin layer and gold edge
-  -- brighten together at each pulse peak. No overlap with card contents.
-  mark.shine={};mark.shineWide={};mark.shinePhase=0;mark.shineEnabled=false;
-  for _,side in ipairs({"TOP","BOTTOM","LEFT","RIGHT"}) do
-    local edge=cardEdge(mark,side,3,1,"OVERLAY");
-    local ambient=outerAura(mark,side,17);
-    local core=outerAura(mark,side,5);
-    mark.border[#mark.border+1]=edge;
-    mark.glow[#mark.glow+1]=ambient;
-    mark.shineWide[#mark.shineWide+1]=ambient;
-    mark.shine[#mark.shine+1]=core;
-  end
-  for _,point in ipairs({"TOPLEFT","TOPRIGHT","BOTTOMLEFT","BOTTOMRIGHT"}) do
-    local horiz=mark:CreateTexture(nil,"OVERLAY");
-    horiz:SetTexture(WHITE);horiz:SetSize(13,3);
-    horiz:SetPoint(point,mark,point,0,0);
-    local vert=mark:CreateTexture(nil,"OVERLAY");
-    vert:SetTexture(WHITE);vert:SetSize(3,13);
-    vert:SetPoint(point,mark,point,0,0);
-    mark.corners[#mark.corners+1]=horiz;
-    mark.corners[#mark.corners+1]=vert;
-  end
-  -- Badge floats ABOVE the top border so that the number and the native
-  -- NOUVEAU/AMÉLIORER heading remain fully readable.
+  local mark=ornamentalFrame(card,3);
+  local texture,size,sourceCap=cardMaterial();
+  -- Separate transparent decorative rim and a slightly larger halo.
+  mark.rim=ornateSlices(mark,texture,size,sourceCap,13,"OVERLAY",false);
+  mark.haloFrame=CreateFrame("Frame",nil,mark);
+  mark.haloFrame:SetAllPoints(mark);
+  mark.haloFrame:EnableMouse(false);
+  mark.halo=ornateSlices(mark.haloFrame,texture,size,sourceCap,15,"ARTWORK",true);
+  mark.shinePhase=0;mark.shineEnabled=false;
+  -- A restrained badge is external to the native card title and number.
   mark.badge=mark:CreateTexture(nil,"OVERLAY");
   mark.badge:SetTexture(WHITE);
   mark.badge:SetSize(86,17);
@@ -698,12 +688,10 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
       for _,mark in ipairs(H.marks or {}) do
         if mark.shineEnabled and mark:IsShown() then
           mark.shinePhase=(mark.shinePhase+(tonumber(elapsed) or 0))%6.2831853;
-          -- A clear, slow glow: 0.25 at trough, 1.0 at peak. No blinking.
-          local pulse=.5+.5*math.sin(mark.shinePhase*1.85);
-          for _,t in ipairs(mark.shineWide) do t:SetAlpha(.19+.32*pulse) end
-          for _,t in ipairs(mark.shine) do t:SetAlpha(.38+.62*pulse) end
-          for _,t in ipairs(mark.border) do t:SetAlpha(.70+.30*pulse) end
-          for _,t in ipairs(mark.corners) do t:SetAlpha(.70+.30*pulse) end
+          -- The carved rim is static; only its matching halo breathes.
+          local pulse=.5+.5*math.sin(mark.shinePhase*1.50);
+          local strength=mark.shineStrength or .20;
+          for _,t in ipairs(mark.halo) do t:SetAlpha(strength*(.55+.45*pulse)) end
           any=true;
         end
       end
@@ -728,12 +716,12 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
       local style=hint and CARD_STYLES[hint];
       if style then
         local rgb=style.color;
-        for _,t in ipairs(mark.border) do paint(t,rgb,1) end
-        for _,t in ipairs(mark.glow) do paint(t,rgb,1) end
-        for _,t in ipairs(mark.shine) do paint(t,rgb,1) end
-        for _,t in ipairs(mark.corners) do paint(t,rgb,1) end
-        -- Highlight build priorities with clear gold breathing along all
-        -- four outside edges; preserve the other existing state colours.
+        -- Gold is warm, not fluorescent yellow; the original FieldKit
+        -- material supplies carved bevels/corners, not opaque strips.
+        local tint=hint=="wanted" and {1,.92,.72} or rgb;
+        for _,t in ipairs(mark.rim) do paint(t,tint,.95) end
+        for _,t in ipairs(mark.halo) do paint(t,tint,1) end
+        mark.shineStrength=hint=="wanted" and .30 or .14;
         mark.shineEnabled=true;
         paint(mark.badge,rgb,0.86);
         local fr=ns.Locale and ns.Locale.lang=="frFR";
