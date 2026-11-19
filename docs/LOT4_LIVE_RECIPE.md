@@ -95,3 +95,57 @@ No card input/selection is intercepted, and native frames are never resized.
   card to banish after acquisition; verify with each rarity's native border.
 - Headless Lua tests verify overlay structure/alpha/state lifecycle; **only a
   live screenshot/video can establish aesthetic quality**.
+
+## Audit stabilization: safety, recovery, performance (2026-11-19)
+
+Changes are confined to `dev/ultimate-ui`. The official `azsb1:` export remains intact.
+
+### Packaging guard
+`tools/package_addon.py` now refuses to recursively replace arbitrary paths.
+Only dedicated named recipe directories directly below `dist/` or the
+repository's parent directory are allowed. Never point `-OutputDir` at a
+game installation, project root, user folder or existing valuable directory.
+The packaging script still replaces the *specific approved output folder*;
+use a **new** name for every local recipe until visual acceptance.
+
+### Native lossless exchange
+In the export screen choose **Export RBP (lossless)** and then select/copy
+the resulting `rbp1:` code. Paste it into the import screen and Analyze.
+`rbp1:` is intended for Reborn Build Planner only. It preserves the build's
+phases, banish-after goals, slot alternatives, notes and supported model
+metadata. Imported builds receive a fresh local ID and are not auto-followed.
+For the official website choose the existing `azsb1:` workflow; its known
+losses continue to require explicit acceptance.
+
+### Saved revision recovery
+Every successful **Update** of a saved build retains the previously stored
+version, with a **global maximum of five snapshots** in SavedVariables.
+This is not an on-disk crash backup, not a history of unsaved edits, and not
+an unlimited per-build archive. Save the usual
+`WTF/Account/<account>/SavedVariables/RebornBuildPlanner.lua` outside the
+game before replacing the addon or doing large imports.
+To inspect available entries run `/rbp history`. To restore a particular
+revision use `/rbp restore <build-id> <history-index>` exactly as shown by
+the listing. A restore runs through normal validation and saves the former
+current version as another revision. It does not overwrite other builds.
+
+### Performance diagnostics
+Card halo alpha updates are capped at ~30 Hz. Normal play has profiling off.
+For a sampled run use `/rbp profile on`, reproduce the busy activity,
+`/rbp profile report`, then `/rbp profile off`. This measures Lua
+`Runtime.Refresh()` only (where the client supplies `debugprofilestop`);
+it does NOT establish total GPU frame time, per-frame animation cost or
+independence from other addons. Compare with tracker disabled when measuring
+FPS and frame-time statistics.
+
+### Final live-client acceptance
+- Confirm `rbp1:` import/export preserves all goals, including banish-after.
+- Verify five-save bounded recovery; save copies of real SavedVariables.
+- Run 30–60 minute combat/treasure/card stress tests with and without RBP.
+- Verify reroll/skip highlights never intercept normal choices.
+- Verify /reload, a fresh run, class switch, and ambiguous jewelry.
+- Inspect alpha 0/50/100 on Standard and Elwynn.
+- Record API version, client version, addon SHA and performance samples.
+
+Automated Lua tests and CI are necessary gates, but do not replace in-game
+validation. Neither `main` nor an official public release is modified here.
