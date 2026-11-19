@@ -18,7 +18,7 @@ local function fieldkitPath()
   return nil
 end
 local THEMES = {
-  standard = { bg={0.025,0.045,0.065,0.96}, edge={0.39,0.55,0.64,1}, gold={0.77,0.87,0.91}, mute={0.65,0.73,0.78},
+  standard = { bg={0.018,0.022,0.027,0.96}, edge={0.69,0.72,0.75,1}, gold={0.91,0.85,0.66}, mute={0.72,0.75,0.77},
     art="naxx_card_body_v9.tga" },
   elwynn = { bg={0.035,0.075,0.055,0.96}, edge={0.76,0.56,0.24,1}, gold={1,0.82,0.41}, mute={0.78,0.83,0.70},
     art="elwynn_card_body_v9.tga" },
@@ -43,7 +43,18 @@ local function rim(frame,theme)
   local assetRoot=fieldkitPath();
   local fk=assetRoot~=nil;
   local c=THEMES[theme] or THEMES.standard;
-  if fk then
+  if theme=="standard" then
+    -- Classic Reborn card language: black inset and restrained silver
+    -- engraved border. Elwynn retains its gold FieldKit fantasy frame.
+    if frame.rim then for _,p in ipairs(frame.rim) do p.texture:Hide() end end
+    if frame.goldFill then frame.goldFill:Hide() end
+    frame:SetBackdrop({bgFile=WHITE,
+      edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",
+      tile=false,edgeSize=16,
+      insets={left=5,right=5,top=5,bottom=5}});
+    frame:SetBackdropColor(.018,.022,.027,.96);
+    frame:SetBackdropBorderColor(.69,.72,.75,.97);
+  elseif fk then
     frame:SetBackdrop({});
     if not frame.rim then
       frame.rim={};
