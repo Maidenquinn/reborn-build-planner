@@ -646,10 +646,15 @@ local function createCardMark(card)
   -- A second ADD copy directly under the engraved rim gives the halo a bright
   -- outline during the crest without introducing any opaque rectangular strips.
   mark.ember=ornateSlices(mark,texture,size,sourceCap,13,"OVERLAY",true);
-  mark.shinePhase=0;mark.shineEnabled=false;
+  mark.shinePhase=0;mark.shineEnabled=false;mark.shineAccum=0;
   mark:SetScript("OnUpdate",function(self,elapsed)
-    if not self.shineEnabled then return end
-    self.shinePhase=(self.shinePhase+(tonumber(elapsed) or 0)*1.65)%6.2831853;
+    if not self.shineEnabled or not self:IsShown() then return end
+    -- Update animated texture alphas at ~30Hz instead of each render frame.
+    -- Preserve elapsed-time-based pulse speed on fast and slow systems.
+    self.shineAccum=self.shineAccum+(tonumber(elapsed) or 0);
+    if self.shineAccum<1/30 then return end
+    local delta=self.shineAccum;self.shineAccum=0;
+    self.shinePhase=(self.shinePhase+delta*1.65)%6.2831853;
     local pulse=.5+.5*math.sin(self.shinePhase-1.5707963);
     local intensity=self.shineStrength or 1;
     local haloAlpha=(.36+.58*pulse)*intensity;
