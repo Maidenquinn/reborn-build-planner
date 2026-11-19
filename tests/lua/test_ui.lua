@@ -901,8 +901,8 @@ return function(H)
 		local e=boot();e.open();
 		local prior=e.h():Counts().builds;
 		analyze(e,GOOD);
-		ok(e.ui.im.detailsButton:IsShown(),"inspect control available for valid plan");
-		e.world.click(e.ui.im.detailsButton);
+		ok(e.ui.im.paste:IsShown(),"inspect control available for valid plan");
+		e.world.click(e.ui.im.paste);
 		ok(e.ui.im.classCycle.label:IsShown(),"stage selector available");
 		local rows=e.ui.im.detailRows;
 		local function hasRow(term)
@@ -918,7 +918,7 @@ return function(H)
 		eq(e.h():Counts().builds,prior,"inspection does not write SavedVariables");
 		e.world.click(e.ui.im.classCycle.next);
 		ok(e.ui.im.classCycle.label:GetText():find("2/4",1,true),"stage navigation");
-		e.world.click(e.ui.im.detailsButton);
+		e.world.click(e.ui.im.paste);
 		ok(e.ui.im.phases[1]:IsShown(),"summary restored");
 	end);
 
