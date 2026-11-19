@@ -30,13 +30,20 @@ function M.EndDrag()
   local mx, my = Minimap and Minimap.GetCenter and Minimap:GetCenter();
   local bx, by = b.GetCenter and b:GetCenter();
   local scale = Minimap and Minimap.GetEffectiveScale and Minimap:GetEffectiveScale() or 1;
+  local x, y;
   if mx and my and bx and by and scale > 0 then
-    M.Position((bx-mx)/scale, (by-my)/scale);
-    if ns.storage and not ns.storage.readOnly then
-      ns.storage:SetSetting("minimapPosition", {x=M.x, y=M.y});
-    end
+    x, y = (bx-mx)/scale, (by-my)/scale;
   else
-    M.Position(M.x or DEFAULT_X, M.y or DEFAULT_Y);
+    -- Headless test frames (and unusual minimap wrappers) may not expose
+    -- absolute centers. Recover a valid minimap-relative anchor instead.
+    local _, relative, _, px, py = b:GetPoint();
+    if relative == Minimap and type(px)=="number" and type(py)=="number" then
+      x, y = px, py;
+    end
+  end
+  M.Position(x or M.x or DEFAULT_X, y or M.y or DEFAULT_Y);
+  if ns.storage and not ns.storage.readOnly then
+    ns.storage:SetSetting("minimapPosition", {x=M.x, y=M.y});
   end
 end
 
