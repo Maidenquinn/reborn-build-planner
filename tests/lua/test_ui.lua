@@ -661,6 +661,9 @@ return function(H)
 			for j, cell in ipairs(ed.groups[g].cells) do ok(cell:IsVisible(), g .. j); end
 		end
 		ok(e.world.hasText("Main 1") and e.world.hasText("Alt. 1"), e.texts());
+		-- Long status labels have reserved space rather than overlapping the item name.
+		ok(e.ui.bs.rows[1].tag:GetWidth() >= 98, "browser status column is legible");
+		ok(e.ui.bs.rows[1].name:GetWidth() <= 200, "browser item title does not overlap its status");
 		-- clicking an empty alternative ring slot: catalogue = rings, target = that slot, visible
 		e.world.click(ed.groups.rings.cells[3]);
 		eq(e.c:Editor().cat, "rings");
