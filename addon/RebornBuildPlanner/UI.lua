@@ -1776,7 +1776,7 @@ function UI:RefreshImport()
   for _,row in ipairs(im.detailRows) do visible(row.icon,preview);visible(row.label,preview);end
   visible(im.pager.prev,not preview and pv~=nil);
   visible(im.pager.next,not preview and pv~=nil);
-  visible(im.pager.label,not preview and pv~=nil);
+  visible(im.pager.label,preview or pv~=nil);
 
   if not preview then
     im.head:SetText(fr and "1 / 2  —  Coller un build" or "STEP 1 / 2  —  Paste a build");
@@ -1838,10 +1838,11 @@ function UI:RefreshImport()
   im.classCycle.label:SetText((phase.label~="" and phase.label or L(BM.DEFAULT_LABELS[im.stage]))..
      "  ("..im.stage.."/4)");
   local rows=importPreviewLines(pv,im.stage,c:Catalog(),c:Lang());
-  local spellItems,jewelItems = {},{};
+  local spellItems = {};
   for _,item in ipairs(rows) do
-    if item.key and item.kind=="spell" then spellItems[#spellItems+1]=item
-    elseif item.key then jewelItems[#jewelItems+1]=item end
+    if item.key and item.kind=="spell" and not item.text:find("AVOID",1,true) then
+      spellItems[#spellItems+1]=item
+    end
   end
   -- A stable 4-icon pool highlights the first goals; the remaining goals
   -- are printed as text below. No scrolling/paging to discover the six goals.
@@ -1859,7 +1860,9 @@ function UI:RefreshImport()
     local w=im.issues[i];
     local item=spellItems[i+4];
     place(w,24,leftBase+(i-1)*36,400,18);
-    w:SetText(item and fitText(item.text,390,12) or "");
+    local icon=item and item.icon and item.icon:gsub("[^%w_%-]","") or nil;
+    w:SetText(item and ((icon and ("|TInterface\\Icons\\"..icon..":20:20|t  ") or "")..
+      fitText(item.text,340,12)) or "");
     w:SetTextColor(.91,.92,.95);
   end
   local labels={};
@@ -1889,7 +1892,17 @@ function UI:RefreshImport()
       value and value:sub(-1)==":" and .77 or .90,
       value and value:sub(-1)==":" and .4 or .93);
   end
+  local banned={};
+  for _,key in ipairs(phase.banish or {}) do
+    local catalog=c:Catalog();
+    banned[#banned+1]=catalog and catalog:Name("spell",key,c:Lang()) or key;
+  end
+  im.pager.label:SetText((fr and "À ÉVITER : " or "AVOID: ")..
+    (#banned>0 and fitText(table.concat(banned,", "),340,12) or (fr and "Aucun" or "None")));
+  im.pager.label:SetTextColor(#banned>0 and .98 or .72,#banned>0 and .58 or .76,#banned>0 and .45 or .81);
+  place(im.pager.label,24,428,428,20);
   im.nameLabel:SetText(fr and "Nom :" or "Name:");
+  setEdit(im.nameEdit,st.name or pv.name or "");
   place(im.nameLabel,20,504,95);
   place(im.nameEdit,115,498,340,25);
   local more=math.max(0,#labels-#slots);
