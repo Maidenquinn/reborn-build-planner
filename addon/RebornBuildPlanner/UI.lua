@@ -968,13 +968,13 @@ function UI:BuildEditor(v)
 		r.icon = r.frame:CreateTexture(nil, "ARTWORK");
 		r.icon:SetWidth(20); r.icon:SetHeight(20);
 		r.icon:SetPoint("TOPLEFT", r.frame, "TOPLEFT", 27, -1);
-		r.name = text(r.frame, 52, 4, 258, "GameFontHighlight");
-		r.hit = hitArea(r.frame, 26, 0, 284, 22);
+		r.name = text(r.frame, 52, 4, 302, "GameFontHighlight");
+		r.hit = hitArea(r.frame, 26, 0, 337, 22);
 		r.add = button(r.frame, "", 190, 20, 52, 1, function() c:AddSpellTarget(); end);
-		r.tog = button(r.frame, "", 108, 20, 316, 1, function() local k = r.key; if k then c:ToggleBanishAfter(k); end end);
-		r.up = button(r.frame, "", 24, 20, 430, 1, function() c:MoveSpell(i, -1); end);
-		r.down = button(r.frame, "", 24, 20, 456, 1, function() c:MoveSpell(i, 1); end);
-		r.del = button(r.frame, "", 24, 20, 482, 1, function() local k = r.key; if k then c:RemoveSpell(k); end end);
+		r.tog = button(r.frame, "", 108, 20, 365, 1, function() local k = r.key; if k then c:ToggleBanishAfter(k); end end);
+		r.up = button(r.frame, "", 24, 20, 478, 1, function() c:MoveSpell(i, -1); end);
+		r.down = button(r.frame, "", 24, 20, 504, 1, function() c:MoveSpell(i, 1); end);
+		r.del = button(r.frame, "", 24, 20, 530, 1, function() local k = r.key; if k then c:RemoveSpell(k); end end);
 		r.hit:SetScript("OnClick", function() if r.key then c:Inspect("spell", r.key); end end);
 		self:Hover(r.hit, function() return r.key and c:TooltipData("spell", r.key) or nil; end);
 		self:Hover(r.tog, function() return r.key and helpData(self, "toggle") or nil; end);
@@ -1140,7 +1140,7 @@ function UI:RefreshEditor()
 			local nm = it.name;
 			if it.mode == "rank" then nm = nm .. " (r" .. tostring(it.rank) .. ")"; elseif it.mode == "unlimited" then nm = nm .. " (+)"; end
 			if not it.known then nm = nm .. " ?"; end
-			r.name:SetText(fitText(nm, 258, 12));
+			r.name:SetText(fitText(nm, 296, 12));
 			setIcon(r.icon, it.icon);
 			r.name:Show(); r.hit:Show(); r.add:Hide();
 			r.tog.role = it.after and "danger" or "quiet";
