@@ -66,6 +66,16 @@ jobs:
               assert required <= names, required-names
           print("Private preview ZIP verified:",zips[0])
           PY
+      - name: Validate ZIP against Syiana addon-index structural constraints
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from tools.validate_index_zip import validate
+          zips = list(Path("dist/private-preview").glob("RebornBuildPlanner-*-recette.zip"))
+          assert len(zips) == 1, zips
+          count, size = validate(str(zips[0]))
+          print(f"Addon index structure: PASS ({count} files, {size} unpacked bytes)")
+          PY
       - name: Publish private 7-day recette artifact (NOT a release)
         uses: actions/upload-artifact@v4
         with:
