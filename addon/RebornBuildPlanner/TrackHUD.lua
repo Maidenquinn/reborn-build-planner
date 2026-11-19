@@ -175,6 +175,18 @@ function H.New(onTheme,onStage,onSelect,onCollapse,onOpen)
   f:SetFrameStrata("HIGH");f:SetFrameLevel(75);
   f:SetPoint("BOTTOMRIGHT",UIParent,"BOTTOMRIGHT",-26,180);
   f:SetClampedToScreen(true);f:SetMovable(true);
+  -- Native menu-inspired header line: cold steel for Standard, warm
+  -- engraved gold for Elwynn. It belongs to the card, not the game UI.
+  f.headerBevel=f:CreateTexture(nil,"ARTWORK");
+  f.headerBevel:SetTexture(WHITE);
+  f.headerBevel:SetHeight(2);
+  f.headerBevel:SetPoint("TOPLEFT",f,"TOPLEFT",12,-31);
+  f.headerBevel:SetPoint("TOPRIGHT",f,"TOPRIGHT",-12,-31);
+  f.headerShade=f:CreateTexture(nil,"ARTWORK");
+  f.headerShade:SetTexture(WHITE);
+  f.headerShade:SetHeight(1);
+  f.headerShade:SetPoint("TOPLEFT",f,"TOPLEFT",12,-34);
+  f.headerShade:SetPoint("TOPRIGHT",f,"TOPRIGHT",-12,-34);
   f.art=f:CreateTexture(nil,"BACKGROUND");
   f.art:SetPoint("TOPLEFT",f,"TOPLEFT",11,-11);
   f.art:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-11,11);
@@ -356,6 +368,15 @@ function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
   if not build or not progress or not progress.inRun then f:Hide();return end
   theme=THEMES[theme] and theme or "standard";
   local c=THEMES[theme];
+  local native=theme=="standard";
+  -- Standard mirrors Reborn's black/steel game-menu chrome, with no
+  -- green/gold button frames borrowed from the forest theme.
+  f.headerBevel:SetVertexColor(native and .71 or .85,native and .73 or .62,native and .75 or .28,native and .85 or .90);
+  f.headerShade:SetVertexColor(native and .28 or .42,native and .31 or .31,native and .34 or .15,.9);
+  for _,button in ipairs({f.titleButton,f.themeButton,f.collapseButton,f.openButton}) do
+    button:SetBackdropColor(native and .045 or .055,native and .052 or .11,native and .06 or .08,.96);
+    button:SetBackdropBorderColor(native and .65 or .8,native and .68 or .64,native and .72 or .31,1);
+  end
   local compact=self.compact==true;
   local extras={
     {label=lang=="frFR" and "HORS BUILD · SORTS" or "OUTSIDE · SPELLS",items=progress.outsideSpells or {},kind="spell"},
