@@ -1603,6 +1603,57 @@ function UI:RefreshBrowser()
 	end
 end
 
+-- Import inspection is read-only: draw from the decoded preview, never from
+-- SavedVariables. Preserve the official spell order and all occupied slots.
+local function importPreviewLines(preview,stage,catalog,lang)
+  local result={};
+  local function append(kind,key,label,suffix)
+    local entry=catalog and catalog:Get(kind,key);
+    local name=catalog and catalog:Name(kind,key,lang) or tostring(key);
+    local line=label.."  "..tostring(name or key);
+    if suffix then line=line.."  "..suffix end
+    result[#result+1]={kind=kind,key=key,text=line,icon=entry and entry.icon,
+      known=entry~=nil};
+  end
+  local build=preview and preview.build;
+  local phase=build and build.phases and build.phases[stage];
+  if not phase then return result end
+  result[#result+1]={text="SPELLS - PRIORITY ORDER",heading=true};
+  local after={};
+  for _,key in ipairs(phase.banishAfter or {}) do after[key]=true end
+  for i,item in ipairs(phase.spells or {}) do
+    if type(item)=="table" and item.key then
+      local extra=after[item.key] and "BANISH LATER" or
+        (item.mode=="rank" and ("R"..tostring(item.rank or "?")) or
+         (item.mode=="unlimited" and "UNLIMITED" or nil));
+      append("spell",item.key,tostring(i)..".",extra);
+    end
+  end
+  if #(phase.spells or {})==0 then result[#result+1]={text="No spells",empty=true} end
+  result[#result+1]={text="BANISH / AVOID",heading=true};
+  for i,key in ipairs(phase.banish or {}) do
+    append("spell",key,tostring(i)..".","AVOID");
+  end
+  if #(phase.banish or {})==0 then result[#result+1]={text="None",empty=true} end
+  for _,section in ipairs({{"rings","RINGS","jewel"},
+                             {"trinkets","TRINKETS","jewel"},
+                             {"amulets","AMULETS","amulet"}}) do
+    result[#result+1]={text=section[2].." - MAIN / ALTERNATIVES",heading=true};
+    local any=false;
+    for i,key in ipairs(phase[section[1]] or {}) do
+      if type(key)=="string" and key~="" then
+        any=true;
+        append(section[3],key,tostring(i)..".",i<=BM.MAIN_SLOTS[section[1]] and "MAIN" or "ALT");
+      end
+    end
+    if not any then result[#result+1]={text="Empty",empty=true} end
+  end
+  if phase.notes and phase.notes~="" then
+    result[#result+1]={text="Notes: "..phase.notes,empty=true};
+  end
+  return result;
+end
+
 -- ------------------------------------------------------------------ import (centre)
 function UI:BuildImport(v)
 	local c = self.c;
@@ -1632,6 +1683,34 @@ function UI:BuildImport(v)
 	im.nameEdit = edit(v, 128, 354, 440, function(t) c:SetImportName(t); end, "RebornBuildPlannerImportName");
 	im.commit = button(v, "", 150, 28, 8, 480, function() local id = c:CommitImport(); if id then c.state.import = nil; c:SetView("editor", true); end end);
 	im.commit.role = "primary";
+	-- Detailed preview uses the otherwise empty middle area. Fixed pools and
+	-- page controls avoid rebuilding widgets for long imported plans.
+	im.detail=false;im.stage=1;im.offset=0;im.previewRef=nil;
+	im.detailsButton=button(v,"",164,22,390,223,function()
+		im.detail=not im.detail;im.offset=0;self:RefreshImport();
+	end);
+	im.stageSelector=cycler(v,8,224,255,function()
+		im.stage=(im.stage+2)%4+1;im.offset=0;self:RefreshImport();
+	end,function()
+		im.stage=im.stage%4+1;im.offset=0;self:RefreshImport();
+	end);
+	im.detailRows={};
+	for i=1,8 do
+		local y=254+(i-1)*18;
+		local row={};
+		row.icon=v:CreateTexture(nil,"OVERLAY");
+		row.icon:SetSize(15,15);
+		row.icon:SetPoint("TOPLEFT",v,"TOPLEFT",12,-y);
+		row.label=text(v,32,y,522,"GameFontHighlightSmall");
+		im.detailRows[i]=row;
+	end
+	im.detailPrev=button(v,"",75,22,8,402,function()
+		im.offset=math.max(0,im.offset-8);self:RefreshImport();
+	end);
+	im.detailPage=text(v,93,407,355,"GameFontNormalSmall","CENTER");
+	im.detailNext=button(v,"",75,22,475,402,function()
+		im.offset=im.offset+8;self:RefreshImport();
+	end);
 end
 
 function UI:CycleImportClass(dir)
@@ -1654,10 +1733,49 @@ function UI:RefreshImport()
 	im.hint:SetText(L("Nothing is saved until you press Import. The new build is never active."));
 	local pv = st and st.preview;
 	local show = pv ~= nil;
+	if pv~=im.previewRef then
+		im.previewRef=pv;im.stage=1;im.offset=0;im.detail=false;
+	end
+	local detailed=show and pv.ok and pv.kind=="plan" and im.detail;
+	setShown(im.detailsButton,show and pv.ok and pv.kind=="plan");
+	setLabel(im.detailsButton,im.detail and "Summary" or "Inspect build");
+	setShown(im.stageSelector.prev,detailed);
+	setShown(im.stageSelector.next,detailed);
+	setShown(im.stageSelector.label,detailed);
+	setShown(im.detailPrev,detailed);
+	setShown(im.detailNext,detailed);
+	setShown(im.detailPage,detailed);
+	for _,row in ipairs(im.detailRows) do
+		setShown(row.label,detailed);
+		setShown(row.icon,detailed);
+	end
+	if detailed then
+		local all=importPreviewLines(pv,im.stage,c:Catalog(),c:Lang());
+		local pages=math.max(1,math.ceil(#all/8));
+		im.offset=math.min(im.offset,(pages-1)*8);
+		im.stageSelector.label:SetText((pv.build.phases[im.stage].label~="" and
+			pv.build.phases[im.stage].label or L(BM.DEFAULT_LABELS[im.stage])).." ("..im.stage.."/4)");
+		im.detailPage:SetText("Items "..math.min(im.offset+1,#all).."-"..math.min(im.offset+8,#all).." / "..#all);
+		enable(im.detailPrev,im.offset>0);
+		enable(im.detailNext,im.offset+8<#all);
+		for i,row in ipairs(im.detailRows) do
+			local entry=all[im.offset+i];
+			if entry then
+				row.label:SetText(fitText(entry.text,510,11));
+				if entry.heading then row.label:SetTextColor(.95,.77,.39);
+				elseif entry.known==false then row.label:SetTextColor(COLOR.warn[1],COLOR.warn[2],COLOR.warn[3]);
+				else row.label:SetTextColor(.90,.93,.95) end
+				setIcon(row.icon,entry.icon);
+			else
+				row.label:SetText("");
+				row.icon:Hide();
+			end
+		end
+	end
 	for _, w in ipairs({ im.name, im.class, im.state }) do setShown(w, show); end
-	for _, w in ipairs(im.phases) do setShown(w, show); end
-	for _, w in ipairs(im.issues) do setShown(w, show); end
-	setShown(im.pager.prev, show); setShown(im.pager.next, show); setShown(im.pager.label, show); setShown(im.loss, show);
+	for _, w in ipairs(im.phases) do setShown(w, show and not detailed); end
+	for _, w in ipairs(im.issues) do setShown(w, show and not detailed); end
+	setShown(im.pager.prev, show and not detailed); setShown(im.pager.next, show and not detailed); setShown(im.pager.label, show and not detailed); setShown(im.loss, show and not detailed);
 	local talents = show and pv.ok and pv.kind == "talents";
 	setShown(im.classCycle.prev, talents); setShown(im.classCycle.next, talents); setShown(im.classCycle.label, talents);
 	setShown(im.nameLabel, show and pv.ok); setShown(im.nameEdit, show and pv.ok); setShown(im.commit, show);
