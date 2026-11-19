@@ -712,7 +712,9 @@ return function(H)
 		local e = boot(); local id, ed = openNew(e);
 		e.c:ToggleAdvanced();
 		ok(ed.nt.previewNotes:IsShown(), "notes overview is visible first");
+		no(ed.nt.notes.surround:IsShown(), "edit field frame cannot cover the note preview");
 		e.world.click(ed.nt.switch);
+		ok(ed.nt.notes.surround:IsShown(), "notes edit frame is shown only in edit mode");
 		ok(ed.nt.notes.scroll:IsShown(), "editable notes require an explicit click");
 		e.world.type(ed.nt.notes, "Ligne 1\nLigne 2 \195\169");
 		e.world.type(ed.nt.link, "https://azreborn.com/planner/warrior");
@@ -723,6 +725,8 @@ return function(H)
 		eq(d.talents, "10203-000-0110");
 		e.world.click(ed.nt.switch);
 		ok(ed.nt.previewNotes:GetText():find("Ligne 1",1,true), "overview displays saved draft notes");
+		no(ed.nt.notes.surround:IsShown(), "notes preview remains readable after editing");
+		ok(ed.nt.readingMatte:IsShown(), "note preview has its own opaque reading surface");
 		ok(ed.nt.previewLink:IsShown(), "existing link is available in the overview");
 		e.world.click(ed.nt.previewLink);
 		ok(ed.nt.link:IsShown(), "URL is selectable for Ctrl+C without an unsupported browser API");
