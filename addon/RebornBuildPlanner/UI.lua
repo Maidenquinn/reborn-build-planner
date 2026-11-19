@@ -1278,23 +1278,30 @@ function UI:BuildDetail(v)
 	local det = {};
 	self.det = det;
 	det.head = header(v, 8, 430, EW);
+	-- Opaque reading surface: preserve the user's global transparency setting,
+	-- but prevent game-card text behind the window from polluting this inspector.
+	det.readingMatte = v:CreateTexture(nil, "ARTWORK");
+	det.readingMatte:SetTexture(WHITE);
+	det.readingMatte:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -452);
+	det.readingMatte:SetWidth(EW); det.readingMatte:SetHeight(160);
+	det.readingMatte:SetVertexColor(.012, .020, .030, .97);
 	det.icon = v:CreateTexture(nil, "ARTWORK");
 	det.icon:SetWidth(36); det.icon:SetHeight(36);
 	det.icon:SetPoint("TOPLEFT", v, "TOPLEFT", 8, -454);
-	det.title = text(v, 52, 454, 340, "GameFontNormalLarge", "LEFT", 18);
-	det.type = text(v, 52, 474, 340, "GameFontNormalSmall");
+	det.title = text(v, 52, 456, 332, "GameFontNormalLarge", "LEFT", 18);
+	det.type = text(v, 52, 478, 332, "GameFontNormalSmall");
 	det.type:SetTextColor(0.66, 0.68, 0.74);
-	det.area = scrollArea(v, 8, 496, 548, DET_ROWS * 15, function(d) self:ScrollDetail(d); end, function(o) self:SetDetailOffset(o); end);
+	det.area = scrollArea(v, 12, 503, 540, DET_ROWS * 14, function(d) self:ScrollDetail(d); end, function(o) self:SetDetailOffset(o); end);
 	det.rows = {};
 	for i = 1, DET_ROWS do
-		det.rows[i] = text(det.area.hold, 0, (i - 1) * 15, 530, "GameFontHighlight");
+		det.rows[i] = text(det.area.hold, 0, (i - 1) * 14, 522, "GameFontHighlight");
 	end
 	det.body = det.rows[1];        -- first row (kept for tests and callers that only want "the text")
 	det.source = wrapped(v, 8, 626, 540, 16, "GameFontNormalSmall");
 	det.source:SetTextColor(0.62, 0.64, 0.70);
 	det.source:Hide(); -- source metadata is appended to the scrollable full-width text
-	det.act1 = button(v, "", 166, 26, 396, 454, function() self:DetailAct(1); end);
-	det.act2 = button(v, "", 166, 24, 396, 484, function() self:DetailAct(2); end);
+	det.act1 = button(v, "", 166, 26, 394, 455, function() self:DetailAct(1); end);
+	det.act2 = button(v, "", 166, 24, 394, 482, function() self:DetailAct(2); end);
 	det.act1.role = "primary";
 	det.offset, det.lines = 0, {};
 end
@@ -1393,7 +1400,7 @@ function UI:RefreshDetail()
 	local c, det = self.c, self.det;
 	local e = c:Editor();
 	local show = e ~= nil and not e.adv;
-	for _, w in ipairs({ det.head, det.title, det.type, det.act1, det.act2 }) do setShown(w, show); end
+	for _, w in ipairs({ det.head, det.title, det.type, det.act1, det.act2, det.readingMatte }) do setShown(w, show); end
 	det.source:Hide();
 	setShown(det.area.hold, show);
 	if not show then det.icon:Hide(); det.area.slider:Hide(); return; end
