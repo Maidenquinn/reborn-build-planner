@@ -242,6 +242,16 @@ end
 
 -- multi-line box inside a standard scroll frame (the pattern of FieldKit's copy window)
 local function multiline(parent, name, w, h, x, y, onChange, readOnlyText)
+	-- Visibly framed clipboard area: the previous transparent EditBox was
+	-- almost impossible to distinguish from the empty blue centre pane.
+	local surround = CreateFrame("Frame", nil, parent);
+	surround:SetSize(w, h + 6);
+	surround:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -y);
+	surround:SetBackdrop({bgFile=WHITE,edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",
+		tile=false,edgeSize=12,insets={left=3,right=3,top=3,bottom=3}});
+	surround:SetBackdropColor(.024,.033,.030,.97);
+	surround:SetBackdropBorderColor(.61,.47,.23,1);
+	surround:EnableMouse(false);
 	local sf = CreateFrame("ScrollFrame", name .. "Scroll", parent, "UIPanelScrollFrameTemplate");
 	sf:SetWidth(w - 26);
 	sf:SetHeight(h);
@@ -252,6 +262,7 @@ local function multiline(parent, name, w, h, x, y, onChange, readOnlyText)
 	e:SetMultiLine(true);
 	e:SetAutoFocus(false);
 	e:SetFontObject("ChatFontNormal");
+	e:SetTextColor(1,.94,.78,1);
 	e:SetMaxLetters(60000);
 	e:SetScript("OnEscapePressed", function(self) self:ClearFocus(); end);
 	e:SetScript("OnTextChanged", function(self, user) if user and onChange then onChange(self:GetText()); end end);
@@ -263,6 +274,7 @@ local function multiline(parent, name, w, h, x, y, onChange, readOnlyText)
 	end
 	sf:SetScrollChild(e);
 	e.scroll = sf;
+	e.surround = surround;
 	return e;
 end
 
@@ -1582,9 +1594,13 @@ function UI:BuildImport(v)
 	self.im = im;
 	im.head = text(v, 8, 8, EW, "GameFontNormal");
 	im.box = multiline(v, "RebornBuildPlannerImportBox", EW, 90, 8, 30, nil);
-	im.analyze = button(v, "", 140, 24, 8, 126, function() c:AnalyzeImport(im.box:GetText()); end);
+	im.paste = button(v, "", 160, 24, 8, 126, function()
+		im.box:SetFocus();
+	end);
+	im.paste.role = "primary";
+	im.analyze = button(v, "", 140, 24, 178, 126, function() c:AnalyzeImport(im.box:GetText()); end);
 	im.analyze.role = "primary";
-	im.back = button(v, "", 120, 24, 156, 126, function() c:SetView("editor"); end);
+	im.back = button(v, "", 120, 24, 336, 126, function() c:SetView("editor"); end);
 	im.hint = text(v, 8, 156, EW, "GameFontNormalSmall");
 	im.name = text(v, 8, 180, EW, "GameFontNormalLarge", "LEFT", 18);
 	im.class = text(v, 8, 202, 270, "GameFontNormal");
@@ -1615,7 +1631,8 @@ end
 function UI:RefreshImport()
 	local c, im = self.c, self.im;
 	local st = c:ImportState();
-	im.head:SetText(L("Paste an azsb1: code or a planner link (Ctrl+V), then Analyze."));
+	im.head:SetText(L("Collez ici un code azsb1: ou un lien planner (Ctrl+V), puis Analyser."));
+	setLabel(im.paste, L("Coller ici (Ctrl+V)"));
 	setLabel(im.analyze, L("Analyze"));
 	setLabel(im.back, L("Back"));
 	im.hint:SetText(L("Nothing is saved until you press Import. The new build is never active."));
@@ -1693,7 +1710,10 @@ function UI:BuildExport(v)
 	ex.accept.role = "warn";
 	ex.codeLabel = text(v, 8, 204, EW, "GameFontNormal");
 	ex.box = multiline(v, "RebornBuildPlannerExportBox", EW, 110, 8, 224, nil, true);
-	ex.hint = text(v, 8, 340, EW, "GameFontNormalSmall");
+	ex.selectCode = button(v, "", 190, 24, 8, 342, function()
+		if ex.box.fixed then ex.box:SetFocus();ex.box:HighlightText(); end
+	end);
+	ex.hint = text(v, 208, 347, 350, "GameFontNormalSmall");
 	ex.back = button(v, "", 160, 26, 8, 372, function() c:SetView("editor"); end);
 end
 
@@ -1732,15 +1752,18 @@ function UI:RefreshExport()
 		ex.state:SetText(string.format(L("%d thing(s) would be lost. Read the list, then accept to see the code."), r.intentLosses));
 		ex.state:SetTextColor(COLOR.warn[1], COLOR.warn[2], COLOR.warn[3]);
 	end
-	setLabel(ex.accept, L("Accept the losses and show the code"));
+	setLabel(ex.accept, L("Continuer : format officiel avec pertes"));
 	setShown(ex.accept, r.ok and r.intentLosses > 0 and not x.accepted);
-	ex.codeLabel:SetText(x.code and L("Code (Ctrl+A then Ctrl+C to copy):") or "");
+	ex.codeLabel:SetText(x.code and L("Code généré : sélectionnez et copiez (Ctrl+C)") or L("Après confirmation, le code apparaîtra dans le cadre ci-dessous."));
+	setLabel(ex.selectCode, L("Sélectionner le code"));
+	setShown(ex.selectCode, x.code ~= nil);
 	setShown(ex.box.scroll, x.code ~= nil);
+	setShown(ex.box.surround, x.code ~= nil);
 	if x.code then
 		ex.box.fixed = x.code;
 		setEdit(ex.box, x.code);
 	end
-	ex.hint:SetText(x.source == "draft" and L("This is the draft shown in the editor, saved or not.") or L("This is the saved build."));
+	ex.hint:SetText(x.code and L("Ctrl+C pour copier le code.") or L("Le build RBP original reste intact."));
 	setLabel(ex.back, L("Back"));
 end
 
