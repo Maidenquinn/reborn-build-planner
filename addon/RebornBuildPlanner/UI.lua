@@ -1742,7 +1742,7 @@ function UI:RefreshExport()
 	local b = x.build;
 	ex.head:SetText(string.format(L("Export: %s"), fitText(b.name ~= "" and b.name or L("(no name)"), 400, 16)));
 	local r = x.report;
-	local losses = c:ExportLosses();
+	local losses = x.native and {} or c:ExportLosses();
 	local first = (x.page - 1) * ns.Controller.ISSUE_PAGE;
 	for i, w in ipairs(ex.rows) do
 		local it = losses[first + i];
@@ -1754,7 +1754,7 @@ function UI:RefreshExport()
 			w:SetText("");
 		end
 	end
-	ex.pager.label:SetText(string.format(L("Page %d/%d"), x.page, c:ExportPageCount()));
+	ex.pager.label:SetText(x.native and "RBP 1/1" or string.format(L("Page %d/%d"), x.page, c:ExportPageCount()));
 	enable(ex.pager.prev, x.page > 1);
 	enable(ex.pager.next, x.page < c:ExportPageCount());
 	if x.native then
