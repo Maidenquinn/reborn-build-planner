@@ -26,6 +26,7 @@ AdditionalLocales.lua
 LiveTracker.lua
 TrackHUD.lua
 Runtime.lua
+MinimapButton.lua
 Controller.lua
 UI.lua
 Commands.lua
