@@ -261,8 +261,14 @@ local function multiline(parent, name, w, h, x, y, onChange, readOnlyText)
 	e:SetHeight(h);
 	e:SetMultiLine(true);
 	e:SetAutoFocus(false);
+	e:EnableMouse(true);
 	e:SetFontObject("ChatFontNormal");
 	e:SetTextColor(1,.94,.78,1);
+	-- The game client does not expose clipboard reads. Explicit mouse focus
+	-- allows typing immediately and Ctrl+V to use the client's native paste.
+	e:SetScript("OnMouseDown", function(self, button)
+		if button=="LeftButton" then self:SetFocus() end
+	end);
 	e:SetMaxLetters(60000);
 	e:SetScript("OnEscapePressed", function(self) self:ClearFocus(); end);
 	e:SetScript("OnTextChanged", function(self, user) if user and onChange then onChange(self:GetText()); end end);
@@ -273,6 +279,10 @@ local function multiline(parent, name, w, h, x, y, onChange, readOnlyText)
 		e:SetScript("OnEditFocusGained", function(self) self:HighlightText(); end);
 	end
 	sf:SetScrollChild(e);
+	sf:EnableMouse(true);
+	sf:SetScript("OnMouseDown", function(_,button)
+		if button=="LeftButton" then e:SetFocus() end
+	end);
 	e.scroll = sf;
 	e.surround = surround;
 	return e;
@@ -592,6 +602,12 @@ function UI:Build()
 	self.languageDismiss:EnableMouse(true);
 	self.languageDismiss:SetScript("OnMouseDown", function() self:HideLanguageMenu(); end);
 	self.languageDismiss:Hide();
+	-- Independent, persisted alpha controls: the editor and live tracker
+	-- must not affect each other's visibility or card interactions.
+	self.uiAlphaMinus = button(root,"",62,24,738,8,function() self:AdjustOpacity("windowOpacity",-.1) end);
+	self.uiAlphaPlus = button(root,"",62,24,802,8,function() self:AdjustOpacity("windowOpacity",.1) end);
+	self.hudAlphaMinus = button(root,"",75,24,866,8,function() self:AdjustOpacity("trackerOpacity",-.1) end);
+	self.hudAlphaPlus = button(root,"",75,24,944,8,function() self:AdjustOpacity("trackerOpacity",.1) end);
 	self.sizeMinus = button(root, "", 84, 24, 1026, 8, function() self:Rescale(-0.1); end);
 	self.sizePlus = button(root, "", 84, 24, 1114, 8, function() self:Rescale(0.1); end);
 	self.banner = text(root, 20, 38, 1180, "GameFontNormal", "LEFT");
@@ -1631,8 +1647,8 @@ end
 function UI:RefreshImport()
 	local c, im = self.c, self.im;
 	local st = c:ImportState();
-	im.head:SetText((ns.Locale.lang=="frFR" and "Collez ici un code azsb1: ou un lien de build (Ctrl+V), puis analysez." or "Paste an azsb1: code or planner link (Ctrl+V), then Analyze."));
-	setLabel(im.paste, (ns.Locale.lang=="frFR" and "Coller ici (Ctrl+V)" or "Paste here (Ctrl+V)"));
+	im.head:SetText((ns.Locale.lang=="frFR" and "Cliquez dans la zone pour écrire ou coller (Ctrl+V), puis analysez." or "Click the field to type or paste (Ctrl+V), then Analyze."));
+	setLabel(im.paste, (ns.Locale.lang=="frFR" and "Saisir / coller" or "Type / paste"));
 	setLabel(im.analyze, L("Analyze"));
 	setLabel(im.back, L("Back"));
 	im.hint:SetText(L("Nothing is saved until you press Import. The new build is never active."));
@@ -2054,9 +2070,32 @@ function UI:Rescale(delta)
 	if h:SetSetting("scale", math.max(0.6, math.min(1.5, s))) then self:ApplyScale(); end
 end
 
+-- Alpha values are clamped to keep text and buttons readable in combat.
+function UI:ApplyOpacity()
+	local h=self.c:Handle();
+	local v=h and h:GetSetting("windowOpacity") or 1;
+	if type(v)~="number" then v=1 end;
+	if self.root then self.root:SetAlpha(math.max(.45,math.min(1,v))) end
+end
+
+function UI:AdjustOpacity(setting, delta)
+	local h=self.c:Handle();
+	if not h or h.readOnly then return end
+	local v=h:GetSetting(setting);
+	if type(v)~="number" then v=1 end
+	v=math.floor((v+delta)*10+.5)/10;
+	v=math.max(setting=="trackerOpacity" and .4 or .5,math.min(1,v));
+	if h:SetSetting(setting,v) then
+		self:ApplyOpacity();
+		if ns.Runtime and ns.Runtime.Refresh then ns.Runtime.Refresh() end
+		self:Refresh();
+	end
+end
+
 function UI:Show()
 	self:Build();
 	self:ApplyScale();
+	self:ApplyOpacity();
 	self:ApplyPosition();
 	self.root:Show();
 	self:Refresh();
@@ -2094,6 +2133,18 @@ function UI:Refresh()
 	enable(self.languageButton, not c:ReadOnly());
 	setLabel(self.nav.import, L("Import"));
 	setLabel(self.nav.export, L("Export"));
+	local h=c:Handle();
+	local windowAlpha=h and h:GetSetting("windowOpacity") or 1;
+	local hudAlpha=h and h:GetSetting("trackerOpacity") or 1;
+	if type(windowAlpha)~="number" then windowAlpha=1 end
+	if type(hudAlpha)~="number" then hudAlpha=1 end
+	setLabel(self.uiAlphaMinus, "UI -");
+	setLabel(self.uiAlphaPlus, math.floor(windowAlpha*100+.5).."% +");
+	setLabel(self.hudAlphaMinus, "HUD -");
+	setLabel(self.hudAlphaPlus, math.floor(hudAlpha*100+.5).."% +");
+	for _,b in ipairs({self.uiAlphaMinus,self.uiAlphaPlus,self.hudAlphaMinus,self.hudAlphaPlus}) do
+		enable(b,not c:ReadOnly())
+	end
 	setLabel(self.sizeMinus, L("Size -"));
 	setLabel(self.sizePlus, L("Size +"));
 	setLabel(self.close, "X");
