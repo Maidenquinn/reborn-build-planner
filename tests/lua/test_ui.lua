@@ -883,9 +883,9 @@ return function(H)
 		local before = e.h():Counts().builds;
 		analyze(e, GOOD);
 		ok(e.world.hasText("Imported \195\169"), e.texts());
-		ok(e.world.hasText("Ready to import"));
-		ok(e.world.hasText("2 spell(s)"), e.texts());
-		ok(e.world.hasText("Mid Game") or e.world.hasText("Mid"), e.texts());
+		ok(e.world.hasText("Locally valid"),"decoded build validated locally");
+		ok(e.world.hasText("Whirlwind") and e.world.hasText("Execute"),"spell goals shown");
+		ok(e.ui.im.classCycle.label:GetText():find("1/4",1,true),"first phase shown");
 		eq(e.h():Counts().builds, before, "preview must not save");
 		e.world.clickLabel(T(e, "Import"), e.ui.views.import);
 		eq(e.h():Counts().builds, before + 1);
@@ -897,13 +897,13 @@ return function(H)
 		eq(e.c:ImportState(), nil);
 	end);
 
-	test("3E: inspect preview shows decoded prioritized spells, banish and equipment before save", function()
+	test("3E: review immediately shows spells, bans and equipment without item pagination", function()
 		local e=boot();e.open();
 		local prior=e.h():Counts().builds;
 		analyze(e,GOOD);
-		ok(e.ui.im.paste:IsShown(),"inspect control available for valid plan");
-		e.world.click(e.ui.im.paste);
-		ok(e.ui.im.classCycle.label:IsShown(),"stage selector available");
+		ok(e.ui.im.classCycle.label:IsShown(),"phase selector available");
+		ok(not e.ui.im.box.scroll:IsShown(),"pasted code hidden during review");
+		ok(not e.ui.rightPanel:IsShown(),"browser hidden during import review");
 		local rows=e.ui.im.detailRows;
 		local function hasRow(term)
 			for _,row in ipairs(rows) do
@@ -911,15 +911,16 @@ return function(H)
 			end
 			return false
 		end
-		ok(hasRow("Whirlwind") or hasRow("whirlwind"),"first spell visible by name");
-		ok(hasRow("Execute") or hasRow("execute"),"second spell visible");
-		e.world.click(e.ui.im.pager.next);
-		ok(hasRow("Rend") or hasRow("rend") or hasRow("RINGS"),"banish or equipment section visible on next page");
-		eq(e.h():Counts().builds,prior,"inspection does not write SavedVariables");
+		ok(hasRow("Whirlwind"),"first spell visible by name");
+		ok(hasRow("Execute"),"second spell visible by name");
+		ok(e.world.hasText("Rend"),"banish target visible");
+		ok(e.world.hasText("Accuria"),"equipped ring visible");
+		eq(e.h():Counts().builds,prior,"review does not write to SavedVariables");
 		e.world.click(e.ui.im.classCycle.next);
-		ok(e.ui.im.classCycle.label:GetText():find("2/4",1,true),"stage navigation");
+		ok(e.ui.im.classCycle.label:GetText():find("2/4",1,true),"next phase opens");
 		e.world.click(e.ui.im.paste);
-		ok(e.ui.im.phases[1]:IsShown(),"summary restored");
+		ok(e.ui.im.box.scroll:IsShown(),"Edit code returns to input");
+		ok(not e.ui.im.classCycle.label:IsShown(),"review controls hidden in input step");
 	end);
 
 	test("3E: a build with conflicts previews its problems and imports as 'needs repair', not followable", function()
