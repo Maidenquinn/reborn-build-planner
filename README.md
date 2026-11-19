@@ -1,6 +1,8 @@
 # Reborn Build Planner
 
-Addon WoW 3.3.5a (Interface 30300) pour Azeroth Survivors Reborn : bibliothèque de builds, éditeur, import/export compatible avec le planner officiel. Version de travail 0.4.4-alpha-UltimateUI. **Dépôt privé.**
+Addon WoW 3.3.5a (Interface 30300) pour Azeroth Survivors Reborn : bibliothèque de builds, éditeur, import/export compatible avec le planner officiel. Candidat **0.5.0-beta.1** sur `dev/ultimate-ui` (recette privée validée en jeu). **Dépôt privé : pas de release publique à ce stade.**
+
+**Pour la préparation beta, le packaging et l'intégration dans le gestionnaire d'addons Reborn, voir [docs/BETA_RELEASE_0.5.0.md](docs/BETA_RELEASE_0.5.0.md).** La fiche proposée pour `Syiana/azs-addons` est dans [docs/azs-addons/reborn-build-planner.toml](docs/azs-addons/reborn-build-planner.toml) ; elle n'a pas été soumise, car les préreleases ne sont pas prises en charge par cet index et la distribution de données tierces demande encore une autorisation.
 
 Pour reprendre le développement, lire d'abord **[docs/HANDOFF_TO_GPT.md](docs/HANDOFF_TO_GPT.md)**, puis `docs/PROJECT_STATE.md`.
 
@@ -42,4 +44,4 @@ Chaque étape finit PASS, SKIPPED ou FAIL (sortie 0 / 3 / 1). Sans catalogue, se
 ## Contenu
 `addon/` planner · `addon_lab/` laboratoire graphique (textures TGA originales dans `Media/`, générées par `tools/make_textures.py`) · `tools/` générateurs et exécuteurs · `tests/` Lua / Python / Node · `docs/` documentation.
 
-**Statut visuel :** le thème Ultimate UI v3 est effectivement chargé dans Reborn selon les captures du testeur. Il progresse, mais la qualité visuelle est encore en cours de recette ; le Lot 4 n'a pas commencé.
+**Statut bêta (19 novembre 2026) :** le testeur a validé la recette privée incluant l'Ultimate UI, l'éditeur, les notes et le HUD. Les vérifications de distribution/licence restent ouvertes. La validation en jeu n'autorise pas à distribuer le catalogue officiel ni les extractions locales.
