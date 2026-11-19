@@ -1885,8 +1885,13 @@ function UI:RefreshImport()
         local kind=name=="AMULETS" and "amulet" or "jewel";
         local catalog=c:Catalog();
         local value=catalog and catalog:Name(kind,key,c:Lang()) or key;
+        local entry=catalog and catalog:Get(kind,key);
+        local icon=entry and entry.icon;
+        local texture=(type(icon)=="string" and icon:match("^[%w_%-]+$")) and
+          ("|TInterface\\Icons\\"..icon..":21:21|t  ") or "";
         local main=i<=(BM.MAIN_SLOTS[name:lower()] or 1);
-        labels[#labels+1]="  "..(main and "• " or "↳ ")..fitText(tostring(value),390,12);
+        local prefix=main and (fr and "Principal" or "Main") or (fr and "Alternative" or "Alt");
+        labels[#labels+1]=texture..prefix.."  "..fitText(tostring(value),295,13);
       end
     end
     if #keys==0 then labels[#labels+1]=fr and "  Aucun" or "  None" end
