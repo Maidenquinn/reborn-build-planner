@@ -1690,8 +1690,8 @@ function UI:BuildImport(v)
   for i=1,ns.Controller.ISSUE_PAGE do im.issues[i]=text(v,470,276+(i-1)*29,458,"GameFontHighlightSmall");end
   im.pager=pager(v,20,504,function() c:SetImportPage(c.state.import.page-1);end,
     function() c:SetImportPage(c.state.import.page+1);end);
-  im.loss=text(v,470,128,450,"GameFontNormal");
-  im.classCycle=cycler(v,274,112,390,function()
+  im.loss=text(v,470,158,450,"GameFontNormal");
+  im.classCycle=cycler(v,20,112,390,function()
     local pv=c:ImportState() and c:ImportState().preview;
     if pv and pv.kind=="talents" then self:CycleImportClass(-1);
     else im.stage=(im.stage+2)%4+1;self:RefreshImport() end
@@ -1712,8 +1712,8 @@ function UI:BuildImport(v)
     local row={};
     row.icon=v:CreateTexture(nil,"OVERLAY");
     row.icon:SetSize(24,24);
-    row.icon:SetPoint("TOPLEFT",v,"TOPLEFT",24,-(155+(i-1)*37));
-    row.label=text(v,58,157+(i-1)*37,365,"GameFontHighlight");
+    row.icon:SetPoint("TOPLEFT",v,"TOPLEFT",24,-(184+(i-1)*37));
+    row.label=text(v,58,186+(i-1)*37,365,"GameFontHighlight");
     im.detailRows[i]=row;
   end
 end
@@ -1830,7 +1830,7 @@ function UI:RefreshImport()
   local tone=ready and COLOR.info or COLOR.warn;
   im.state:SetTextColor(tone[1],tone[2],tone[3]);
   im.hint:SetText(fr and "SORTS • Ordre de priorité" or "SPELLS • Priority order");
-  place(im.hint,22,128,418);
+  place(im.hint,22,158,418);
   im.hint:SetTextColor(.95,.77,.4);
   im.loss:SetText(fr and "ÉQUIPEMENT • Principaux et alternatives" or "EQUIPMENT • Main and alternatives");
   im.loss:SetTextColor(.95,.77,.4);
@@ -1855,7 +1855,7 @@ function UI:RefreshImport()
     else row.label:SetText("");row.icon:Hide() end
   end
   -- All remaining spell lines and jewelry are rendered in existing text slots.
-  local leftBase=310;
+  local leftBase=340;
   for i=1,2 do
     local w=im.issues[i];
     local item=spellItems[i+4];
@@ -1885,7 +1885,7 @@ function UI:RefreshImport()
   local slots={im.phases[1],im.phases[2],im.phases[3],im.phases[4]};
   for i=3,#im.issues do slots[#slots+1]=im.issues[i] end
   for i,w in ipairs(slots) do
-    place(w,478,152+(i-1)*29,440,19);
+    place(w,478,184+(i-1)*29,440,19);
     local value=labels[i];
     w:SetText(value or "");
     w:SetTextColor(value and value:sub(-1)==":" and .95 or .89,
@@ -1900,7 +1900,7 @@ function UI:RefreshImport()
   im.pager.label:SetText((fr and "À ÉVITER : " or "AVOID: ")..
     (#banned>0 and fitText(table.concat(banned,", "),340,12) or (fr and "Aucun" or "None")));
   im.pager.label:SetTextColor(#banned>0 and .98 or .72,#banned>0 and .58 or .76,#banned>0 and .45 or .81);
-  place(im.pager.label,24,428,428,20);
+  place(im.pager.label,24,448,428,20);
   im.nameLabel:SetText(fr and "Nom :" or "Name:");
   setEdit(im.nameEdit,st.name or pv.name or "");
   place(im.nameLabel,20,504,95);
