@@ -1025,6 +1025,18 @@ return function(H)
 		no(e.ui.ex.accept:IsVisible());
 	end);
 
+	test("3E: native lossless export button exposes a pasteable rbp1 code", function()
+		local e=boot();e.open();
+		local id=e.c:Create("Native", "hunter");
+		e.ui:OpenEditor(id);
+		e.world.click(e.ui.nav.export);
+		ok(e.ui.ex.native:IsShown(),"native exchange button visible");
+		e.world.click(e.ui.ex.native);
+		ok(e.ui.ex.box:GetText():sub(1,5)=="rbp1:","native export encoded");
+		ok(e.world.hasText("Complete RBP export"),"lossless state is explained");
+		no(e.ui.ex.accept:IsShown(),"official loss confirmation hidden for native code");
+	end);
+
 	test("3E: exporting the draft reflects unsaved edits and says so", function()
 		local e = boot(); local id, ed = openNew(e, "mage");
 		pick(e, 1);
