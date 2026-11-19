@@ -44,6 +44,7 @@ return function(H)
 		local world = Stub.new({ width = 1365, height = 768 });
 		world.G.Minimap = world.G.CreateFrame("Frame", "Minimap", world.G.UIParent);
 		world.G.Minimap:SetSize(140, 140);
+		world.G.Minimap:SetPoint("TOPRIGHT", world.G.UIParent, "TOPRIGHT", -18, -18);
 		local ns = H.loadAddon({globals = world.G, time = world.G.time});
 		world.fire("ADDON_LOADED", "RebornBuildPlanner");
 		local icon = world.G.RBPMinimapButton;
