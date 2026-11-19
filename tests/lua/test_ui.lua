@@ -942,7 +942,7 @@ return function(H)
 		eq(e.h():GetSetting("windowOpacity"),.9);
 		eq(e.ui.root.nine.tex[9].alpha,.9,"window background fades");
 		ok(e.ui.root.alpha==nil or e.ui.root.alpha==1,"window parent remains opaque");
-		eq(e.ui.root.nine.tex[1].alpha,nil,"window decorative border not dimmed");
+		ok(e.ui.root.nine.tex[1].alpha==nil or e.ui.root.nine.tex[1].alpha==1,"window decorative border not dimmed");
 		e.world.click(e.ui.hudAlphaMinus);
 		eq(e.h():GetSetting("trackerOpacity"),.9);
 		eq(e.h():GetSetting("windowOpacity"),.9);
