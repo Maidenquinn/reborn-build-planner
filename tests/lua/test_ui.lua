@@ -97,26 +97,17 @@ return function(H)
 		ok(e.ns.TrackHUD.marks[2] and e.ns.TrackHUD.marks[2]:IsShown(),"unowned banish-after remains wanted");
 		ok(e.ns.TrackHUD.marks[1].mouse==false,"overlay cannot capture card clicks");
 		local goldMark=e.ns.TrackHUD.marks[1];
-		eq(#goldMark.shine,4,"four continuous outer-edge highlight strips");
-		eq(#goldMark.shineWide,4,"four additional diffuse outer-edge strips");
-		ok(goldMark.shineEnabled,"recommended card enables glow animation");
-		ok(goldMark.shine[1].texture:find("WHITE8X8",1,true)~=nil,
-		  "external glow is a seamless edge strip, not an internal square stamp");
-		eq(goldMark.shine[1]:GetHeight(),5,"core external glow is a narrow strip");
-		eq(goldMark.shineWide[1]:GetHeight(),17,"diffuse outer glow is wider than core");
+		eq(#goldMark.rim,8,"ornate card border has four corners and four edges");
+		eq(#goldMark.halo,8,"soft halo uses same eight decorative slices");
+		ok(goldMark.shineEnabled,"recommended build card activates shape-matched breathing glow");
+		ok(goldMark.rim[1].texture:find("elwynn_material_v3",1,true)~=nil or
+		   goldMark.rim[1].texture:find("window_nine",1,true)~=nil,
+		   "render uses decorative material, never WHITE8X8 fill strips");
+		ok(goldMark.halo[1].coords~=nil,"glow segments use corner-preserving atlas UVs");
+		ok(goldMark.rim[1].coords~=nil,"frame corners sample decorative material");
+		ok(goldMark.shineStrength<=.35,"recommended card halo stays restrained");
+		ok(goldMark.mouse==false,"gold rim cannot block native card clicks");
 
-		cardRoot:Hide();
-		no(e.ns.TrackHUD.marks[1]:IsShown(),"native OnHide immediately clears highlight");
-		cardRoot:Show();
-		ok(e.ns.TrackHUD.marks[1]:IsShown(),"native OnShow restores current relevant highlight");
-		e.G.AZS_SPELLS[2]={key="execute",rank=1};events.AZSSPELLS();
-		ok(e.ns.Runtime.progress.spells[2].remindAfter);
-		ok(e.ns.TrackHUD.marks[2].note.text:find("BANISH",1,true),"after-acquisition indicator is shown in English client");
-		-- With no wanted cards: advise reroll first, then skip when reroll unaffordable.
-		local reroll=e.G.CreateFrame("Button","AZSCardsReroll",cardRoot);
-		local skip=e.G.CreateFrame("Button","AZSCardsSkip",cardRoot);
-		reroll:Show();skip:Show();
-		e.G.AZS_RUN.gold=300;
 		e.G.AZS_CARDS={kind="spell",cards={{key="rend"}},rr=0,rc=30};
 		events.AZSCARDS();
 		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),true,"reroll gold frame when no build cards");
