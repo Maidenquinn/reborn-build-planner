@@ -1755,7 +1755,7 @@ function UI:RefreshImport()
   visible(im.analyze,not preview);
   visible(im.back,true);
   setLabel(im.paste,preview and (fr and "Modifier le code" or "Edit code") or (fr and "Écrire / coller" or "Type / paste"));
-  setLabel(im.analyze,fr and "Analyser le code" or "Analyze code");
+  setLabel(im.analyze,L("Analyze"));
   setLabel(im.back,fr and "Annuler" or "Cancel");
   visible(im.name,preview or (pv~=nil and not pv.ok));
   visible(im.class,preview);
