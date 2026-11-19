@@ -58,7 +58,7 @@ return function(H)
 		icon:SetPoint("CENTER", world.G.Minimap, "CENTER", -75, 18);
 		icon.scripts.OnDragStop(icon);
 		local pos=ns.storage:GetSetting("minimapPosition");
-		ok(pos and pos.x < -70 and pos.y > 15, "drag persists a snapped minimap position");
+		ok(pos and pos.x < -70 and pos.y > 15, "drag persists a snapped minimap position: " .. H.fmt(pos));
 		local x1,y1=icon:GetPoint();
 		eq(x1,"CENTER");
 		ok(not ns.ui:IsShown(), "main UI remains closed on login");
