@@ -7,7 +7,7 @@ local ADDON, ns = ...;
 ns = ns or {};
 -- Prefer the installed .toc metadata so diagnostics cannot drift behind release packaging.
 local metaVersion = type(GetAddOnMetadata) == "function" and GetAddOnMetadata(ADDON, "Version") or nil;
-ns.VERSION = (type(metaVersion) == "string" and metaVersion ~= "") and metaVersion or "0.5.0-alpha-live1";
+ns.VERSION = (type(metaVersion) == "string" and metaVersion ~= "") and metaVersion or "0.5.0-beta.1";
 RebornBuildPlanner = ns;
 
 -- existingDb: the loaded SavedVariables table (nil on first run); now: clock function.
@@ -41,6 +41,7 @@ function ns.Start(existingDb, now)
 		RebornBuildPlannerDB = h.db;
 	end
 	ns.Commands.Register(ns.ui, ns.controller);
+	if ns.MinimapButton then ns.MinimapButton.Start() end
 	if ns.Runtime then ns.Runtime.Start() end
 	return h;
 end
