@@ -108,6 +108,10 @@ return function(H)
 		ok(goldMark.shineStrength<=.35,"recommended card halo stays restrained");
 		ok(goldMark.mouse==false,"gold rim cannot block native card clicks");
 
+		local reroll=e.G.CreateFrame("Button","AZSCardsReroll",cardRoot);
+		local skip=e.G.CreateFrame("Button","AZSCardsSkip",cardRoot);
+		reroll:Show();skip:Show();
+		e.G.AZS_RUN.gold=300;
 		e.G.AZS_CARDS={kind="spell",cards={{key="rend"}},rr=0,rc=30};
 		events.AZSCARDS();
 		eq(e.ns.TrackHUD.actions.reroll.frame:IsShown(),true,"reroll gold frame when no build cards");
