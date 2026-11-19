@@ -48,6 +48,18 @@ return function(H)
 		world.fire("ADDON_LOADED", "RebornBuildPlanner");
 		local icon = world.G.RBPMinimapButton;
 		ok(icon ~= nil and icon:IsShown(), "minimap icon appears immediately");
+		ok(icon:IsMovable(), "minimap icon is draggable");
+		ok(icon.drag, "left-button dragging is registered");
+		ok(icon.crest and icon.crest.texture and icon.crest.texture:find("ultimate_crest",1,true),
+			"minimap uses the original RBP crest instead of the quest parchment");
+		-- Simulate the end of a minimap-relative drag, including saved coordinates.
+		icon:ClearAllPoints();
+		icon:SetPoint("CENTER", world.G.Minimap, "CENTER", -75, 18);
+		icon.scripts.OnDragStop(icon);
+		local pos=ns.storage:GetSetting("minimapPosition");
+		ok(pos and pos.x < -70 and pos.y > 15, "drag persists a snapped minimap position");
+		local x1,y1=icon:GetPoint();
+		eq(x1,"CENTER");
 		ok(not ns.ui:IsShown(), "main UI remains closed on login");
 		world.click(icon);
 		ok(ns.ui:IsShown(), "left click opens the planner without an active build");
