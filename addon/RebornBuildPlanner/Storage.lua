@@ -33,6 +33,8 @@ local SETTING_CHECK = {
 	trackerCompact = function(v) return type(v) == "boolean"; end,
 	windowOpacity = function(v) return type(v) == "number" and v == v and v >= 0 and v <= 1; end,
 	trackerOpacity = function(v) return type(v) == "number" and v == v and v >= 0 and v <= 1; end,
+	minimapPosition = function(v) return type(v) == "table" and type(v.x) == "number" and type(v.y) == "number"
+		and v.x == v.x and v.y == v.y and math.abs(v.x) <= 100 and math.abs(v.y) <= 100; end,
 	-- window position: anchor point, offsets from that point of UIParent (persistent, validated on use)
 	window = function(v)
 		return type(v) == "table" and type(v.point) == "string" and #v.point <= 16 and type(v.x) == "number" and type(v.y) == "number"
