@@ -926,20 +926,25 @@ return function(H)
 		ok(e.world.hasText("Rogue") or e.world.hasText("rogue") or e.world.hasText("Talent string"), e.texts());
 	end);
 
-	test("UI and live HUD opacities are saved independently and clamped", function()
+	test("UI and HUD background opacity is independent, fully adjustable, and leaves contents opaque", function()
 		local e=boot();e.open();
 		e.world.click(e.ui.uiAlphaMinus);
 		eq(e.h():GetSetting("windowOpacity"),.9);
-		eq(e.ui.root.alpha,.9);
+		eq(e.ui.root.nine.tex[9].alpha,.9,"window background fades");
+		ok(e.ui.root.alpha==nil or e.ui.root.alpha==1,"window parent remains opaque");
+		eq(e.ui.root.nine.tex[1].alpha,nil,"window decorative border not dimmed");
 		e.world.click(e.ui.hudAlphaMinus);
 		eq(e.h():GetSetting("trackerOpacity"),.9);
 		eq(e.h():GetSetting("windowOpacity"),.9);
 		for i=1,12 do e.world.click(e.ui.uiAlphaMinus);e.world.click(e.ui.hudAlphaMinus) end
-		eq(e.h():GetSetting("windowOpacity"),.5);
-		eq(e.h():GetSetting("trackerOpacity"),.4);
+		eq(e.h():GetSetting("windowOpacity"),0);
+		eq(e.h():GetSetting("trackerOpacity"),0);
+		eq(e.ui.root.nine.tex[9].alpha,0,"window centre invisible at zero");
+		ok(e.ui.root.alpha==nil or e.ui.root.alpha==1,"buttons and labels stay opaque at zero");
 		for i=1,12 do e.world.click(e.ui.uiAlphaPlus);e.world.click(e.ui.hudAlphaPlus) end
 		eq(e.h():GetSetting("windowOpacity"),1);
 		eq(e.h():GetSetting("trackerOpacity"),1);
+		eq(e.ui.root.nine.tex[9].alpha,1);
 	end);
 
 	test("3E: import field is visibly framed and paste button focuses the input", function()
