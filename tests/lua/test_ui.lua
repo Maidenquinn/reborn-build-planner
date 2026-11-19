@@ -903,7 +903,7 @@ return function(H)
 		analyze(e,GOOD);
 		ok(e.ui.im.detailsButton:IsShown(),"inspect control available for valid plan");
 		e.world.click(e.ui.im.detailsButton);
-		ok(e.ui.im.stageSelector.label:IsShown(),"stage selector available");
+		ok(e.ui.im.classCycle.label:IsShown(),"stage selector available");
 		local rows=e.ui.im.detailRows;
 		local function hasRow(term)
 			for _,row in ipairs(rows) do
@@ -913,11 +913,11 @@ return function(H)
 		end
 		ok(hasRow("Whirlwind") or hasRow("whirlwind"),"first spell visible by name");
 		ok(hasRow("Execute") or hasRow("execute"),"second spell visible");
-		e.world.click(e.ui.im.detailNext);
+		e.world.click(e.ui.im.pager.next);
 		ok(hasRow("Rend") or hasRow("rend") or hasRow("RINGS"),"banish or equipment section visible on next page");
 		eq(e.h():Counts().builds,prior,"inspection does not write SavedVariables");
-		e.world.click(e.ui.im.stageSelector.next);
-		ok(e.ui.im.stageSelector.label:GetText():find("2/4",1,true),"stage navigation");
+		e.world.click(e.ui.im.classCycle.next);
+		ok(e.ui.im.classCycle.label:GetText():find("2/4",1,true),"stage navigation");
 		e.world.click(e.ui.im.detailsButton);
 		ok(e.ui.im.phases[1]:IsShown(),"summary restored");
 	end);
