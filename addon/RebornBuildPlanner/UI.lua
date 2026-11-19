@@ -1011,11 +1011,11 @@ function UI:BuildEditor(v)
 			cell.edge:SetTexture(0.85, 0.68, 0.30, 0.9);
 			cell.edge:Hide();
 			cell.role = text(cell, 5, 2, 84, "GameFontNormalSmall");
-			cell.x = button(cell, "", 22, 14, CELL_W - 24, 2, function() c:ClearSlot(g, j); end);
+			cell.x = button(cell, "", 24, 18, CELL_W - 26, 0, function() c:ClearSlot(g, j); end);
 			cell.icon = cell:CreateTexture(nil, "OVERLAY");
 			cell.icon:SetWidth(24); cell.icon:SetHeight(24);
 			cell.icon:SetPoint("TOPLEFT", cell, "TOPLEFT", 4, -18);
-			cell.name = wrapped(cell, 32, 18, 82, 24, "GameFontHighlightSmall");
+			cell.name = wrapped(cell, 33, 19, 81, 24, "GameFontHighlight");
 			cell:SetScript("OnClick", function() c:SelectSlot(g, j); end);
 			self:Hover(cell, function()
 				local k = cell.key;
@@ -1214,14 +1214,19 @@ function UI:RefreshEditor()
 			local chosen = (e.cat == g and e.slot == j);
 			local role = it.main and string.format(L("Main %d"), j) or string.format(L("Alt. %d"), j - BM.MAIN_SLOTS[g]);
 			cell.role:SetText((chosen and "> " or "") .. role);
-			cell.role:SetTextColor(chosen and GOLD[1] or 0.62, chosen and GOLD[2] or 0.65, chosen and GOLD[3] or 0.72);
+			cell.role:SetTextColor(chosen and GOLD[1] or (it.main and .92 or .68),
+				chosen and GOLD[2] or (it.main and .82 or .71), chosen and GOLD[3] or (it.main and .62 or .78));
+			-- A main slot carries a stronger plate; alternatives remain visible but secondary.
+			if chosen then cell.base:SetTexture(.18,.27,.33,1);
+			elseif it.main then cell.base:SetTexture(.105,.16,.22,1);
+			else cell.base:SetTexture(.065,.095,.14,1); end
 			if it.key == "" then
 				cell.name:SetText("|cff7d8090" .. L("+ Add") .. "|r");
 				cell.name:SetTextColor(1, 1, 1);
 				cell.icon:Hide();
 				cell.x:Hide();
 			else
-				cell.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 2 * 82 - 6, 10));
+				cell.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 2 * 81 - 8, 11));
 				local rc = rarityRgb(it.rarity);
 				cell.name:SetTextColor(rc[1], rc[2], rc[3]);
 				setIcon(cell.icon, it.icon);
