@@ -39,6 +39,18 @@ function Commands.Handle(ui, controller, msg)
 		if ns.Runtime and ns.Runtime.ready then say("HUD theme: " .. tostring(ns.Runtime.ToggleTheme())); else say("Live API unavailable"); end
 	elseif arg == "theme standard" or arg == "theme elwynn" then
 		if ns.Runtime and ns.Runtime.ready then say("HUD theme: " .. tostring(ns.Runtime.SetTheme(arg:sub(7)))); else say("Live API unavailable"); end
+	elseif arg == "profile on" or arg == "profile off" then
+		if ns.Runtime then
+			ns.Runtime.profileEnabled=arg=="profile on";
+			if ns.Runtime.profileEnabled then ns.Runtime.ResetProfile() end
+			say("Refresh profiling "..(ns.Runtime.profileEnabled and "enabled" or "disabled"));
+		end
+	elseif arg == "profile" or arg == "profile report" then
+		if ns.Runtime and ns.Runtime.ProfileSummary then
+			local p=ns.Runtime.ProfileSummary();
+			say(string.format("Refreshes %d, total %.2fms, average %.3fms, peak %.2fms, API callbacks %d",
+				p.calls,p.totalMs,p.averageMs,p.maxMs,p.callbacks));
+		end
 	elseif arg == "history" then
 		local h=controller:Handle();
 		local history=h and h.RevisionHistory and h:RevisionHistory() or {};
