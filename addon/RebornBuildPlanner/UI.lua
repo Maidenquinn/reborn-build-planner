@@ -1015,7 +1015,7 @@ function UI:BuildEditor(v)
 			cell.icon = cell:CreateTexture(nil, "OVERLAY");
 			cell.icon:SetWidth(24); cell.icon:SetHeight(24);
 			cell.icon:SetPoint("TOPLEFT", cell, "TOPLEFT", 4, -18);
-			cell.name = wrapped(cell, 33, 19, 81, 24, "GameFontHighlight");
+			cell.name = wrapped(cell, 33, 19, 81, 24, "GameFontHighlightSmall");
 			cell:SetScript("OnClick", function() c:SelectSlot(g, j); end);
 			self:Hover(cell, function()
 				local k = cell.key;
@@ -1226,7 +1226,7 @@ function UI:RefreshEditor()
 				cell.icon:Hide();
 				cell.x:Hide();
 			else
-				cell.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 2 * 81 - 8, 11));
+				cell.name:SetText(fitText(it.name .. (it.known and "" or " ?"), 2 * 81 - 8, 10));
 				local rc = rarityRgb(it.rarity);
 				cell.name:SetTextColor(rc[1], rc[2], rc[3]);
 				setIcon(cell.icon, it.icon);
