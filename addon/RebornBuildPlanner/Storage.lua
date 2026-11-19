@@ -31,8 +31,8 @@ local SETTING_CHECK = {
 	trackerTheme = function(v) return v == "standard" or v == "elwynn"; end,
 	trackerEnabled = function(v) return type(v) == "boolean"; end,
 	trackerCompact = function(v) return type(v) == "boolean"; end,
-	windowOpacity = function(v) return type(v) == "number" and v == v and v >= .5 and v <= 1; end,
-	trackerOpacity = function(v) return type(v) == "number" and v == v and v >= .4 and v <= 1; end,
+	windowOpacity = function(v) return type(v) == "number" and v == v and v >= 0 and v <= 1; end,
+	trackerOpacity = function(v) return type(v) == "number" and v == v and v >= 0 and v <= 1; end,
 	-- window position: anchor point, offsets from that point of UIParent (persistent, validated on use)
 	window = function(v)
 		return type(v) == "table" and type(v.point) == "string" and #v.point <= 16 and type(v.x) == "number" and type(v.y) == "number"
