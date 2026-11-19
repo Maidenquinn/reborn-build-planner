@@ -1823,7 +1823,7 @@ function UI:RefreshImport()
   im.classCycle.label:SetText((phase.label~="" and phase.label or L(BM.DEFAULT_LABELS[im.stage]))..
      "  ("..im.stage.."/4)");
   local rows=importPreviewLines(pv,im.stage,c:Catalog(),c:Lang());
-  local spellItems,jewelItems={},{};
+  local spellItems,jewelItems = {},{};
   for _,item in ipairs(rows) do
     if item.key and item.kind=="spell" then spellItems[#spellItems+1]=item
     elseif item.key then jewelItems[#jewelItems+1]=item end
