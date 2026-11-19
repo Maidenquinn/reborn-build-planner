@@ -105,7 +105,17 @@ return function(H)
 		   "render uses decorative material, never WHITE8X8 fill strips");
 		ok(goldMark.halo[1].coords~=nil,"glow segments use corner-preserving atlas UVs");
 		ok(goldMark.rim[1].coords~=nil,"frame corners sample decorative material");
-		ok(goldMark.shineStrength<=.35,"recommended card halo stays restrained");
+		eq(#goldMark.ember,8,"second ornate ADD rim highlights the engraving at pulse peak");
+		eq(goldMark.shineStrength,1,"BUILD is allowed a clearly visible external halo");
+		ok(goldMark.haloFrame.points and #goldMark.haloFrame.points>=2,
+		  "halo frame extends beyond decorative rim");
+		ok(type(goldMark.scripts.OnUpdate)=="function","visible card owns its animation");
+		goldMark.scripts.OnUpdate(goldMark,0);
+		local low=goldMark.halo[1].alpha;
+		goldMark.scripts.OnUpdate(goldMark,1);
+		local high=goldMark.halo[1].alpha;
+		ok(high>low+.25,"halo opacity changes visibly throughout the pulse");
+		eq(goldMark.rim[1].vertex[4],.95,"static ornate frame remains steady");
 		ok(goldMark.mouse==false,"gold rim cannot block native card clicks");
 
 		local reroll=e.G.CreateFrame("Button","AZSCardsReroll",cardRoot);
