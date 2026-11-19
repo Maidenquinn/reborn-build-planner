@@ -41,7 +41,6 @@ def validate(path: str) -> tuple[int, int]:
                 raise ValueError(f"unexpected top-level content: {name!r}")
             for part in parts:
                 if (part.rstrip(" .") != part or ":" in part or
-                        not re.fullmatch(r"[A-Za-z0-9_ .!()+-]+", part) and
                         not re.fullmatch(r"[A-Za-z0-9_.!()+ -]+", part)):
                     raise ValueError(f"Windows-incompatible ZIP path: {name!r}")
                 if part.split(".")[0].lower() in RESERVED:
@@ -68,7 +67,7 @@ def validate(path: str) -> tuple[int, int]:
                 raise ValueError("unpacked content exceeds 256 MiB")
             if name == FOLDER + "/" + FOLDER + ".toc":
                 data = archive.read(entry).decode("utf-8-sig")
-                match = re.search(r"^## Interface:\\s*(.*)$", data, re.M)
+                match = re.search(r"^## Interface:\s*(.*)$", data, re.M)
                 if not match or not any(v in {"11200", "30300"} for v in match.group(1).split()):
                     raise ValueError("TOC has unsupported Interface version")
                 found_toc = True
