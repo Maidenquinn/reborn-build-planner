@@ -1631,8 +1631,8 @@ end
 function UI:RefreshImport()
 	local c, im = self.c, self.im;
 	local st = c:ImportState();
-	im.head:SetText(L("Collez ici un code azsb1: ou un lien planner (Ctrl+V), puis Analyser."));
-	setLabel(im.paste, L("Coller ici (Ctrl+V)"));
+	im.head:SetText((ns.Locale.lang=="frFR" and "Collez ici un code azsb1: ou un lien de build (Ctrl+V), puis analysez." or "Paste an azsb1: code or planner link (Ctrl+V), then Analyze."));
+	setLabel(im.paste, (ns.Locale.lang=="frFR" and "Coller ici (Ctrl+V)" or "Paste here (Ctrl+V)"));
 	setLabel(im.analyze, L("Analyze"));
 	setLabel(im.back, L("Back"));
 	im.hint:SetText(L("Nothing is saved until you press Import. The new build is never active."));
@@ -1752,10 +1752,10 @@ function UI:RefreshExport()
 		ex.state:SetText(string.format(L("%d thing(s) would be lost. Read the list, then accept to see the code."), r.intentLosses));
 		ex.state:SetTextColor(COLOR.warn[1], COLOR.warn[2], COLOR.warn[3]);
 	end
-	setLabel(ex.accept, L("Continuer : format officiel avec pertes"));
+	setLabel(ex.accept, (ns.Locale.lang=="frFR" and "Accepter les pertes pour exporter" or "Accept losses to export"));
 	setShown(ex.accept, r.ok and r.intentLosses > 0 and not x.accepted);
-	ex.codeLabel:SetText(x.code and L("Code généré : sélectionnez et copiez (Ctrl+C)") or L("Après confirmation, le code apparaîtra dans le cadre ci-dessous."));
-	setLabel(ex.selectCode, L("Sélectionner le code"));
+	ex.codeLabel:SetText(x.code and (ns.Locale.lang=="frFR" and "Code généré : sélectionnez et copiez (Ctrl+C)" or "Generated code: select and copy (Ctrl+C)") or (ns.Locale.lang=="frFR" and "Le code apparaîtra ci-dessous après confirmation." or "The code appears below after confirmation."));
+	setLabel(ex.selectCode, (ns.Locale.lang=="frFR" and "Sélectionner le code" or "Select code"));
 	setShown(ex.selectCode, x.code ~= nil);
 	setShown(ex.box.scroll, x.code ~= nil);
 	setShown(ex.box.surround, x.code ~= nil);
@@ -1763,7 +1763,7 @@ function UI:RefreshExport()
 		ex.box.fixed = x.code;
 		setEdit(ex.box, x.code);
 	end
-	ex.hint:SetText(x.code and L("Ctrl+C pour copier le code.") or L("Le build RBP original reste intact."));
+	ex.hint:SetText(x.code and (ns.Locale.lang=="frFR" and "Ctrl+C pour copier le code." or "Ctrl+C to copy the code.") or (ns.Locale.lang=="frFR" and "Le build RBP original reste intact." or "Your original RBP build remains unchanged."));
 	setLabel(ex.back, L("Back"));
 end
 
