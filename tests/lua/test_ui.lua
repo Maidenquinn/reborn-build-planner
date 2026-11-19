@@ -78,6 +78,16 @@ return function(H)
 		events.AZSSPELLS();
 		eq(e.ns.Runtime.progress.achieved,1);
 		ok(e.ns.Runtime.hud:IsShown(),"compact tracker visible in a real run");
+		ok(h:SetSetting("trackerOpacity",0));
+		events.AZSSPELLS();
+		local tracker=e.ns.TrackHUD.frame;
+		eq(tracker.backdropColor[4],0,"only native tracker background is transparent");
+		eq(tracker.art.alpha,0,"tracker background art fades to zero");
+		ok(tracker.alpha==nil or tracker.alpha==1,"whole tracker stays fully opaque");
+		ok(tracker.title.alpha==nil or tracker.title.alpha==1,"labels stay legible");
+		ok(h:SetSetting("trackerOpacity",1));events.AZSSPELLS();
+		eq(tracker.backdropColor[4],1,"HUD background becomes solid again");
+
 		ok(e.ns.TrackHUD.frame.openButton,"HUD has a dedicated planner button");
 		e.world.click(e.ns.TrackHUD.frame.openButton);
 		ok(e.ns.ui:IsShown(),"planner opens directly from the live HUD");
