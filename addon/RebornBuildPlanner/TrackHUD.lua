@@ -586,10 +586,25 @@ local function createCardMark(card)
   -- Separate transparent decorative rim and a slightly larger halo.
   mark.rim=ornateSlices(mark,texture,size,sourceCap,13,"OVERLAY",false);
   mark.haloFrame=CreateFrame("Frame",nil,mark);
-  mark.haloFrame:SetAllPoints(mark);
+  -- The glow must extend past the decorative rim rather than sit on top of it.
+  mark.haloFrame:SetPoint("TOPLEFT",mark,"TOPLEFT",-8,8);
+  mark.haloFrame:SetPoint("BOTTOMRIGHT",mark,"BOTTOMRIGHT",8,-8);
   mark.haloFrame:EnableMouse(false);
-  mark.halo=ornateSlices(mark.haloFrame,texture,size,sourceCap,15,"ARTWORK",true);
+  mark.halo=ornateSlices(mark.haloFrame,texture,size,sourceCap,19,"OVERLAY",true);
+  -- A second ADD copy directly under the engraved rim gives the halo a bright
+  -- outline during the crest without introducing any opaque rectangular strips.
+  mark.ember=ornateSlices(mark,texture,size,sourceCap,13,"OVERLAY",true);
   mark.shinePhase=0;mark.shineEnabled=false;
+  mark:SetScript("OnUpdate",function(self,elapsed)
+    if not self.shineEnabled then return end
+    self.shinePhase=(self.shinePhase+(tonumber(elapsed) or 0)*1.65)%6.2831853;
+    local pulse=.5+.5*math.sin(self.shinePhase-1.5707963);
+    local intensity=self.shineStrength or 1;
+    local haloAlpha=(.36+.58*pulse)*intensity;
+    local emberAlpha=(.16+.49*pulse)*intensity;
+    for _,t in ipairs(self.halo) do t:SetAlpha(haloAlpha) end
+    for _,t in ipairs(self.ember) do t:SetAlpha(emberAlpha) end
+  end);
   -- A restrained badge is external to the native card title and number.
   mark.badge=mark:CreateTexture(nil,"OVERLAY");
   mark.badge:SetTexture(WHITE);
@@ -681,22 +696,8 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
     self.cardRoot:SetFrameStrata("FULLSCREEN_DIALOG");
     self.cardRoot:SetFrameLevel(130);
     self.cardRoot:EnableMouse(false);self.marks={};
-    -- One lightweight animation for every visible card, not one OnUpdate
-    -- callback per texture. No changes to native cards or gameplay.
-    self.cardRoot:SetScript("OnUpdate",function(root,elapsed)
-      local any=false;
-      for _,mark in ipairs(H.marks or {}) do
-        if mark.shineEnabled and mark:IsShown() then
-          mark.shinePhase=(mark.shinePhase+(tonumber(elapsed) or 0))%6.2831853;
-          -- The carved rim is static; only its matching halo breathes.
-          local pulse=.5+.5*math.sin(mark.shinePhase*1.50);
-          local strength=mark.shineStrength or .20;
-          for _,t in ipairs(mark.halo) do t:SetAlpha(strength*(.55+.45*pulse)) end
-          any=true;
-        end
-      end
-      if not any then H.shineIdle=true else H.shineIdle=false end
-    end);
+    -- Each visible card owns its own OnUpdate pulse. This avoids depending on
+    -- the size/visibility of an otherwise empty RBPCardHighlights root frame.
     if type(AZS_SetOnTopOfScreens)=="function" then
       pcall(AZS_SetOnTopOfScreens,"RBPCardHighlights",true);
     end
@@ -721,8 +722,15 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
         local tint=hint=="wanted" and {1,.92,.72} or rgb;
         for _,t in ipairs(mark.rim) do paint(t,tint,.95) end
         for _,t in ipairs(mark.halo) do paint(t,tint,1) end
-        mark.shineStrength=hint=="wanted" and .30 or .14;
+        for _,t in ipairs(mark.ember) do paint(t,tint,1) end
+        -- BUILD visibly breathes between low/high intensities; alternatives
+        -- and warnings use a quieter state while sharing the premium frame.
+        mark.shineStrength=hint=="wanted" and 1 or .43;
         mark.shineEnabled=true;
+        mark.shinePhase=mark.shinePhase or 0;
+        local base=mark.shineStrength;
+        for _,t in ipairs(mark.halo) do t:SetAlpha(.36*base) end
+        for _,t in ipairs(mark.ember) do t:SetAlpha(.16*base) end
         paint(mark.badge,rgb,0.86);
         local fr=ns.Locale and ns.Locale.lang=="frFR";
         local caption=style.label;
