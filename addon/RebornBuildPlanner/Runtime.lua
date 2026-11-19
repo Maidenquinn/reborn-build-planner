@@ -139,7 +139,7 @@ function R.Refresh()
       ns.TrackHUD.Refresh(ns.TrackHUD,build,progress,ns.catalog,ns.Locale.lang,theme,snapshot);
       local alpha=ns.storage:GetSetting("trackerOpacity");
       if type(alpha)~="number" then alpha=1 end
-      if R.hud.SetAlpha then R.hud:SetAlpha(math.max(.4,math.min(1,alpha))) end
+      ns.TrackHUD.SetBackgroundOpacity(ns.TrackHUD,alpha,theme);
     else R.hud:Hide();end
     ns.TrackHUD.UpdateCards(ns.TrackHUD,build,snapshot,phase,theme,ns.catalog,ns.Locale.lang);
   end
