@@ -926,6 +926,18 @@ return function(H)
 		ok(e.world.hasText("Rogue") or e.world.hasText("rogue") or e.world.hasText("Talent string"), e.texts());
 	end);
 
+	test("3E: import field is visibly framed and paste button focuses the input", function()
+		local e=boot();e.open();
+		e.world.click(e.ui.nav.import);
+		ok(e.ui.im.box.surround and e.ui.im.box.surround.backdrop,
+		  "import has a visible native-framed clipboard field");
+		ok(e.ui.im.box:IsShown(),"paste edit box available before Analyze");
+		e.world.click(e.ui.im.paste);
+		ok(e.ui.im.box:HasFocus(),"paste button focuses the multiline EditBox");
+		e.ui.im.box:SetText("azsb1:sample");
+		eq(e.ui.im.box:GetText(),"azsb1:sample");
+	end);
+
 	test("3E: export without loss shows a selectable code that imports back", function()
 		local e = boot(); e.open();
 		local id = e.c:Create("Export me", "mage");
@@ -946,6 +958,9 @@ return function(H)
 		-- the box is a copy source: focusing selects everything; typing is put back
 		box:SetFocus();
 		ok(box.highlighted);
+		ok(e.ui.ex.selectCode:IsShown(),"explicit select-code button shown on export");
+		e.world.click(e.ui.ex.selectCode);
+		ok(box.highlighted,"select-code control highlights the full export text");
 		local code = box.text;
 		e.world.type(box, "tampered");
 		eq(box.text, code);
