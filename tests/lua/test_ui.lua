@@ -122,6 +122,8 @@ return function(H)
 		ok(type(goldMark.scripts.OnUpdate)=="function","visible card owns its animation");
 		goldMark.scripts.OnUpdate(goldMark,0);
 		local low=goldMark.halo[1].alpha;
+		goldMark.scripts.OnUpdate(goldMark,1/120);
+		eq(goldMark.halo[1].alpha,low,"tiny frame delta does not force texture alpha updates");
 		goldMark.scripts.OnUpdate(goldMark,1);
 		local high=goldMark.halo[1].alpha;
 		ok(high>low+.25,"halo opacity changes visibly throughout the pulse");
