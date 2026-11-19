@@ -55,9 +55,11 @@ function Commands.Handle(ui, controller, msg)
 		local h=controller:Handle();
 		local history=h and h.RevisionHistory and h:RevisionHistory() or {};
 		if #history==0 then say("No saved revisions yet."); end
-		for i,entry in ipairs(history) do
-			say(string.format("%d. %s (revision %s) [%s]",i,tostring(entry.name),
-				tostring(entry.revision),tostring(entry.id)));
+		local perBuild={};
+		for _,entry in ipairs(history) do
+			perBuild[entry.id]=(perBuild[entry.id] or 0)+1;
+			say(string.format("%s: index %d, revision %s, %s",tostring(entry.id),
+				perBuild[entry.id],tostring(entry.revision),tostring(entry.name)));
 		end
 	elseif string.match(arg,"^restore%s+") then
 		local id,index=string.match(arg,"^restore%s+(%S+)%s+(%d+)$");
