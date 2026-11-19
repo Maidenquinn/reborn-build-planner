@@ -16,6 +16,7 @@ ns.Locale.Register({
 	["Build notes"] = "Notes du build",
 	["Edit notes"] = "Modifier les notes",
 	["View notes"] = "Consulter les notes",
+	["Select and copy build link"] = "Sélectionner et copier le lien du build",
 	["No notes for this stage."] = "Aucune note pour cette phase.",
 	["Avoid list: %d spells"] = "Sorts à éviter : %d",
 	["Choose a spell or piece to inspect"] = "Sélectionnez un sort ou un équipement à examiner",
