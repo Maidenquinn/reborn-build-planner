@@ -1692,6 +1692,8 @@ function UI:BuildImport(v)
   im.pager=pager(v,20,504,function() c:SetImportPage(c.state.import.page-1);end,
     function() c:SetImportPage(c.state.import.page+1);end);
   im.loss=text(v,470,158,450,"GameFontNormal");
+  -- Keep the equipment section heading visible even when its preview is truncated.
+  im.overflow=text(v,484,458,420,"GameFontHighlight");
 
   im.classCycle=cycler(v,20,112,390,function()
     local pv=c:ImportState() and c:ImportState().preview;
@@ -1774,6 +1776,7 @@ function UI:RefreshImport()
   visible(im.nameLabel,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.nameEdit,preview or (pv~=nil and pv.ok and pv.kind=="talents"));
   visible(im.loss,preview);
+  visible(im.overflow,preview);
   for _,w in ipairs(im.phases) do visible(w,preview);end
   for _,w in ipairs(im.issues) do visible(w,preview);end
   for _,row in ipairs(im.detailRows) do visible(row.icon,preview);visible(row.label,preview);end
@@ -1925,10 +1928,12 @@ function UI:RefreshImport()
   enable(im.commit,c:ImportReady());
   place(im.paste,20,550,174,28);
   place(im.back,204,550,136,28);
-  if more>0 then
-    im.loss:SetText((fr and "ÉQUIPEMENT • +" or "EQUIPMENT • +")..more..
-      (fr and " autres éléments (voir phase après import)" or " more items (open after import)"));
-  end
+  -- Overflow is a separate hint, never a replacement for the section title.
+  -- The full equipment selection is preserved in the decoded build.
+  im.overflow:SetText(more>0 and ((fr and "+" or "+")..more..
+    (fr and " éléments supplémentaires : ouvrir le build après import"
+      or " additional items: open the build after importing")) or "");
+  im.overflow:SetTextColor(.92,.73,.43);
 end
 
 -- ------------------------------------------------------------------ export (centre)
