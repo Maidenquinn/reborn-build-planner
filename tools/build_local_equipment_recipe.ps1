@@ -4,7 +4,8 @@
 param(
   [Parameter(Mandatory=$true)][string]$GameRoot,
   [string]$GameExe = "",
-  [switch]$UseCachedCatalog
+  [switch]$UseCachedCatalog,
+  [string]$OutputDir = ""
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -70,6 +71,8 @@ $env:RBP_CATALOG_DIR = $catalog
 & $python -I tools/generate_catalog.py
 if ($LASTEXITCODE -ne 0) { throw "Catalogue generator refused current schema" }
 Write-Host "Running the full strict recipe (Lua tests, native contracts, local metadata)" -ForegroundColor Cyan
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "tools\recette_ultimate_windows.ps1") -GameExe $GameExe -CatalogDir $catalog -NativeRoot $native -OutputDir (Join-Path $root "dist\ultimate-0.5.0-local")
+$recipeOutput = if ($OutputDir) { [IO.Path]::GetFullPath($OutputDir) } else { Join-Path $root "dist\ultimate-0.5.0-local" }
+Write-Host "Recipe output directory: $recipeOutput" -ForegroundColor Cyan
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "tools\recette_ultimate_windows.ps1") -GameExe $GameExe -CatalogDir $catalog -NativeRoot $native -OutputDir $recipeOutput
 if ($LASTEXITCODE -ne 0) { throw "Recipe refused; no verified build produced" }
 Write-Host "LOCAL 0.5.0 PACKAGE BUILT. Game files and SavedVariables unchanged." -ForegroundColor Green
