@@ -33,6 +33,17 @@ local SETTING_CHECK = {
 	trackerCompact = function(v) return type(v) == "boolean"; end,
 	windowOpacity = function(v) return type(v) == "number" and v == v and v >= 0 and v <= 1; end,
 	trackerOpacity = function(v) return type(v) == "number" and v == v and v >= 0 and v <= 1; end,
+	-- Recent confirmed banishments for one server run. Persisted so a /reload
+	-- does not lose commands already observed, never inferred from absent spells.
+	captureBanJournal = function(v)
+		if type(v) ~= "table" or type(v.run) ~= "string" or #v.run > 180 or type(v.spells) ~= "table" then return false; end
+		local n = 0;
+		for key, enabled in pairs(v.spells) do
+			n = n + 1;
+			if n > 24 or type(key) ~= "string" or #key > 128 or enabled ~= true then return false; end
+		end
+		return true;
+	end,
 	minimapPosition = function(v) return type(v) == "table" and type(v.x) == "number" and type(v.y) == "number"
 		and v.x == v.x and v.y == v.y and math.abs(v.x) <= 100 and math.abs(v.y) <= 100; end,
 	-- window position: anchor point, offsets from that point of UIParent (persistent, validated on use)
