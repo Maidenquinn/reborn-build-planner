@@ -103,7 +103,19 @@ return function(H)
 	end);
 
 	test("shared icons are listed, never used as identity", function()
-		eq(cat:SharedIcon("INV_Jewelry_Ring_15"), { "accuria", "elementium_signet" });
+		-- Shared icon identities depend on the published catalogue revision.
+		-- Use a synthetic duplicate to verify the invariant without assuming
+		-- that two particular official rings will always share one icon.
+		local synthetic = ns.Util.DeepCopy(data);
+		synthetic.jewelry[2].icon = synthetic.jewelry[1].icon;
+		local c = assert(ns.Catalog.New(synthetic));
+		local icon = synthetic.jewelry[1].icon;
+		local keys = c:SharedIcon(icon);
+		ok(keys ~= nil, "synthetic duplicate icon is reported");
+		local first, second = synthetic.jewelry[1].key, synthetic.jewelry[2].key;
+		local found = {};
+		for _, key in ipairs(keys or {}) do found[key] = true; end
+		ok(found[first] and found[second], "both distinct catalog keys are retained");
 		eq(cat:SharedIcon("INV_Jewelry_Ring_07"), nil);
 		eq(#cat:FindByName("rings", "Band of Accuria"), 1);
 	end);
