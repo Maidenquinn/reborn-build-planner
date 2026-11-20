@@ -66,6 +66,7 @@ function Stub.new(opts)
 	function F:EnableMouse(v) self.mouse = v; end
 	function F:EnableMouseWheel(v) self.wheel = v; end
 	function F:EnableKeyboard(v) self.keyboard = v; end
+	function F:RegisterForClicks(...) self.clickButtons = { ... }; end
 	function F:RegisterForDrag() self.drag = true; end
 	function F:StartMoving() self.moving = true; end
 	function F:StopMovingOrSizing() self.moving = false; end
