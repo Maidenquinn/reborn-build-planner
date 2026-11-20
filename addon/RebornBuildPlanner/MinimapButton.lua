@@ -92,7 +92,15 @@ function M.Start()
     M.moved=false;
     M.suppressClick=false;
     M.startX,M.startY=x,y;
-    b:SetScript("OnUpdate",function() M.DragTick() end);
+    b:SetScript("OnUpdate",function()
+      -- Some clients do not dispatch OnMouseUp to the original icon after
+      -- dragging outside its bounds. Stop as soon as the left key is released.
+      if type(IsMouseButtonDown)=="function" and not IsMouseButtonDown("LeftButton") then
+        M.StopDrag();
+      else
+        M.DragTick();
+      end
+    end);
   end);
   b:SetScript("OnMouseUp",function(_,button)
     if button=="LeftButton" then M.StopDrag() end
