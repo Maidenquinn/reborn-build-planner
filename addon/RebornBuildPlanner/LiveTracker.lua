@@ -73,8 +73,24 @@ local function resolveEquipment(item,catalog,lang,class,offerKind)
     if catalog:Get("jewel",item.key) or catalog:Get("amulet",item.key) then return item.key end
   end
   if not catalog or not catalog.data then return nil end
-  local query=item.name or item.title;
-  if not plainName(query) then return nil end
+  -- Native legendary IDs may use "legend_<spell>" while the planner uses
+  -- "legendary:<spell>". Only map an EXACT official spell identity for the
+  -- current class and an amulet-compatible slot, never an icon/substring.
+  local sourceKey=item.key;
+  if type(sourceKey)=="string" and (not item.slot or validItemSlot(item.slot,"amulets")) then
+    local found=nil;
+    for _,entry in ipairs(catalog.data.legends or {}) do
+      local native="legend_"..tostring(entry.spell or "");
+      if entry.spell and (sourceKey==native or sourceKey=="legendary:"..entry.spell
+        or sourceKey==entry.nativeKey)
+        and (not catalog.CheckKey or catalog:CheckKey("amulets",entry.key,class)=="ok") then
+        if found and found~=entry.key then return nil end
+        found=entry.key;
+      end
+    end
+    if found then return found end
+  end
+  local queries={item.name,item.title};
   local found=nil;
   for _,listName in ipairs({"rings","trinkets","amulets"}) do
     local forced=offerKind=="ring" and "rings" or offerKind=="trinket" and "trinkets"
@@ -85,7 +101,8 @@ local function resolveEquipment(item,catalog,lang,class,offerKind)
         or {catalog.data.jewelry or {}};
       for _,pool in ipairs(pools) do for _,entry in ipairs(pool) do
         if entry.key and (not catalog.CheckKey or catalog:CheckKey(listName,entry.key,class)=="ok")
-          and exactItemName(catalog,entry,kind,query,lang) then
+          and (exactItemName(catalog,entry,kind,queries[1],lang)
+            or exactItemName(catalog,entry,kind,queries[2],lang)) then
           if found and found~=entry.key then return nil end
           found=entry.key;
         end
