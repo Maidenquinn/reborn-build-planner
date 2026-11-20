@@ -62,6 +62,12 @@ return function(H)
 		local pos=ns.storage:GetSetting("minimapPosition");
 		ok(pos and pos.x < -70 and pos.y > 15, "drag persists minimap position: " .. H.fmt(pos));
 		eq(icon.scripts.OnUpdate,nil,"no per-frame updates after drag finishes");
+		local before=ns.storage:GetSetting("minimapPosition");
+		icon.scripts.OnMouseWheel(icon,1);
+		local after=ns.storage:GetSetting("minimapPosition");
+		ok(after and (math.abs(after.x-before.x)>1 or math.abs(after.y-before.y)>1),
+			"mouse wheel independently repositions and saves icon");
+
 		icon.scripts.OnClick(icon,"LeftButton");
 		no(ns.ui:IsShown(),"drag release does not accidentally open planner");
 		local x1=icon:GetPoint();
