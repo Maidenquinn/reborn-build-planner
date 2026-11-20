@@ -52,9 +52,9 @@ return function(H)
 		ok(icon ~= nil and icon:IsShown(), "minimap icon appears immediately");
 		eq(icon:GetWidth(), 30, "compact button size");
 		ok(icon.drag, "native left-button dragging registered");
-		ok(icon.emblem and icon.emblem.texture and icon.emblem.texture:find("INV_Misc_Map_01",1,true),
-			"uses native map glyph rather than RB emblem");
-		ok(icon.roundRing and icon.roundRing.texture, "native tracking rim");
+		ok(icon.emblem and icon.emblem.texture and icon.emblem.texture:find("ultimate_minimap",1,true),
+			"uses packaged original compass rather than a missing game icon");
+		eq(icon.roundRing,nil,"no second tracking border over the custom seal");
 		eq(icon.scripts.OnMouseWheel,nil,"wheel rotation fallback removed");
 		eq(icon.scripts.OnUpdate,nil,"no idle per-frame work");
 
