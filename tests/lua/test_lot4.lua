@@ -171,4 +171,52 @@ return function(H)
     eq(T.CardHint(build,1,new,{key="whirlwind"}),"wanted")
     eq(T.CardHint(build,1,new,{key="execute"}),"avoid")
   end)
+  test("capture: complete run creates preview with exact learned ranks and session bans", function()
+    local cat=ns.Catalog.New(ns.GeneratedCatalog)
+    local snap={inRun=true,spellsKnown=true,gearKnown=true,bannedKnown=true,
+      spells={{key="whirlwind",rank=3},{key="rend",rank=2}},
+      banned={execute=true},gear={}}
+    local build,err,report=ns.CaptureBuild.Prepare(snap,"warrior",cat,"enUS","My Run")
+    ok(build~=nil,"valid run should prepare")
+    eq(err,nil)
+    if build then
+      eq(build.phases[1].spells[1],{key="whirlwind",mode="rank",rank=3})
+      eq(build.phases[1].spells[2],{key="rend",mode="rank",rank=2})
+      eq(build.phases[1].banish,{"execute"})
+      eq(build.name,"My Run")
+      eq(#build.phases,4)
+    end
+    eq(report.spells,2)
+    eq(report.bans,1)
+  end)
+  test("capture: not in run and snapshots not received cannot create a build", function()
+    local cat=ns.Catalog.New(ns.GeneratedCatalog)
+    local a,err=ns.CaptureBuild.Prepare({inRun=false,spellsKnown=true,gearKnown=true},"warrior",cat,"enUS")
+    eq(a,nil);eq(err,"NOT_IN_RUN")
+    a,err=ns.CaptureBuild.Prepare({inRun=true,spellsKnown=true,gearKnown=false},"warrior",cat,"enUS")
+    eq(a,nil);eq(err,"SNAPSHOT_INCOMPLETE")
+  end)
+  test("capture: refuses over-limit spells instead of silently dropping any", function()
+    local cat=ns.Catalog.New(ns.GeneratedCatalog)
+    local keys={"whirlwind","execute","cleave","rend","bloodthirst","shockwave","shield_slam"}
+    local spells={}
+    for _,key in ipairs(keys) do spells[#spells+1]={key=key,rank=1} end
+    local build,err,report=ns.CaptureBuild.Prepare(
+      {inRun=true,spellsKnown=true,gearKnown=true,spells=spells,gear={}},
+      "warrior",cat,"enUS")
+    eq(build,nil);eq(err,"TOO_MANY_SPELLS")
+    eq(report.spells,7)
+  end)
+  test("capture: ignores unidentified gear and warns instead of guessing", function()
+    local cat=ns.Catalog.New(ns.GeneratedCatalog)
+    local build,err,report=ns.CaptureBuild.Prepare(
+      {inRun=true,spellsKnown=true,gearKnown=true,spells={{key="whirlwind",rank=1}},
+        gear={{name="Unidentified item",slot="ring"}}},
+      "warrior",cat,"enUS")
+    ok(build~=nil)
+    eq(err,nil)
+    eq(report.unknownGear,1)
+    if build then eq(build.phases[1].rings,{"","","",""}) end
+  end)
+
 end
