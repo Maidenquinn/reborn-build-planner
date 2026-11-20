@@ -24,6 +24,7 @@ PlannerCodec.lua
 UIStrings.lua
 AdditionalLocales.lua
 LiveTracker.lua
+CaptureBuild.lua
 TrackHUD.lua
 Runtime.lua
 MinimapButton.lua
