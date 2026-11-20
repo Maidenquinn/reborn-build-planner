@@ -62,7 +62,7 @@ return function(H)
 			if name == "icon_frame" then eq(centreA, 0, "icon frame: transparent centre (the icon shows through)"); end
 			if name == "veil_hover" or name == "veil_pressed" then ok(centreA > 40 and centreA < 255, name .. ": translucent veil: " .. centreA); end
 		end
-		eq(n, 27);
+		eq(n, 28);
 		-- nothing in Media that the theme does not declare (no stray / copied file)
 		local listing;
 		if io.popen then
@@ -98,7 +98,7 @@ return function(H)
 		-- the strip of swatches draws every declared file
 		local n = 0;
 		for _ in pairs(world.G.RebornPlannerThemeLabFrame and ns.Lab.swatches or {}) do n = n + 1; end
-		eq(n, 27);
+		eq(n, 28);
 	end);
 
 	-- ------------------------------------------------------------------ nine-slice
