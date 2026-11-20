@@ -73,6 +73,7 @@ function M.Start()
   b:SetFrameStrata("DIALOG");
   b:SetFrameLevel((Minimap.GetFrameLevel and Minimap:GetFrameLevel() or 0)+30);
   b:EnableMouse(true);
+  if b.EnableMouseWheel then b:EnableMouseWheel(true) end
   if b.RegisterForClicks then b:RegisterForClicks("LeftButtonUp","RightButtonUp") end
 
   -- One dedicated icon, with transparent edges. No stock tracking rings.
@@ -84,6 +85,18 @@ function M.Start()
     b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight");
   end
 
+  -- Keyboard/mouse fallback for clients that do not expose cursor coordinates
+  -- or that consume the drag event through the custom minimap wrapper.
+  -- Scroll the button to rotate it around the rim; this is independently
+  -- usable even if mouse dragging is not supported by the native wrapper.
+  b:SetScript("OnMouseWheel",function(_,delta)
+    if not delta or delta==0 then return end
+    local angle=(delta>0 and 1 or -1)*0.17;
+    local x,y=M.x or DEFAULT_X,M.y or DEFAULT_Y;
+    M.Position(x*math.cos(angle)-y*math.sin(angle),
+               x*math.sin(angle)+y*math.cos(angle));
+    save();
+  end);
   b:SetScript("OnMouseDown",function(_,button)
     if button~="LeftButton" then return end
     local x,y=cursorOffset();
@@ -119,7 +132,7 @@ function M.Start()
       GameTooltip:SetOwner(self,"ANCHOR_LEFT");
       GameTooltip:AddLine("Reborn Build Planner");
       GameTooltip:AddLine("Left-click: open RBP",.75,.82,1);
-      GameTooltip:AddLine("Drag: move around minimap",1,.82,.46);
+      GameTooltip:AddLine("Drag or scroll here: move icon",1,.82,.46);
       GameTooltip:AddLine("Right-click: toggle tracker",.75,.82,1);
       GameTooltip:Show();
     end
