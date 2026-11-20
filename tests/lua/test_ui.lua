@@ -248,9 +248,11 @@ return function(H)
 		ok(menu and menu.options and #menu.options==2,"tracked build selector populated");
 		eq(e.ns.Runtime.ToggleCompact(),true);
 		eq(h:GetSetting("trackerCompact"),true);
-		eq(e.ns.TrackHUD.frame:GetHeight(),167);
+		-- Returning to an already observed server run now restores its confirmed ban
+		-- from SavedVariables, so the HUD includes its extra banishment row.
+		eq(e.ns.TrackHUD.frame:GetHeight(),211);
 		eq(e.ns.Runtime.ToggleCompact(),false);
-		eq(e.ns.TrackHUD.frame:GetHeight(),272);
+		eq(e.ns.TrackHUD.frame:GetHeight(),316);
 		eq(e.ns.Runtime.ToggleTheme(),"elwynn");
 		eq(h:GetSetting("trackerTheme"),"elwynn");
 		eq(e.ns.Runtime.CycleStage(),2,"HUD moves to next manually selected phase");
