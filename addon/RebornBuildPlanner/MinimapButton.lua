@@ -75,19 +75,13 @@ function M.Start()
   b:RegisterForClicks("LeftButtonUp", "RightButtonUp");
   b:RegisterForDrag("LeftButton");
 
-  -- Native game icon, like Azeroth Stats: no generated RB badge, no oversized halo.
+  -- Dedicated, packaged original compass seal. A stock game texture may be
+  -- missing in this client (the red question-mark reported by the tester).
+  -- The emblem already contains its own subtle border: no second ring.
   b.emblem = b:CreateTexture(nil, "ARTWORK");
   b.emblem:SetPoint("CENTER", b, "CENTER", 0, 0);
-  b.emblem:SetSize(21, 21);
-  b.emblem:SetTexture("Interface\\Icons\\INV_Misc_Map_01");
-  b.emblem:SetTexCoord(.08, .92, .08, .92);
-
-  b.roundRing = b:CreateTexture(nil, "OVERLAY");
-  b.roundRing:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder");
-  -- This native texture has its round ornament in the top-left UV quadrant.
-  b.roundRing:SetTexCoord(0, .5, 0, .5);
-  b.roundRing:SetPoint("CENTER", b, "CENTER", 0, 0);
-  b.roundRing:SetSize(30, 30);
+  b.emblem:SetSize(30, 30);
+  b.emblem:SetTexture(ns.Theme.Media("ultimate_minimap"));
 
   b:SetScript("OnDragStart", function()
     M.dragging = true;
