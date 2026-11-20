@@ -1,0 +1,73 @@
+# One-shot beta publication, triggered only when this workflow is introduced.
+# Runs full Lua 5.1 tests before creating an immutable GitHub prerelease.
+name: Publish RBP v0.5.0
+on:
+  push:
+    branches: [release/v0.5.0]
+    paths:
+      - '.github/workflows/publish-stable-050.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reborn-build-planner-stable-050
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'Maidenquinn/reborn-build-planner'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test and artwork requirements
+        run: python -m pip install pillow lupa==2.8
+      - name: Retrieve public official data (authorized by project maintainer)
+        run: python -I tools/fetch_catalog_public.py --out .local/catalog/public-preview
+      - name: Generate catalogue
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tools/generate_catalog.py
+      - name: Verify generated catalogue
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tests/py/test_generator.py
+      - name: Generate original UI artwork
+        run: |
+          python -I tools/make_textures.py addon_lab/RebornPlannerThemeLab/Media
+          python -I tools/make_ultimate_art.py addon_lab/RebornPlannerThemeLab/Media
+      - name: Run full Lua 5.1 tests
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tools/run_lua_tests.py
+      - name: Assemble and verify installable single-folder ZIP
+        run: |
+          python -I tools/package_addon.py --out dist/private-preview
+          python - <<'PY'
+          from pathlib import Path
+          from shutil import copyfile
+          from tools.validate_index_zip import validate
+          z = list(Path('dist/private-preview').glob('RebornBuildPlanner-*-recette.zip'))
+          assert len(z) == 1, z
+          dest = Path('dist/RebornBuildPlanner-v0.5.0.zip')
+          copyfile(z[0], dest)
+          files, unpacked = validate(str(dest))
+          assert files > 20
+          print('Beta package verified:', dest, files, unpacked)
+          PY
+      - name: Create beta tag and GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.5.0 >/dev/null 2>&1; then
+            echo "Release already exists; refusing to replace its immutable asset."
+            exit 1
+          fi
+          gh release create v0.5.0 dist/RebornBuildPlanner-v0.5.0.zip \
+            --target "$GITHUB_SHA" \
+            --title "Reborn Build Planner v0.5.0" \
+            --latest \
+            --notes "Stable v0.5.0 release of Reborn Build Planner for Azeroth Survivors: Reborn. Includes the latest tested build planner, import/export and read-only tracking HUD, reliable native drag-and-drop for the minimap launcher, persisted minimap position, and the new custom compass icon replacing the earlier RB badge and broken stock game icon. Does not automate gameplay. Requires AzerothSurvivors and AzerothSurvivorsAPI. Extract the ZIP to Interface/AddOns, preserving SavedVariables. Report issues on GitHub."
