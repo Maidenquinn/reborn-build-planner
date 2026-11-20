@@ -40,43 +40,44 @@ return function(H)
 	end
 	local function T(env, s) return env.ns.Locale.T(s); end
 
-	test("Beta hotfix: minimap launcher opens planner even without a build", function()
+	test("Beta minimap: native drag, compact icon, saved position and scaled map", function()
 		local world = Stub.new({ width = 1365, height = 768 });
 		world.G.Minimap = world.G.CreateFrame("Frame", "Minimap", world.G.UIParent);
 		world.G.Minimap:SetSize(140, 140);
+		world.G.Minimap:SetScale(0.8);
 		world.G.Minimap:SetPoint("TOPRIGHT", world.G.UIParent, "TOPRIGHT", -18, -18);
 		local ns = H.loadAddon({globals = world.G, time = world.G.time});
 		world.fire("ADDON_LOADED", "RebornBuildPlanner");
 		local icon = world.G.RBPMinimapButton;
 		ok(icon ~= nil and icon:IsShown(), "minimap icon appears immediately");
-		ok(icon.emblem and icon.emblem.texture and icon.emblem.texture:find("ultimate_minimap",1,true),
-			"minimap uses a dedicated original RB badge without stock tracking rings");
-		local cursorX,cursorY=icon:GetCenter();
-		world.G.GetCursorPosition=function() return cursorX,cursorY end;
-		icon.scripts.OnMouseDown(icon,"LeftButton");
-		ok(icon.scripts.OnUpdate~=nil,"drag has cursor-driven updates only while held");
-		local mx,my=world.G.Minimap:GetCenter();
-		cursorX,cursorY=mx-75,my+18;
-		icon.scripts.OnUpdate(icon,0.01);
-		icon.scripts.OnMouseUp(icon,"LeftButton");
-		local pos=ns.storage:GetSetting("minimapPosition");
-		ok(pos and pos.x < -70 and pos.y > 15, "drag persists minimap position: " .. H.fmt(pos));
-		eq(icon.scripts.OnUpdate,nil,"no per-frame updates after drag finishes");
-		local before=ns.storage:GetSetting("minimapPosition");
-		icon.scripts.OnMouseWheel(icon,1);
-		local after=ns.storage:GetSetting("minimapPosition");
-		ok(after and (math.abs(after.x-before.x)>1 or math.abs(after.y-before.y)>1),
-			"mouse wheel independently repositions and saves icon");
+		eq(icon:GetWidth(), 30, "compact button size");
+		ok(icon.drag, "native left-button dragging registered");
+		ok(icon.emblem and icon.emblem.texture and icon.emblem.texture:find("INV_Misc_Map_01",1,true),
+			"uses native map glyph rather than RB emblem");
+		ok(icon.roundRing and icon.roundRing.texture, "native tracking rim");
+		eq(icon.scripts.OnMouseWheel,nil,"wheel rotation fallback removed");
+		eq(icon.scripts.OnUpdate,nil,"no idle per-frame work");
 
+		local mx,my=world.G.Minimap:GetCenter();
+		local scale=world.G.Minimap:GetEffectiveScale();
+		local cursorX,cursorY=mx*scale,my*scale;
+		world.G.GetCursorPosition=function() return cursorX,cursorY end;
+		icon.scripts.OnDragStart(icon);
+		ok(icon.scripts.OnUpdate~=nil,"drag updates only while held");
+		cursorX,cursorY=(mx-75)*scale,(my+18)*scale;
+		icon.scripts.OnUpdate(icon,0.01);
+		icon.scripts.OnDragStop(icon);
+		local pos=ns.storage:GetSetting("minimapPosition");
+		ok(pos and pos.x < -75 and pos.y > 15, "scaled drag persists correct map-relative position: " .. H.fmt(pos));
+		eq(icon.scripts.OnUpdate,nil,"drag frame update removed at drag stop");
 		icon.scripts.OnClick(icon,"LeftButton");
-		no(ns.ui:IsShown(),"drag release does not accidentally open planner");
+		no(ns.ui:IsShown(),"drag release does not toggle planner");
 		local x1=icon:GetPoint();
 		eq(x1,"CENTER");
-		ok(not ns.ui:IsShown(), "main UI remains closed on login");
 		world.click(icon);
-		ok(ns.ui:IsShown(), "left click opens the planner without an active build");
+		ok(ns.ui:IsShown(),"normal left-click opens planner without active build");
 		world.click(icon);
-		no(ns.ui:IsShown(), "second click closes the planner");
+		no(ns.ui:IsShown(),"second click closes planner");
 	end);
 
 	test("Beta hotfix: idle HUD remains usable without a followed build", function()
