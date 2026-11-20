@@ -338,6 +338,34 @@ function Controller:Create(name, class)
 	return id;
 end
 
+-- Run capture is preview-only until the user explicitly confirms saving.
+-- A new build is always created; existing plans and the active build remain unchanged.
+function Controller:PrepareRunCapture()
+  if self:ReadOnly() then return nil,"READ_ONLY" end
+  local runtime=self.env.Runtime;
+  if not runtime or not runtime.ready then return nil,"RUNTIME_UNAVAILABLE" end
+  local cls=runtime.PlayerClass();
+  if not cls then return nil,"UNKNOWN_CLASS" end
+  local snap=runtime.Capture();
+  return self.env.CaptureBuild.Prepare(snap,cls,self:Catalog(),self:Lang());
+end
+
+function Controller:SaveRunCapture(prepared,name)
+  if self:ReadOnly() then self:Say("error",L("Read only"));return nil end
+  if type(prepared)~="table" then return nil end
+  name=string.gsub(name or "", "^%s+", "");
+  name=string.gsub(name, "%s+$", "");
+  if name=="" or #name>BM.LIMITS.name then return nil end
+  local new=BM.Clone(prepared);
+  new.name=name;
+  local id, result=self:Handle():Add(new);
+  if not id then self:Say("error",explain(result));return nil end
+  self.state.trashMode=false;
+  self.state.selectedId=id;
+  self:Say("info",L("Build created (not active)"));
+  return id;
+end
+
 function Controller:ToggleFavorite(id)
 	local h = self:Handle();
 	if not h or h.readOnly then self:Say("error", L("Read only")); return false; end
