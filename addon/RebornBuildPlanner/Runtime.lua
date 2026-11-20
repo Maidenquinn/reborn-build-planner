@@ -5,28 +5,68 @@ ns = ns or {};
 local R = { ready=false, last=nil, callbacks=0, received={ spells=false, gear=false, cards=false, spellTips=false }, runKey=nil, stage=1, stageRun=nil };
 ns.Runtime = R;
 R.bans={};R.pendingBan=nil;R.banRun=nil;
--- Observe only the game's already-issued command, never issue one ourselves.
--- Confirm against the subsequent AZSCARDS ban-count change (ASR Advisor
--- uses this same handshake). A reload cannot recover historical ban actions.
+-- Use the same stable server run identity for commands, packets and reloads.
+-- The API's client-local fallback may change after a reload, so prefer zone.run.
+local function currentRun()
+  local id=type(AZS_ZONE)=="table" and AZS_ZONE.run or nil;
+  if id==nil and type(AZS_API_RunId)=="function" then id=AZS_API_RunId() end
+  return id~=nil and tostring(id) or nil;
+end
+local function restoreBans(id)
+  if not id or not ns.storage then return {} end
+  local saved=ns.storage:GetSetting("captureBanJournal");
+  if type(saved)=="table" and saved.run==id and type(saved.spells)=="table" then
+    local result={};
+    for key,value in pairs(saved.spells) do
+      if type(key)=="string" and value==true then result[key]=true end
+    end
+    return result;
+  end
+  return {};
+end
+local function saveBans()
+  if ns.storage and not ns.storage.readOnly and R.banRun then
+    local copy={};
+    for key,enabled in pairs(R.bans) do if enabled==true then copy[key]=true end end
+    ns.storage:SetSetting("captureBanJournal",{run=R.banRun,spells=copy});
+  end
+end
+function R.SyncBanRun()
+  local id=currentRun();
+  if not id then return end -- never erase a known run due to a transient nil
+  if id~=R.banRun then
+    R.banRun=id;
+    R.bans=restoreBans(id);
+    R.pendingBan=nil;
+  end
+end
+-- Observe the player's actual command, never send a ban command ourselves.
+-- Confirm its success only from the new card count provided by the server.
 function R.ObserveBanishCommand(prefix,command)
+  if prefix~="AZSCMD" then return end
   local index=tonumber(string.match(tostring(command or ""),"^banish (%d+)$"));
   if not index then return end
+  R.SyncBanRun();
   local offer=type(AZS_CARDS)=="table" and AZS_CARDS or nil;
   local card=offer and type(offer.cards)=="table" and offer.cards[index];
-  local runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or R.runKey;
-  if not offer or offer.kind~="spell" or type(card)~="table" or
-     type(card.key)~="string" or not tonumber(offer.bn) or tonumber(offer.bn)<=0 or not runId then return end
-  R.pendingBan={run=tostring(runId),key=card.key,before=tonumber(offer.bn)};
+  local id=currentRun();
+  if not id or not offer or offer.kind~="spell" or type(card)~="table" or
+     type(card.key)~="string" or (tonumber(offer.bn) or 0)<=0 then return end
+  R.pendingBan={run=id,key=card.key,before=tonumber(offer.bn)};
 end
 function R.ConfirmBanish()
   local pending=R.pendingBan;
   if not pending then return end
-  local runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or R.runKey;
+  R.SyncBanRun();
+  local id=currentRun();
   local offer=type(AZS_CARDS)=="table" and AZS_CARDS or nil;
+  if not id or id~=pending.run then R.pendingBan=nil;return end
+  -- Ignore unrelated card packets rather than clearing a pending confirmation.
+  if not offer or offer.kind~="spell" or tonumber(offer.bn)==nil then return end
   R.pendingBan=nil;
-  if runId and tostring(runId)==pending.run and offer and
-     offer.kind=="spell" and tonumber(offer.bn)==pending.before-1 then
+  if tonumber(offer.bn)==pending.before-1 then
     R.bans[pending.key]=true;
+    saveBans();
   end
 end
 local EVENTS = { "AZSSPELLS", "AZSSPELLTIP", "AZSGEAR", "AZSCARDS",
@@ -35,12 +75,11 @@ local EVENTS = { "AZSSPELLS", "AZSSPELLTIP", "AZSGEAR", "AZSCARDS",
 -- The native globals start as empty tables. A table existing does NOT mean the
 -- server has supplied a snapshot (notably during /reload). Track actual packets.
 function R.Note(event)
-  local runKey = type(AZS_API_RunId)=="function" and AZS_API_RunId() or
-    (type(AZS_ZONE)=="table" and AZS_ZONE.run or nil);
-  if runKey ~= R.runKey then
+  local runKey=currentRun();
+  if runKey and runKey~=R.runKey then
     R.runKey=runKey;
     R.received={ spells=false, gear=false, cards=false, spellTips=false };
-    R.bans={};R.pendingBan=nil;R.banRun=runKey;
+    R.SyncBanRun();
   end
   if event=="AZSSPELLS" then R.received.spells=true end
   if event=="AZSGEAR" then R.received.gear=true end
@@ -48,6 +87,7 @@ function R.Note(event)
   if event=="AZSCARDS" then R.ConfirmBanish();R.received.cards=true end
 end
 function R.Capture()
+  R.SyncBanRun();
   local phase = type(AZS_GetPhase)=="function" and AZS_GetPhase() or
     (type(AZS_RUN)=="table" and AZS_RUN.ph or nil);
   if type(AZS_ZONE)=="table" and tonumber(AZS_ZONE.hub)==1 then phase=nil end
@@ -63,6 +103,7 @@ function R.Capture()
     spellTipsKnown=running and R.received.spellTips and type(AZS_SPELLTIPS)=="table" or false,
     banned=running and R.bans or {},
     bannedKnown=running and R.banRun~=nil or false,
+    bansComplete=false, -- no authoritative historic banned-spell API exists
     cards=running and R.received.cards and type(AZS_CARDS)=="table" and AZS_CARDS or nil,
     gold=running and type(AZS_RUN)=="table" and tonumber(AZS_RUN.gold) or nil,
     runId=type(AZS_ZONE)=="table" and AZS_ZONE.run or nil
