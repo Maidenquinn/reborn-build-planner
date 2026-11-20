@@ -752,7 +752,9 @@ function UI:BuildLibrary(v)
 		lib.rows[i] = r;
 	end
 	lib.empty = wrapped(v, 12, 160, 212, 80, "GameFontNormal");
-	lib.create = button(v, "", 236, 28, 8, 494, function() self:AskCreate(); end);
+	lib.create = button(v, "", 112, 28, 8, 494, function() self:AskCreate(); end);
+	lib.capture = button(v, "", 120, 28, 124, 494, function() self:AskCapture(); end);
+	lib.capture.role = "warn";
 	lib.follow = button(v, "", 78, 24, 8, 530, function()
 		local r = c:Selected();
 		if r then if r.active then c:Deactivate(r.id); else c:Activate(r.id); end end
@@ -890,6 +892,8 @@ function UI:RefreshLibrary()
 	for _, b in ipairs({ lib.dup, lib.delete, lib.follow, lib.rename, lib.importBtn }) do setShown(b, not inTrash); end
 	setShown(lib.restore, inTrash);
 	setShown(lib.create, not inTrash);
+	setShown(lib.capture, not inTrash);
+	setLabel(lib.capture, ns.Locale.lang == "frFR" and "Capturer run" or "Capture Run");
 	setLabel(lib.dup, L("Duplicate"));
 	setLabel(lib.delete, L("Delete"));
 	setLabel(lib.rename, L("Rename"));
@@ -905,6 +909,7 @@ function UI:RefreshLibrary()
 	enable(lib.follow, has and not ro);
 	enable(lib.restore, has and not ro);
 	enable(lib.create, not ro);
+	enable(lib.capture, not ro);
 end
 
 -- ------------------------------------------------------------------ EditorPane (centre, top)
@@ -2258,6 +2263,72 @@ function UI:AskCreate()
 				if id then self:OpenEditor(id); end
 			end
 		end });
+end
+
+-- Explicit read-only snapshot of the current game run. Preview and confirm
+-- always happen before Storage:Add, and never change the followed build.
+function UI:AskCapture()
+  local c=self.c;
+  if c:EditorDirty() then
+    self:AskDirty(function() self:AskCapture() end);
+    return;
+  end
+  local prepared,code,report=c:PrepareRunCapture();
+  local fr=ns.Locale.lang=="frFR";
+  if not prepared then
+    local reasons={
+      NOT_IN_RUN=fr and "Lance une partie avant de capturer ton build." or "Start a run before capturing a build.",
+      SNAPSHOT_INCOMPLETE=fr and "Attends les données de sorts et d'équipement du jeu, puis réessaie." or "Wait for the game's spells and equipment snapshots, then try again.",
+      TOO_MANY_SPELLS=fr and "Plus de 6 sorts : aucun sort ne sera supprimé silencieusement. Ajuste ta sélection manuellement." or "More than 6 spells: nothing was silently discarded. Please choose goals manually.",
+      TOO_MANY_BANS=fr and "Trop de bannissements pour le modèle actuel. Aucun build n'a été créé." or "Too many banishments for the current model. No build was created.",
+      TOO_MANY_GEAR=fr and "Plus d'équipements que les emplacements du planner. Aucun build n'a été créé." or "More equipment than planner slots. No build was created.",
+      NOTHING_IDENTIFIED=fr and "Aucun sort ni équipement identifié avec certitude." or "No spells or equipment could be identified reliably.",
+      READ_ONLY=fr and "La bibliothèque est en lecture seule." or "The library is read-only."
+    };
+    self:ShowModal({
+      title=fr and "Capture indisponible" or "Capture unavailable",
+      body=reasons[code] or (fr and "Capture indisponible pour cette partie." or "Run capture is unavailable."),
+      buttons={fr and "Fermer" or "Close"}
+    });
+    return;
+  end
+  report=report or {};
+  local count=(report.rings or 0)+(report.trinkets or 0)+(report.amulets or 0);
+  local message=string.format(fr and "Sorts : %d | Equipements : %d | Bans confirmes : %d"
+    or "Spells: %d | Gear: %d | Confirmed bans: %d",
+    report.spells or 0,count,report.bans or 0);
+  if (report.unknownGear or 0)>0 or (report.unknownSpells or 0)>0 then
+    message=message..string.format(fr and "\nNon identifies : %d objet(s), %d sort(s)."
+      or "\nUnidentified: %d gear, %d spells.",
+      report.unknownGear or 0,report.unknownSpells or 0);
+  end
+  if not report.bansComplete then
+    message=message..(fr and "\nHistorique de bannissement incomplet."
+      or "\nBanish history may be incomplete.");
+  else
+    message=message..(fr and "\nBans observes pendant cette session uniquement."
+      or "\nOnly banishments observed this session.");
+  end
+  self:ShowModal({
+    title=fr and "Enregistrer le build actuel" or "Save Current Build",
+    body=message,
+    edit=fr and "Build capture" or "Captured run",
+    editLabel=fr and "Nom :" or "Name:",
+    buttons={fr and "Enregistrer" or "Save New",fr and "Annuler" or "Cancel"},
+    cancelIndex=2,
+    validate=function(i,value)
+      if i~=1 then return nil end
+      local v=trimmed(value);
+      if v=="" then return L("Give the build a name") end
+      if #v>BM.LIMITS.name then return L("The name is too long") end
+      return nil;
+    end,
+    onChoose=function(i,value)
+      if i~=1 then return end
+      local id=c:SaveRunCapture(prepared,value);
+      if id then self:OpenEditor(id) end
+    end
+  });
 end
 
 function UI:AskRename(r)
