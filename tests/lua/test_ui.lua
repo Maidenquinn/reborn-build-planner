@@ -49,9 +49,8 @@ return function(H)
 		world.fire("ADDON_LOADED", "RebornBuildPlanner");
 		local icon = world.G.RBPMinimapButton;
 		ok(icon ~= nil and icon:IsShown(), "minimap icon appears immediately");
-		eq(icon.monogram:GetText(),"RB","high-contrast RB monogram replaces the illegible crest");
-		ok(icon.plate and icon.plate.texture=="Interface\\\\Buttons\\\\WHITE8X8",
-			"icon uses a plain background instead of the oversized tracking ring");
+		ok(icon.emblem and icon.emblem.texture and icon.emblem.texture:find("ultimate_minimap",1,true),
+			"minimap uses a dedicated original RB badge without stock tracking rings");
 		local cursorX,cursorY=icon:GetCenter();
 		world.G.GetCursorPosition=function() return cursorX,cursorY end;
 		icon.scripts.OnMouseDown(icon,"LeftButton");
