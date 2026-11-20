@@ -752,8 +752,8 @@ function UI:BuildLibrary(v)
 		lib.rows[i] = r;
 	end
 	lib.empty = wrapped(v, 12, 160, 212, 80, "GameFontNormal");
-	lib.create = button(v, "", 112, 28, 8, 494, function() self:AskCreate(); end);
-	lib.capture = button(v, "", 120, 28, 124, 494, function() self:AskCapture(); end);
+	lib.create = button(v, "", 236, 28, 8, 494, function() self:AskCreate(); end);
+	lib.capture = button(v, "", 236, 24, 8, 590, function() self:AskCapture(); end);
 	lib.capture.role = "warn";
 	lib.follow = button(v, "", 78, 24, 8, 530, function()
 		local r = c:Selected();
