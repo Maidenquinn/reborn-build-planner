@@ -7,7 +7,6 @@ ns.MinimapButton = M;
 local RADIUS = 78;
 local DEFAULT_X, DEFAULT_Y = 55, -55;
 local MOVE_THRESHOLD = 4;
-local WHITE = "Interface\\Buttons\\WHITE8X8";
 
 local function fitOnRim(x,y)
   local len = math.sqrt(x*x+y*y);
@@ -76,30 +75,11 @@ function M.Start()
   b:EnableMouse(true);
   if b.RegisterForClicks then b:RegisterForClicks("LeftButtonUp","RightButtonUp") end
 
-  -- Pure UI primitives: an opaque midnight-blue badge with a high-contrast
-  -- RB monogram. No opaque default tracking border or tiny crest icon.
-  b.shadow=b:CreateTexture(nil,"BACKGROUND");
-  b.shadow:SetSize(34,34);b.shadow:SetPoint("CENTER",b,"CENTER",0,0);
-  b.shadow:SetTexture(WHITE);b.shadow:SetVertexColor(.015,.025,.04,1);
-  b.plate=b:CreateTexture(nil,"ARTWORK");
-  b.plate:SetSize(30,30);b.plate:SetPoint("CENTER",b,"CENTER",0,0);
-  b.plate:SetTexture(WHITE);b.plate:SetVertexColor(.055,.13,.23,1);
-  b.top=b:CreateTexture(nil,"OVERLAY");
-  b.top:SetSize(26,2);b.top:SetPoint("TOP",b,"TOP",0,-4);
-  b.top:SetTexture(WHITE);b.top:SetVertexColor(.84,.68,.32,1);
-  b.bottom=b:CreateTexture(nil,"OVERLAY");
-  b.bottom:SetSize(26,2);b.bottom:SetPoint("BOTTOM",b,"BOTTOM",0,4);
-  b.bottom:SetTexture(WHITE);b.bottom:SetVertexColor(.42,.66,.86,1);
-  b.left=b:CreateTexture(nil,"OVERLAY");
-  b.left:SetSize(2,26);b.left:SetPoint("LEFT",b,"LEFT",4,0);
-  b.left:SetTexture(WHITE);b.left:SetVertexColor(.55,.73,.9,1);
-  b.right=b:CreateTexture(nil,"OVERLAY");
-  b.right:SetSize(2,26);b.right:SetPoint("RIGHT",b,"RIGHT",-4,0);
-  b.right:SetTexture(WHITE);b.right:SetVertexColor(.55,.73,.9,1);
-  b.monogram=b:CreateFontString(nil,"OVERLAY","GameFontNormal");
-  b.monogram:SetPoint("CENTER",b,"CENTER",0,0);
-  b.monogram:SetText("RB");
-  b.monogram:SetTextColor(1,.88,.55);
+  -- One dedicated icon, with transparent edges. No stock tracking rings.
+  b.emblem=b:CreateTexture(nil,"ARTWORK");
+  b.emblem:SetSize(34,34);
+  b.emblem:SetPoint("CENTER",b,"CENTER",0,0);
+  b.emblem:SetTexture(ns.Theme.Media("ultimate_minimap"));
   if b.SetHighlightTexture then
     b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight");
   end
