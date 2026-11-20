@@ -7,7 +7,7 @@ local ADDON, ns = ...;
 ns = ns or {};
 -- Prefer the installed .toc metadata so diagnostics cannot drift behind release packaging.
 local metaVersion = type(GetAddOnMetadata) == "function" and GetAddOnMetadata(ADDON, "Version") or nil;
-ns.VERSION = (type(metaVersion) == "string" and metaVersion ~= "") and metaVersion or "0.5.0-beta.1";
+ns.VERSION = (type(metaVersion) == "string" and metaVersion ~= "") and metaVersion or "0.5.0-beta.2";
 RebornBuildPlanner = ns;
 
 -- existingDb: the loaded SavedVariables table (nil on first run); now: clock function.
