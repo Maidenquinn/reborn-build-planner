@@ -66,6 +66,7 @@ function Stub.new(opts)
 	function F:EnableMouse(v) self.mouse = v; end
 	function F:EnableMouseWheel(v) self.wheel = v; end
 	function F:EnableKeyboard(v) self.keyboard = v; end
+	function F:RegisterForClicks(...) self.clickButtons = { ... }; end
 	function F:RegisterForDrag() self.drag = true; end
 	function F:StartMoving() self.moving = true; end
 	function F:StopMovingOrSizing() self.moving = false; end
@@ -255,6 +256,7 @@ function Stub.new(opts)
 	function F:GetBottom() local r = rectOf(self); return r and r[2]; end
 	function F:GetRight() local r = rectOf(self); return r and r[3]; end
 	function F:GetTop() local r = rectOf(self); return r and r[4]; end
+	function F:GetCenter() local r=rectOf(self); return r and (r[1]+r[3])/2, r and (r[2]+r[4])/2; end
 	function F:GetEffectiveScale() return effScale(self); end
 
 	-- ---- globals

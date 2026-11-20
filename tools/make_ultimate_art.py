@@ -4,7 +4,7 @@ Private-project assets only: rights/provenance must be reviewed before release.
 Outputs uncompressed 32-bit TGA files; no runtime network dependency.
 """
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import random, math, struct, sys, base64, io, hashlib
 
 G=(128,190,226,255); L=(210,241,255,255); B=(40,93,151,255)
@@ -46,6 +46,35 @@ def crest():
               outline=(168, 223, 251, 255))
     d.line([(64, 49), (76, 64), (64, 79)], fill=(216, 244, 255, 255), width=3)
     return im
+
+def minimap_badge():
+    """Small original navigation crest; intentionally no letters or double-ring ornament.
+
+    Draw at 256px and downsample to a 64px transparent WoW texture. The 30px
+    final appearance is an ivory compass arrow on an ink-blue circular seal.
+    """
+    sz = 256
+    im = Image.new("RGBA", (sz, sz), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    # Single restrained outer rim and deep opaque center, not layered gold hoops.
+    d.ellipse((13, 13, 243, 243), fill=(6, 15, 29, 255))
+    d.ellipse((19, 19, 237, 237), fill=(13, 31, 53, 255),
+              outline=(107, 159, 191, 255), width=8)
+    d.arc((24, 24, 232, 232), 198, 310, fill=(195, 222, 238, 255), width=7)
+    d.arc((26, 26, 230, 230), 18, 128, fill=(64, 113, 153, 255), width=5)
+    # Cardinal ticks frame one simple recognisable symbol.
+    for x1,y1,x2,y2 in [(128,37,128,57), (128,199,128,219),
+                         (37,128,57,128), (199,128,219,128)]:
+        d.line((x1,y1,x2,y2), fill=(111, 164, 193, 230), width=5)
+    # Compass needle, strong large silhouette at 28-30px; cool blue lower half.
+    d.polygon([(128,54),(162,145),(128,130),(94,145)],
+              fill=(230, 239, 235, 255), outline=(5, 16, 31, 255), width=5)
+    d.polygon([(128,202),(94,111),(128,127),(162,111)],
+              fill=(57, 155, 197, 255), outline=(5, 16, 31, 255), width=5)
+    d.ellipse((116,116,140,140), fill=(232,206,145,255),
+              outline=(9,26,44,255), width=3)
+    return im.resize((64, 64), Image.Resampling.LANCZOS)
+
 
 def title():
     """Continuous satin-metal header, without the old RPG banner cutouts."""
@@ -154,10 +183,10 @@ def tga_bytes(im):
 def main(out):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     textures={"ultimate_corner":corner(),"ultimate_crest":crest(),"ultimate_titlebar":title(),"ultimate_panel":panel(),
-              "ultimate_fav_on":favorite(True),"ultimate_fav_off":favorite(False),
+              "ultimate_fav_on":favorite(True),"ultimate_fav_off":favorite(False), "ultimate_minimap":minimap_badge(),
               "ultimate_class_monk":supplied_class_icon("monk"),"ultimate_class_dh":supplied_class_icon("demonhunter")}
     for name,im in textures.items():(out/(name+".tga")).write_bytes(tga_bytes(im))
-    print("Generated",len(textures),"textures (6 original + 2 supplied game-class artworks) in",out)
+    print("Generated",len(textures),"textures (7 original + 2 supplied game-class artworks) in",out)
 
 if __name__=="__main__":
     if len(sys.argv)!=2:raise SystemExit("Usage: python tools/make_ultimate_art.py <Media directory>")

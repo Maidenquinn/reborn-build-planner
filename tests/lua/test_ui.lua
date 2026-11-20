@@ -40,6 +40,67 @@ return function(H)
 	end
 	local function T(env, s) return env.ns.Locale.T(s); end
 
+	test("Beta minimap: native drag, compact icon, saved position and scaled map", function()
+		local world = Stub.new({ width = 1365, height = 768 });
+		world.G.Minimap = world.G.CreateFrame("Frame", "Minimap", world.G.UIParent);
+		world.G.Minimap:SetSize(140, 140);
+		world.G.Minimap:SetScale(0.8);
+		world.G.Minimap:SetPoint("TOPRIGHT", world.G.UIParent, "TOPRIGHT", -18, -18);
+		local ns = H.loadAddon({globals = world.G, time = world.G.time});
+		world.fire("ADDON_LOADED", "RebornBuildPlanner");
+		local icon = world.G.RBPMinimapButton;
+		ok(icon ~= nil and icon:IsShown(), "minimap icon appears immediately");
+		eq(icon:GetWidth(), 30, "compact button size");
+		ok(icon.drag, "native left-button dragging registered");
+		ok(icon.emblem and icon.emblem.texture and icon.emblem.texture:find("ultimate_minimap",1,true),
+			"uses packaged original compass rather than a missing game icon");
+		eq(icon.roundRing,nil,"no second tracking border over the custom seal");
+		eq(icon.scripts.OnMouseWheel,nil,"wheel rotation fallback removed");
+		eq(icon.scripts.OnUpdate,nil,"no idle per-frame work");
+
+		local mx,my=world.G.Minimap:GetCenter();
+		local scale=world.G.Minimap:GetEffectiveScale();
+		local cursorX,cursorY=mx*scale,my*scale;
+		world.G.GetCursorPosition=function() return cursorX,cursorY end;
+		icon.scripts.OnDragStart(icon);
+		ok(icon.scripts.OnUpdate~=nil,"drag updates only while held");
+		cursorX,cursorY=(mx-75)*scale,(my+18)*scale;
+		icon.scripts.OnUpdate(icon,0.01);
+		icon.scripts.OnDragStop(icon);
+		local pos=ns.storage:GetSetting("minimapPosition");
+		ok(pos and pos.x < -75 and pos.y > 15, "scaled drag persists correct map-relative position: " .. H.fmt(pos));
+		eq(icon.scripts.OnUpdate,nil,"drag frame update removed at drag stop");
+		icon.scripts.OnClick(icon,"LeftButton");
+		no(ns.ui:IsShown(),"drag release does not toggle planner");
+		local x1=icon:GetPoint();
+		eq(x1,"CENTER");
+		world.click(icon);
+		ok(ns.ui:IsShown(),"normal left-click opens planner without active build");
+		world.click(icon);
+		no(ns.ui:IsShown(),"second click closes planner");
+	end);
+
+	test("Beta hotfix: idle HUD remains usable without a followed build", function()
+		local events={};
+		local e=boot({preset={
+			AZS={On=function(event,fn) events[event]=fn end},
+			AZS_RUN={ph="playing"}, AZS_ZONE={hub=0,run="run-idle"}
+		}});
+		ok(e.ns.Runtime.ready);
+		local hud=e.ns.TrackHUD.frame;
+		ok(hud:IsShown(),"idle HUD is visible without any active build");
+		ok(hud.title:GetText():find("Choose a build",1,true),"idle HUD invites build selection");
+		ok(hud.openButton:IsShown(),"idle HUD retains the planner launch control");
+		e.world.click(hud.openButton);
+		ok(e.ns.ui:IsShown(),"idle HUD opens the planner");
+		ok(e.h():SetSetting("trackerEnabled",false));
+		e.ns.Runtime.Refresh();
+		no(hud:IsShown(),"explicitly disabled tracker stays hidden");
+		ok(e.h():SetSetting("trackerEnabled",true));
+		e.ns.Runtime.Refresh();
+		ok(hud:IsShown(),"re-enabled HUD returns without a build");
+	end);
+
 	-- ------------------------------------------------------------------ 3A: native initialisation
 	test("3A: nothing is created or read before ADDON_LOADED; the event of another addon is ignored", function()
 		local e = boot({ noStart = true });
@@ -214,7 +275,7 @@ return function(H)
 		end
 		local reads = {};
 		for k in pairs(e.sb.reads) do reads[#reads + 1] = k; end
-		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" or reads[i] == "GetAddOnMetadata" or reads[i] == "AZS" then table.remove(reads, i); end end
+		for i = #reads, 1, -1 do if reads[i] == "RebornBuildPlannerDB" or reads[i] == "GetAddOnMetadata" or reads[i] == "AZS" or reads[i] == "Minimap" then table.remove(reads, i); end end
 		eq(reads, {}, "non-client globals read");
 	end);
 

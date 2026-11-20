@@ -385,7 +385,37 @@ function H.ToggleBuildMenu(self)
 end
 function H.Refresh(self,build,progress,catalog,lang,theme,snapshot)
   local f=self.frame;if not f then return end
-  if not build or not progress or not progress.inRun then f:Hide();return end
+  -- Keep an actionable small HUD even in the hub or before the player
+  -- chooses a build. A missing plan is not an error or an empty invisible UI.
+  if not build or not progress or not progress.inRun then
+    theme=THEMES[theme] and theme or "standard";
+    local c=THEMES[theme];
+    local fr=lang=="frFR";
+    if f.menu then f.menu:Hide() end
+    f:SetHeight(108);
+    rim(f,theme);
+    f.title:SetText(build and trunc(build.name,13).."  ▼" or (fr and "Choisir un build  ▼" or "Choose a build  ▼"));
+    f.title:SetTextColor(unpack(c.gold));
+    f.counter:SetText("");
+    f.themeButton.text:SetText(theme=="elwynn" and "ELW" or "STD");
+    f.collapseButton.text:SetText("+");
+    f.stageButton.text:SetText(build and (fr and "En attente de partie" or "Waiting for a run")
+      or (fr and "Aucun build suivi" or "No build selected"));
+    f.stageButton.text:SetTextColor(unpack(c.gold));
+    f.stageButton:Show();f.rule:Show();
+    f.rule:SetVertexColor(unpack(c.edge));
+    for _,row in ipairs(f.rows) do row:Hide() end
+    for _,row in ipairs(f.jewels) do row:Hide() end
+    for _,cell in ipairs(f.mini) do cell.cell:Hide() end
+    for _,widget in ipairs({f.gear,f.gearCount,f.miniSpellLabel,f.miniGearLabel,f.miniGearCount}) do widget:Hide() end
+    for _,group in ipairs(f.extra) do
+      group.label:Hide();group.rule:Hide();
+      for _,cell in ipairs(group.icons) do cell:Hide() end
+    end
+    f.openButton.text:SetText(fr and "Ouvrir RBP" or "Open RBP");
+    f:Show();
+    return;
+  end
   theme=THEMES[theme] and theme or "standard";
   local c=THEMES[theme];
   local native=theme=="standard";
