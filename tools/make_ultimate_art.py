@@ -48,29 +48,31 @@ def crest():
     return im
 
 def minimap_badge():
-    """Original, self-contained emblem readable at 32px; avoids the game's giant tracking border."""
+    """Small original navigation crest; intentionally no letters or double-ring ornament.
+
+    Draw at 256px and downsample to a 64px transparent WoW texture. The 30px
+    final appearance is an ivory compass arrow on an ink-blue circular seal.
+    """
     sz = 256
-    im = Image.new("RGBA", (sz, sz))
+    im = Image.new("RGBA", (sz, sz), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    # Compact circular steel/bronze badge with transparent outside corners.
-    d.ellipse((11, 11, 245, 245), fill=(5, 14, 28, 255), outline=(6, 17, 30, 255), width=7)
-    d.ellipse((19, 19, 237, 237), outline=(166, 128, 60, 255), width=10)
-    d.arc((23, 23, 233, 233), 196, 336, fill=(243, 204, 110, 255), width=9)
-    d.arc((23, 23, 233, 233), 24, 161, fill=(70, 139, 187, 255), width=7)
-    d.ellipse((35, 35, 221, 221), fill=(12, 32, 59, 255), outline=(49, 106, 154, 255), width=5)
-    # Matte diagonal gleam, kept away from the title in the centre.
-    d.arc((43, 43, 213, 213), 215, 302, fill=(94, 156, 194, 140), width=3)
-    # Crisp centered monogram, with a dark outline to survive light minimap backgrounds.
-    try:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 91)
-    except OSError:
-        font = ImageFont.load_default()
-    caption = "RB"
-    box = d.textbbox((0, 0), caption, font=font, stroke_width=0)
-    x = (sz - (box[2] - box[0])) / 2 - box[0]
-    y = (sz - (box[3] - box[1])) / 2 - box[1] - 5
-    d.text((int(x), int(y)), caption, font=font, fill=(240, 226, 180, 255),
-           stroke_width=5, stroke_fill=(4, 16, 34, 255))
+    # Single restrained outer rim and deep opaque center, not layered gold hoops.
+    d.ellipse((13, 13, 243, 243), fill=(6, 15, 29, 255))
+    d.ellipse((19, 19, 237, 237), fill=(13, 31, 53, 255),
+              outline=(107, 159, 191, 255), width=8)
+    d.arc((24, 24, 232, 232), 198, 310, fill=(195, 222, 238, 255), width=7)
+    d.arc((26, 26, 230, 230), 18, 128, fill=(64, 113, 153, 255), width=5)
+    # Cardinal ticks frame one simple recognisable symbol.
+    for x1,y1,x2,y2 in [(128,37,128,57), (128,199,128,219),
+                         (37,128,57,128), (199,128,219,128)]:
+        d.line((x1,y1,x2,y2), fill=(111, 164, 193, 230), width=5)
+    # Compass needle, strong large silhouette at 28-30px; cool blue lower half.
+    d.polygon([(128,54),(162,145),(128,130),(94,145)],
+              fill=(230, 239, 235, 255), outline=(5, 16, 31, 255), width=5)
+    d.polygon([(128,202),(94,111),(128,127),(162,111)],
+              fill=(57, 155, 197, 255), outline=(5, 16, 31, 255), width=5)
+    d.ellipse((116,116,140,140), fill=(232,206,145,255),
+              outline=(9,26,44,255), width=3)
     return im.resize((64, 64), Image.Resampling.LANCZOS)
 
 
