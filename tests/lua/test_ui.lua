@@ -49,17 +49,23 @@ return function(H)
 		world.fire("ADDON_LOADED", "RebornBuildPlanner");
 		local icon = world.G.RBPMinimapButton;
 		ok(icon ~= nil and icon:IsShown(), "minimap icon appears immediately");
-		ok(icon:IsMovable(), "minimap icon is draggable");
-		ok(icon.drag, "left-button dragging is registered");
-		ok(icon.crest and icon.crest.texture and icon.crest.texture:find("ultimate_crest",1,true),
-			"minimap uses the original RBP crest instead of the quest parchment");
-		-- Simulate the end of a minimap-relative drag, including saved coordinates.
-		icon:ClearAllPoints();
-		icon:SetPoint("CENTER", world.G.Minimap, "CENTER", -75, 18);
-		icon.scripts.OnDragStop(icon);
+		eq(icon.monogram:GetText(),"RB","high-contrast RB monogram replaces the illegible crest");
+		ok(icon.plate and icon.plate.texture=="Interface\\\\Buttons\\\\WHITE8X8",
+			"icon uses a plain background instead of the oversized tracking ring");
+		local cursorX,cursorY=icon:GetCenter();
+		world.G.GetCursorPosition=function() return cursorX,cursorY end;
+		icon.scripts.OnMouseDown(icon,"LeftButton");
+		ok(icon.scripts.OnUpdate~=nil,"drag has cursor-driven updates only while held");
+		local mx,my=world.G.Minimap:GetCenter();
+		cursorX,cursorY=mx-75,my+18;
+		icon.scripts.OnUpdate(icon,0.01);
+		icon.scripts.OnMouseUp(icon,"LeftButton");
 		local pos=ns.storage:GetSetting("minimapPosition");
-		ok(pos and pos.x < -70 and pos.y > 15, "drag persists a snapped minimap position: " .. H.fmt(pos));
-		local x1,y1=icon:GetPoint();
+		ok(pos and pos.x < -70 and pos.y > 15, "drag persists minimap position: " .. H.fmt(pos));
+		eq(icon.scripts.OnUpdate,nil,"no per-frame updates after drag finishes");
+		icon.scripts.OnClick(icon,"LeftButton");
+		no(ns.ui:IsShown(),"drag release does not accidentally open planner");
+		local x1=icon:GetPoint();
 		eq(x1,"CENTER");
 		ok(not ns.ui:IsShown(), "main UI remains closed on login");
 		world.click(icon);
