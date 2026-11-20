@@ -228,7 +228,7 @@ return function(H)
 		-- the native offer acknowledges one consumed banishment.
 		e.G.AZS_CARDS={kind="spell",bn=3,cards={{key="execute"}}};
 		e.G.AZS_ZONE.run="run-a";
-		e.ns.Runtime.ObserveBanishCommand("AZS","banish 1");
+		e.ns.Runtime.ObserveBanishCommand("AZSCMD","banish 1");
 		eq(e.ns.Runtime.bans.execute,nil,"ban not yet acknowledged");
 		e.G.AZS_CARDS.bn=2;events.AZSCARDS();
 		eq(e.ns.Runtime.bans.execute,true,"native decrement confirms ban");
