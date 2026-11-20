@@ -4,7 +4,7 @@ Private-project assets only: rights/provenance must be reviewed before release.
 Outputs uncompressed 32-bit TGA files; no runtime network dependency.
 """
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import random, math, struct, sys, base64, io, hashlib
 
 G=(128,190,226,255); L=(210,241,255,255); B=(40,93,151,255)
@@ -46,6 +46,33 @@ def crest():
               outline=(168, 223, 251, 255))
     d.line([(64, 49), (76, 64), (64, 79)], fill=(216, 244, 255, 255), width=3)
     return im
+
+def minimap_badge():
+    """Original, self-contained emblem readable at 32px; avoids the game's giant tracking border."""
+    sz = 256
+    im = Image.new("RGBA", (sz, sz))
+    d = ImageDraw.Draw(im)
+    # Compact circular steel/bronze badge with transparent outside corners.
+    d.ellipse((11, 11, 245, 245), fill=(5, 14, 28, 255), outline=(6, 17, 30, 255), width=7)
+    d.ellipse((19, 19, 237, 237), outline=(166, 128, 60, 255), width=10)
+    d.arc((23, 23, 233, 233), 196, 336, fill=(243, 204, 110, 255), width=9)
+    d.arc((23, 23, 233, 233), 24, 161, fill=(70, 139, 187, 255), width=7)
+    d.ellipse((35, 35, 221, 221), fill=(12, 32, 59, 255), outline=(49, 106, 154, 255), width=5)
+    # Matte diagonal gleam, kept away from the title in the centre.
+    d.arc((43, 43, 213, 213), 215, 302, fill=(94, 156, 194, 140), width=3)
+    # Crisp centered monogram, with a dark outline to survive light minimap backgrounds.
+    try:
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 91)
+    except OSError:
+        font = ImageFont.load_default()
+    caption = "RB"
+    box = d.textbbox((0, 0), caption, font=font, stroke_width=0)
+    x = (sz - (box[2] - box[0])) / 2 - box[0]
+    y = (sz - (box[3] - box[1])) / 2 - box[1] - 5
+    d.text((int(x), int(y)), caption, font=font, fill=(240, 226, 180, 255),
+           stroke_width=5, stroke_fill=(4, 16, 34, 255))
+    return im.resize((64, 64), Image.Resampling.LANCZOS)
+
 
 def title():
     """Continuous satin-metal header, without the old RPG banner cutouts."""
@@ -154,10 +181,10 @@ def tga_bytes(im):
 def main(out):
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     textures={"ultimate_corner":corner(),"ultimate_crest":crest(),"ultimate_titlebar":title(),"ultimate_panel":panel(),
-              "ultimate_fav_on":favorite(True),"ultimate_fav_off":favorite(False),
+              "ultimate_fav_on":favorite(True),"ultimate_fav_off":favorite(False), "ultimate_minimap":minimap_badge(),
               "ultimate_class_monk":supplied_class_icon("monk"),"ultimate_class_dh":supplied_class_icon("demonhunter")}
     for name,im in textures.items():(out/(name+".tga")).write_bytes(tga_bytes(im))
-    print("Generated",len(textures),"textures (6 original + 2 supplied game-class artworks) in",out)
+    print("Generated",len(textures),"textures (7 original + 2 supplied game-class artworks) in",out)
 
 if __name__=="__main__":
     if len(sys.argv)!=2:raise SystemExit("Usage: python tools/make_ultimate_art.py <Media directory>")
