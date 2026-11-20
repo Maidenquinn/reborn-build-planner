@@ -97,6 +97,9 @@ end
 local function equippedKey(item,catalog,lang,class)
   return resolveEquipment(item,catalog,lang,class);
 end
+-- Shared strict identifier for read-only run capture (no guess by icon/partial name).
+M.ResolveEquipment = resolveEquipment;
+
 
 function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
   local output = { inRun = false, known = false, spells = {}, jewelry = {}, outsideSpells = {}, outsideJewelry = {}, banishedSpells = {}, achieved = 0, total = 0, offered = {} };
