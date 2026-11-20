@@ -107,15 +107,14 @@ return function(H)
 		-- Use a synthetic duplicate to verify the invariant without assuming
 		-- that two particular official rings will always share one icon.
 		local synthetic = ns.Util.DeepCopy(data);
-		synthetic.jewelry[2].icon = synthetic.jewelry[1].icon;
-		local c = assert(ns.Catalog.New(synthetic));
-		local icon = synthetic.jewelry[1].icon;
-		local keys = c:SharedIcon(icon);
-		ok(keys ~= nil, "synthetic duplicate icon is reported");
 		local first, second = synthetic.jewelry[1].key, synthetic.jewelry[2].key;
-		local found = {};
-		for _, key in ipairs(keys or {}) do found[key] = true; end
-		ok(found[first] and found[second], "both distinct catalog keys are retained");
+		-- The generator precomputes shared-icon indexes. Construct a fixture
+		-- of that index, not a fake runtime recomputation on modified source rows.
+		synthetic.index.sharedIcons = { test_shared_icon = {first, second} };
+		local c = assert(ns.Catalog.New(synthetic));
+		local keys = c:SharedIcon("test_shared_icon");
+		eq(keys, {first, second}, "distinct item identities remain intact");
+		eq(c:SharedIcon("not_shared"), nil);
 		eq(cat:SharedIcon("INV_Jewelry_Ring_07"), nil);
 		eq(#cat:FindByName("rings", "Band of Accuria"), 1);
 	end);
