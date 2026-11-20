@@ -219,4 +219,58 @@ return function(H)
     if build then eq(build.phases[1].rings,{"","","",""}) end
   end)
 
+  test("capture: exact native legendary key maps to official amulet", function()
+    local cat=ns.Catalog.New(ns.GeneratedCatalog)
+    local legend=cat.data.legends and cat.data.legends[1]
+    ok(legend~=nil,"catalog has legendary amulets")
+    if not legend then return end
+    local gear={slot="amulet",key="legend_"..legend.spell,name="Native legend name"}
+    eq(T.ResolveEquipment(gear,cat,"enUS",legend.class),legend.key)
+    local snapshot={inRun=true,spellsKnown=true,gearKnown=true,spells={
+      {key=legend.spell,rank=1}},gear={gear},bannedKnown=false}
+    local build,err,report=ns.CaptureBuild.Prepare(snapshot,legend.class,cat,"enUS","Captured legendary")
+    eq(err,nil);ok(build~=nil)
+    if build then eq(build.phases[1].amulets[1],legend.key) end
+    eq(report.amulets,1)
+  end)
+  test("capture: item title is tried when native name is not an official name", function()
+    local cat=ns.Catalog.New(ns.GeneratedCatalog)
+    local legend=cat.data.legends[1]
+    local gear={slot="legendary",name="Generic amulet",title=legend.name}
+    eq(T.ResolveEquipment(gear,cat,"enUS",legend.class),legend.key)
+  end)
+  test("capture: ban confirmations survive reload for the same server run only", function()
+    local globals={AZS_ZONE={run="server-run-a"},AZS_CARDS={
+      kind="spell",bn=2,cards={{key="execute"}}}}
+    local one=H.loadAddon({globals=globals})
+    local cat=one.Catalog.New(one.GeneratedCatalog)
+    one.storage=one.Storage.Open(nil,{catalog=cat})
+    one.Runtime.Note("AZSZONE")
+    one.Runtime.ObserveBanishCommand("AZSCMD","banish 1")
+    globals.AZS_CARDS={kind="spell",bn=1,cards={{key="rend"}}}
+    one.Runtime.Note("AZSCARDS")
+    eq(one.Runtime.bans.execute,true)
+    local saved=one.storage:GetSetting("captureBanJournal")
+    eq(saved.run,"server-run-a");eq(saved.spells.execute,true)
+    local two=H.loadAddon({globals=globals})
+    two.storage=two.Storage.Open(one.storage.db,{catalog=cat})
+    two.Runtime.Note("AZSZONE")
+    eq(two.Runtime.bans.execute,true,"reload retains observed confirmed ban")
+    globals.AZS_ZONE.run="server-run-b"
+    two.Runtime.Note("AZSZONE")
+    eq(two.Runtime.bans.execute,nil,"a new run does not inherit old bans")
+  end)
+  test("capture: invalid ban command never appears as confirmed", function()
+    local globals={AZS_ZONE={run="server-run-b"},AZS_CARDS={
+      kind="spell",bn=3,cards={{key="execute"}}}}
+    local one=H.loadAddon({globals=globals})
+    one.storage=one.Storage.Open(nil,{catalog=one.Catalog.New(one.GeneratedCatalog)})
+    one.Runtime.Note("AZSZONE")
+    one.Runtime.ObserveBanishCommand("WRONG","banish 1")
+    one.Runtime.ObserveBanishCommand("AZSCMD","banish 1")
+    globals.AZS_CARDS={kind="spell",bn=3,cards={{key="rend"}}}
+    one.Runtime.Note("AZSCARDS")
+    eq(one.Runtime.bans.execute,nil,"unchanged ban count is not a confirmed ban")
+  end)
+
 end
