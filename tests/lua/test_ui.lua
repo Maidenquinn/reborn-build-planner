@@ -118,6 +118,8 @@ return function(H)
     for _=1,80 do events.AZSCARDS();events.AZSCARDTIP() end
     eq(full,0,"160 card packets must not rebuild the tracker")
     eq(overlays,160,"every card packet must still refresh highlights")
+    eq(e.ns.Runtime.ProfileSummary().cardCalls,160,
+      "profiling distinguishes card-only refreshes from full HUD")
     events.AZSGEAR()
     eq(full,1,"equipment changes still refresh tracker")
     hud.Refresh=originalRefresh;hud.UpdateCards=originalCards
