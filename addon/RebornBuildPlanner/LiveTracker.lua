@@ -104,12 +104,23 @@ local function exactItemName(catalog,entry,kind,gameName,lang,nativeNames)
         end
       end
     end
+    -- Do NOT build the Cartesian product of every translated head and spell
+    -- for every catalogue entry. Only compare suffixes when this specific
+    -- item's name starts with that exact (localized) legendary head.
     for _,base in ipairs(bases) do
-      if type(base)=="string" then
-        for _,suffix in ipairs(suffixes) do
-          if type(suffix)=="string" then
-            put(base..": "..suffix)
-            put(base.." · "..suffix)
+      local baseName=plainName(base)
+      if baseName then
+        local colon=baseName..": "
+        local dot=baseName.." · "
+        local tail=nil
+        if query:sub(1,#colon)==colon then
+          tail=query:sub(#colon+1)
+        elseif query:sub(1,#dot)==dot then
+          tail=query:sub(#dot+1)
+        end
+        if tail then
+          for _,suffix in ipairs(suffixes) do
+            if plainName(suffix)==tail then return true end
           end
         end
       end
@@ -120,7 +131,7 @@ end
 
 -- Native AZS_GEAR and AZS_CARDS may carry an official key, or a localized
 -- title without a key. Resolve only known class/slot-compatible identities.
-local function resolveEquipment(item,catalog,lang,class,offerKind,nativeNames)
+local function resolveEquipmentUncached(item,catalog,lang,class,offerKind,nativeNames)
   if type(item)~="table" then return nil end
   local offeredGroup=SLOT_ALIASES[offerKind]
   local sourceKey=item.key
@@ -209,6 +220,40 @@ local function resolveEquipment(item,catalog,lang,class,offerKind,nativeNames)
     if hit then matched=matched+1;chosen=key end
   end
   return matched==1 and chosen or nil
+end
+
+-- The HUD evaluates the same offered items on several native events,
+-- sometimes repeatedly during a single frame. Never rescan the entire
+-- translated catalogue for an unchanged identity. Bound memory per catalogue.
+local resolverCaches=setmetatable({}, {__mode="k"})
+local CACHE_LIMIT=192
+local function resolveEquipment(item,catalog,lang,class,offerKind,nativeNames)
+  if type(item)~="table" or not catalog then
+    return resolveEquipmentUncached(item,catalog,lang,class,offerKind,nativeNames)
+  end
+  local bucket=resolverCaches[catalog]
+  if not bucket then
+    bucket={count=0,values={}}
+    resolverCaches[catalog]=bucket
+  end
+  local signature=table.concat({
+    tostring(lang or ""),tostring(class or ""),tostring(offerKind or ""),
+    tostring(nativeNames),tostring(item.slot or ""),tostring(item.key or ""),
+    tostring(item.name or ""),tostring(item.title or ""),
+    tostring(item.text or ""),tostring(item.effect or ""),tostring(item.note or "")
+  },"\30")
+  local cached=bucket.values[signature]
+  if cached~=nil then
+    return cached~=false and cached or nil
+  end
+  local key=resolveEquipmentUncached(item,catalog,lang,class,offerKind,nativeNames)
+  if bucket.count>=CACHE_LIMIT then
+    bucket.count=0
+    bucket.values={}
+  end
+  bucket.count=bucket.count+1
+  bucket.values[signature]=key or false
+  return key
 end
 
 local function equippedKey(item,catalog,lang,class)
