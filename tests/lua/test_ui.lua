@@ -101,6 +101,28 @@ return function(H)
 		ok(hud:IsShown(),"re-enabled HUD returns without a build");
 	end);
 
+  test("perf: card packets refresh only overlays, gear packets update full HUD",function()
+    local events={}
+    local e=boot({preset={
+      AZS={On=function(event,fn) events[event]=fn end},
+      AZS_RUN={ph="playing"},AZS_ZONE={hub=0,run="perf-1"},
+      AZS_SPELLS={{key="whirlwind",rank=1}},AZS_GEAR={},
+      AZS_CARDS={kind="spell",cards={{key="whirlwind"}}}
+    }})
+    local hud=e.ns.TrackHUD
+    local full,overlays=0,0
+    local originalRefresh=hud.Refresh
+    local originalCards=hud.UpdateCards
+    hud.Refresh=function(...) full=full+1;return originalRefresh(...) end
+    hud.UpdateCards=function(...) overlays=overlays+1;return originalCards(...) end
+    for _=1,80 do events.AZSCARDS();events.AZSCARDTIP() end
+    eq(full,0,"160 card packets must not rebuild the tracker")
+    eq(overlays,160,"every card packet must still refresh highlights")
+    events.AZSGEAR()
+    eq(full,1,"equipment changes still refresh tracker")
+    hud.Refresh=originalRefresh;hud.UpdateCards=originalCards
+  end);
+
 	-- ------------------------------------------------------------------ 3A: native initialisation
 	test("3A: nothing is created or read before ADDON_LOADED; the event of another addon is ignored", function()
 		local e = boot({ noStart = true });
