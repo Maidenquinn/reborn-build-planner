@@ -20,11 +20,12 @@ local function validSpell(catalog,key,class)
 end
 local function gearGroup(item,key,catalog)
   if catalog:Get("amulet",key) then return "amulets" end
-  local kind=item and item.slot;
-  if kind=="ring" or kind=="rings" then return "rings" end
-  if kind=="trinket" or kind=="trinkets" then return "trinkets" end
-  -- A jewelry key alone does not identify which slot it occupies.
-  return nil;
+  local jewel=catalog:Get("jewel",key)
+  -- Slot belongs to the trusted catalog entry. The game can omit item.slot
+  -- or use a generic "jewel" label; never drop a resolved equipped item.
+  if jewel and jewel.slot=="ring" then return "rings" end
+  if jewel and jewel.slot=="trinket" then return "trinkets" end
+  return nil
 end
 
 -- Returns (prepared build, nil, report) or (nil, error_code, report).
