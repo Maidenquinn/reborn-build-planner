@@ -150,7 +150,7 @@ local function resolveEquipment(item,catalog,lang,class,offerKind,nativeNames)
   end
   if not catalog.data then return nil end
   local queries={item.name,item.title}
-  local found=nil
+  local candidates={}
   for _,listName in ipairs({"rings","trinkets","amulets"}) do
     if (not offeredGroup or offeredGroup==listName)
       and validItemSlot(item.slot,listName) then
@@ -163,14 +163,52 @@ local function resolveEquipment(item,catalog,lang,class,offerKind,nativeNames)
           if entry.key and catalog:CheckKey(listName,entry.key,class)=="ok"
             and (exactItemName(catalog,entry,kind,queries[1],lang,nativeNames)
               or exactItemName(catalog,entry,kind,queries[2],lang,nativeNames)) then
-            if found and found~=entry.key then return nil end
-            found=entry.key
+            candidates[entry.key]=entry
           end
         end
       end
     end
   end
-  return found
+  local count,unique=0,nil
+  for key in pairs(candidates) do count=count+1;unique=key end
+  if count==1 then return unique end
+  if count<=1 then return nil end
+
+  -- A shared legendary head is insufficient. In that one case, a server
+  -- tooltip naming exactly one candidate's spell can disambiguate the item.
+  -- This mirrors ASR Advisor's guarded text fallback. An ambiguous/empty
+  -- tooltip still yields unknown rather than a potentially wrong amulet.
+  local detail=plainName(table.concat({
+    type(item.text)=="string" and item.text or "",
+    type(item.effect)=="string" and item.effect or "",
+    type(item.note)=="string" and item.note or ""
+  }," "))
+  if not detail or detail=="" then return nil end
+  local locales={lang,"enUS"}
+  for locale in pairs(catalog.i18n or {}) do locales[#locales+1]=locale end
+  local chosen,matched=nil,0
+  for key,entry in pairs(candidates) do
+    if not entry.spell then return nil end
+    local spell=catalog:Get("spell",entry.spell)
+    local names={entry.spell,spell and spell.name}
+    if spell and type(nativeNames)=="table" then
+      names[#names+1]=nativeNames[spell.name]
+    end
+    if spell then
+      for _,locale in ipairs(locales) do
+        names[#names+1]=catalog:Name("spell",entry.spell,locale)
+      end
+    end
+    local hit=false
+    for _,name in ipairs(names) do
+      local q=plainName(name)
+      if q and #q>=4 and string.find(detail,q,1,true) then
+        hit=true;break
+      end
+    end
+    if hit then matched=matched+1;chosen=key end
+  end
+  return matched==1 and chosen or nil
 end
 
 local function equippedKey(item,catalog,lang,class)
