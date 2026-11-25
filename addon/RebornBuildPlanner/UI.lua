@@ -494,7 +494,11 @@ end
 -- ------------------------------------------------------------------ construction
 function UI.New(controller, env)
 	local self = setmetatable({ c = controller, env = env or ns, built = false }, UI);
-	controller:Subscribe(function() self:Refresh(); end);
+	-- Mutations made while the planner is hidden should not rebuild 3 large
+	-- UI views. Show() performs a fresh render when it becomes visible again.
+	controller:Subscribe(function()
+		if self.built and self.root and self.root:IsShown() then self:Refresh(); end
+	end);
 	return self;
 end
 
