@@ -273,4 +273,120 @@ return function(H)
     eq(one.Runtime.bans.execute,nil,"unchanged ban count is not a confirmed ban")
   end)
 
+  -- Regressions for in-game French jewelry and English planner UI (Mage/Paladin).
+  local function multilingualCatalog()
+    local data={meta={schema=1,content="gear-i18n-test"},
+      classes={
+        {key="mage",token="MAGE",name="Mage",spells={"frostbolt"}},
+        {key="paladin",token="PALADIN",name="Paladin",spells={"holy_light"}}
+      },
+      spells={
+        {key="frostbolt",class="mage",name="Frostbolt"},
+        {key="holy_light",class="paladin",name="Holy Light"}
+      },
+      jewelry={
+        {key="ring_accuria",name="Band of Accuria",slot="ring"},
+        {key="mark_chosen",name="Mark of the Chosen",slot="trinket"},
+        {key="trinket_horde",name="Insignia of the Horde",slot="trinket"}
+      },
+      amulets={},
+      legends={
+        {key="legendary:frostbolt",class="mage",spell="frostbolt",
+          name="Amulet of the Inferno: Frostbolt",head="Amulet of the Inferno"},
+        {key="legendary:holy_light",class="paladin",spell="holy_light",
+          name="Eternal Talisman: Holy Light",head="Eternal Talisman"}
+      },
+      i18n={frFR={
+        ["Mark of the Chosen"]="Marque des élus",
+        ["Band of Accuria"]="Bague d'Accuria",
+        ["Insignia of the Horde"]="Insigne de la Horde",
+        ["Frostbolt"]="Éclair de givre",
+        ["Holy Light"]="Lumière sacrée"
+      }}
+    }
+    return assert(ns.Catalog.New(data))
+  end
+  test("mage: equipped French ring and trinket count as owned with English planner UI",function()
+    local cat=multilingualCatalog()
+    local b=assert(BM.New({id="mage-test",name="Mage Frost",class="mage"},cat))
+    b.phases[1].rings[1]="ring_accuria"
+    b.phases[1].trinkets[1]="mark_chosen"
+    local snap={inRun=true,spellsKnown=true,gearKnown=true,
+      spells={{key="frostbolt",rank=1}},
+      gear={{slot="ring",name="Bague d'Accuria"},
+        {slot="trinket",name="Marque des élus"}}}
+    local p=T.Evaluate(b,1,snap,cat,"enUS")
+    eq(p.jewelry[1].state,"EQUIPPED")
+    eq(p.jewelry[2].state,"EQUIPPED")
+    eq(p.jewelry[2].equippedRow.name,"Marque des élus")
+  end)
+  test("mage: jewelry choice is wanted in native French while planner uses English",function()
+    local cat=multilingualCatalog()
+    local b=assert(BM.New({id="mage-offer",name="Mage",class="mage"},cat))
+    b.phases[1].trinkets[1]="mark_chosen"
+    local snap={inRun=true,cards={kind="jewel",cards={
+      {name="Marque des élus",slot="trinket"},
+      {name="Unknown jewelry",slot="trinket"}}}}
+    eq(T.CardHint(b,1,snap,snap.cards.cards[1],cat,"enUS"),"wanted")
+    eq(T.OfferHasGoal(b,1,snap,cat,"enUS"),true)
+    -- Generic slot labels in the cards packet may not carry ring/trinket type.
+    snap.cards.cards[1].slot="jewel"
+    eq(T.CardHint(b,1,snap,snap.cards.cards[1],cat,"enUS"),"wanted")
+  end)
+  test("mage: native AZS_L names work when generated locale entry is absent",function()
+    local cat=multilingualCatalog()
+    cat.i18n.frFR["Mark of the Chosen"]=nil
+    local native={["Mark of the Chosen"]="Marque des élus"}
+    local b=assert(BM.New({id="mage-native",name="Mage",class="mage"},cat))
+    b.phases[1].trinkets[1]="mark_chosen"
+    local snap={inRun=true,gearKnown=true,nativeNames=native,
+      gear={{name="Marque des élus",slot="trinket"}}}
+    eq(T.Evaluate(b,1,snap,cat,"enUS").jewelry[1].state,"EQUIPPED")
+    snap.cards={kind="jewel",cards={{name="Marque des élus"}}}
+    eq(T.CardHint(b,1,snap,snap.cards.cards[1],cat,"enUS"),"wanted")
+  end)
+  test("mage: Capture Run derives ring/trinket slot from catalogue when AZSGEAR omits slot",function()
+    local cat=multilingualCatalog()
+    local snap={inRun=true,spellsKnown=true,gearKnown=true,
+      spells={{key="frostbolt",rank=1}},
+      gear={{name="Bague d'Accuria"},{name="Marque des élus"}}}
+    local b,err,report=ns.CaptureBuild.Prepare(snap,"mage",cat,"enUS","Mage Run")
+    eq(err,nil);ok(b~=nil)
+    if b then
+      eq(b.phases[1].rings[1],"ring_accuria")
+      eq(b.phases[1].trinkets[1],"mark_chosen")
+    end
+    eq(report.unknownGear,0)
+  end)
+  test("mage and paladin: legendary amulets captured from localized base/spell names",function()
+    local cat=multilingualCatalog()
+    local cases={
+      {class="mage",spell="frostbolt",key="legendary:frostbolt",
+        name="Amulette de l'Inferno: Éclair de givre",
+        gameNames={["Amulet of the Inferno"]="Amulette de l'Inferno"}},
+      {class="paladin",spell="holy_light",key="legendary:holy_light",
+        name="Talisman éternel: Lumière sacrée",
+        gameNames={["Eternal Talisman"]="Talisman éternel"}}
+    }
+    for _,c in ipairs(cases) do
+      local snap={inRun=true,spellsKnown=true,gearKnown=true,
+        nativeNames=c.gameNames,
+        spells={{key=c.spell,rank=1}},
+        gear={{name=c.name,slot="legendary"}}}
+      local b,err,report=ns.CaptureBuild.Prepare(snap,c.class,cat,"enUS",c.class)
+      eq(err,nil);ok(b~=nil)
+      if b then eq(b.phases[1].amulets[1],c.key) end
+      eq(report.amulets,1)
+    end
+  end)
+  test("jewelry: ambiguous localized names and mismatched class/slot are never guessed",function()
+    local cat=multilingualCatalog()
+    cat.data.jewelry[#cat.data.jewelry+1]={
+      key="another_mark",slot="trinket",name="Other Mark"}
+    cat.i18n.frFR["Other Mark"]="Marque des élus"
+    eq(T.ResolveEquipment({name="Marque des élus",slot="trinket"},cat,"enUS","mage"),nil)
+    eq(T.ResolveEquipment({key="mark_chosen",slot="ring"},cat,"enUS","mage"),nil)
+    eq(T.ResolveEquipment({key="legendary:holy_light",slot="amulet"},cat,"enUS","mage"),nil)
+  end)
+
 end
