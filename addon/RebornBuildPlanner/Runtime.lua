@@ -98,6 +98,7 @@ function R.Capture()
     spells=running and type(AZS_SPELLS)=="table" and AZS_SPELLS or nil,
     spellsKnown=running and R.received.spells and type(AZS_SPELLS)=="table" or false,
     gear=running and type(AZS_GEAR)=="table" and AZS_GEAR or nil,
+    nativeNames=type(AZS_L)=="table" and AZS_L or nil,
     gearKnown=running and R.received.gear and type(AZS_GEAR)=="table" or false,
     spellTips=running and type(AZS_SPELLTIPS)=="table" and AZS_SPELLTIPS or nil,
     spellTipsKnown=running and R.received.spellTips and type(AZS_SPELLTIPS)=="table" or false,
