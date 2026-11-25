@@ -27,90 +27,152 @@ end
 -- The client may transmit legendary amulets as an unkeyed item with
 -- "<head>: <spell>" or "<head> · <spell>". Resolve names by strict complete
 -- equality after removing presentation-only color codes. Never guess by icon.
+-- Normalize presentation, preserving item identity. Case and typography vary
+-- between the Reborn client, its current locale and the independent planner UI.
 local function plainName(value)
   if type(value)~="string" then return nil end
   local text=value:gsub("|c%x%x%x%x%x%x%x%x",""):gsub("|r","")
-    :gsub("^%s+",""):gsub("%s+$","");
-  return text~="" and text or nil;
+    :gsub("’","'"):gsub("‘","'"):gsub(" "," ")
+    :gsub("É","é"):gsub("È","è"):gsub("Ê","ê"):gsub("Ë","ë")
+    :gsub("À","à"):gsub("Â","â"):gsub("Ä","ä")
+    :gsub("Ç","ç"):gsub("Ù","ù"):gsub("Û","û")
+    :gsub("Î","î"):gsub("Ï","ï"):gsub("Ô","ô")
+    :gsub("%s+"," "):gsub("^%s+",""):gsub("%s+$","")
+  text=string.lower(text)
+  return text~="" and text or nil
 end
+local SLOT_ALIASES={ring="rings",rings="rings",trinket="trinkets",
+  trinkets="trinkets",amulet="amulets",amulets="amulets",
+  legendary="amulets",legend="amulets"}
 local function validItemSlot(slot,listName)
-  if slot==nil or slot=="" or slot=="unknown" then return true end
-  local alias={ring="rings",rings="rings",trinket="trinkets",trinkets="trinkets",
-    amulet="amulets",amulets="amulets",legendary="amulets",legend="amulets"};
-  return alias[slot]==listName;
+  -- The server may omit the category or label a generic jewelry offer.
+  if slot==nil or slot=="" or slot=="unknown" or slot=="jewel"
+    or slot=="jewelry" or slot=="accessory" then return true end
+  return SLOT_ALIASES[slot]==listName
 end
-local function exactItemName(catalog,entry,kind,gameName,lang)
-  local query=plainName(gameName);if not query then return false end
-  local names={};
-  local function put(name) local v=plainName(name);if v then names[v]=true end end
-  put(entry.name);put(catalog:Name(kind,entry.key,lang));
-  put(catalog:Name(kind,entry.key,"enUS"));
+local function knownSlot(slot)
+  return SLOT_ALIASES[slot]
+end
+local function listForKey(catalog,key)
+  if not catalog or type(key)~="string" then return nil end
+  if catalog:Get("amulet",key) then return "amulets" end
+  local jewel=catalog:Get("jewel",key)
+  return jewel and SLOT_ALIASES[jewel.slot] or nil
+end
+
+-- Collect all OFFICIAL localized names (rather than just the planner's
+-- selected UI language), plus the game's AZS_L translations when available.
+-- We always require a unique full-name match for the class and equipment slot.
+local function exactItemName(catalog,entry,kind,gameName,lang,nativeNames)
+  local query=plainName(gameName)
+  if not query then return false end
+  local names={}
+  local function put(value)
+    local valueName=plainName(value)
+    if valueName then names[valueName]=true end
+  end
+  local locales={lang,"enUS"}
+  for locale in pairs(catalog.i18n or {}) do locales[#locales+1]=locale end
+  put(entry.name)
+  put(entry.head)
+  if type(nativeNames)=="table" then
+    put(nativeNames[entry.name])
+    if entry.head then put(nativeNames[entry.head]) end
+  end
+  for _,locale in ipairs(locales) do
+    put(catalog:Name(kind,entry.key,locale))
+  end
   if kind=="amulet" and entry.spell then
-    -- ASR legendary item cards can use their base name, or base + spell
-    -- with either separator. The class constraint is checked by the caller.
-    local spell=entry.spell;
-    local sp=catalog:Get("spell",spell);
-    local bases={entry.name,entry.head,catalog:Name(kind,entry.key,lang)};
-    local suffixes={spell,sp and sp.name,sp and catalog:Name("spell",spell,lang),
-      sp and catalog:Name("spell",spell,"enUS")};
+    local spell=entry.spell
+    local sp=catalog:Get("spell",spell)
+    local bases={entry.name,entry.head}
+    local suffixes={spell,sp and sp.name}
+    if type(nativeNames)=="table" then
+      bases[#bases+1]=nativeNames[entry.name]
+      if entry.head then bases[#bases+1]=nativeNames[entry.head] end
+      if sp then suffixes[#suffixes+1]=nativeNames[sp.name] end
+    end
+    for _,locale in ipairs(locales) do
+      bases[#bases+1]=catalog:Name("amulet",entry.key,locale)
+      if sp then suffixes[#suffixes+1]=catalog:Name("spell",spell,locale) end
+      if catalog.LegendParts then
+        local parts=catalog:LegendParts(entry.key,locale)
+        if parts then
+          bases[#bases+1]=parts.head
+          suffixes[#suffixes+1]=parts.spell
+          put(parts.title)
+        end
+      end
+    end
     for _,base in ipairs(bases) do
       if type(base)=="string" then
-        put(base);
         for _,suffix in ipairs(suffixes) do
           if type(suffix)=="string" then
-            put(base..": "..suffix);put(base.." · "..suffix);
+            put(base..": "..suffix)
+            put(base.." · "..suffix)
           end
         end
       end
     end
   end
-  return names[query]==true;
+  return names[query]==true
 end
-local function resolveEquipment(item,catalog,lang,class,offerKind)
+
+-- Native AZS_GEAR and AZS_CARDS may carry an official key, or a localized
+-- title without a key. Resolve only known class/slot-compatible identities.
+local function resolveEquipment(item,catalog,lang,class,offerKind,nativeNames)
   if type(item)~="table" then return nil end
-  if type(item.key)=="string" and item.key~="" then
-    if not catalog then return item.key end
-    if catalog:Get("jewel",item.key) or catalog:Get("amulet",item.key) then return item.key end
+  local offeredGroup=SLOT_ALIASES[offerKind]
+  local sourceKey=item.key
+  if not catalog then
+    return type(sourceKey)=="string" and sourceKey~="" and sourceKey or nil
   end
-  if not catalog or not catalog.data then return nil end
-  -- Native legendary IDs may use "legend_<spell>" while the planner uses
-  -- "legendary:<spell>". Only map an EXACT official spell identity for the
-  -- current class and an amulet-compatible slot, never an icon/substring.
-  local sourceKey=item.key;
-  if type(sourceKey)=="string" and (not item.slot or validItemSlot(item.slot,"amulets")) then
-    local found=nil;
-    for _,entry in ipairs(catalog.data.legends or {}) do
-      local native="legend_"..tostring(entry.spell or "");
-      if entry.spell and (sourceKey==native or sourceKey=="legendary:"..entry.spell
-        or sourceKey==entry.nativeKey)
-        and (not catalog.CheckKey or catalog:CheckKey("amulets",entry.key,class)=="ok") then
-        if found and found~=entry.key then return nil end
-        found=entry.key;
+  if type(sourceKey)=="string" and sourceKey~="" then
+    local listName=listForKey(catalog,sourceKey)
+    if listName and (not offeredGroup or offeredGroup==listName)
+      and validItemSlot(item.slot,listName)
+      and catalog:CheckKey(listName,sourceKey,class)=="ok" then
+      return sourceKey
+    end
+    -- Some client builds use legend_<spell> for the canonical
+    -- legendary:<spell> catalogue key.
+    if not offeredGroup or offeredGroup=="amulets" then
+      for _,entry in ipairs(catalog.data and catalog.data.legends or {}) do
+        if entry.spell and (sourceKey=="legend_"..entry.spell
+          or sourceKey=="legendary:"..entry.spell
+          or sourceKey==entry.nativeKey)
+          and validItemSlot(item.slot,"amulets")
+          and catalog:CheckKey("amulets",entry.key,class)=="ok" then
+          return entry.key
+        end
       end
     end
-    if found then return found end
   end
-  local queries={item.name,item.title};
-  local found=nil;
+  if not catalog.data then return nil end
+  local queries={item.name,item.title}
+  local found=nil
   for _,listName in ipairs({"rings","trinkets","amulets"}) do
-    local forced=offerKind=="ring" and "rings" or offerKind=="trinket" and "trinkets"
-      or offerKind=="amulet" and "amulets" or nil;
-    if (not forced or forced==listName) and validItemSlot(item.slot,listName) then
-      local kind=listName=="amulets" and "amulet" or "jewel";
-      local pools=listName=="amulets" and {catalog.data.amulets or {},catalog.data.legends or {}}
-        or {catalog.data.jewelry or {}};
-      for _,pool in ipairs(pools) do for _,entry in ipairs(pool) do
-        if entry.key and (not catalog.CheckKey or catalog:CheckKey(listName,entry.key,class)=="ok")
-          and (exactItemName(catalog,entry,kind,queries[1],lang)
-            or exactItemName(catalog,entry,kind,queries[2],lang)) then
-          if found and found~=entry.key then return nil end
-          found=entry.key;
+    if (not offeredGroup or offeredGroup==listName)
+      and validItemSlot(item.slot,listName) then
+      local kind=listName=="amulets" and "amulet" or "jewel"
+      local pools=listName=="amulets" and
+        {catalog.data.amulets or {},catalog.data.legends or {}} or
+        {catalog.data.jewelry or {}}
+      for _,pool in ipairs(pools) do
+        for _,entry in ipairs(pool) do
+          if entry.key and catalog:CheckKey(listName,entry.key,class)=="ok"
+            and (exactItemName(catalog,entry,kind,queries[1],lang,nativeNames)
+              or exactItemName(catalog,entry,kind,queries[2],lang,nativeNames)) then
+            if found and found~=entry.key then return nil end
+            found=entry.key
+          end
         end
-      end end
+      end
     end
   end
-  return found;
+  return found
 end
+
 local function equippedKey(item,catalog,lang,class)
   return resolveEquipment(item,catalog,lang,class);
 end
@@ -176,7 +238,7 @@ function M.Evaluate(build, phaseIndex, snapshot, catalog, lang)
   if output.inRun and snapshot.gearKnown then
     for _, item in ipairs(snapshot.gear or {}) do
       if type(item)=="table" then
-        local key=equippedKey(item,catalog,lang,build.class);
+        local key=resolveEquipment(item,catalog,lang,build.class,nil,snapshot.nativeNames);
         if key then
           equipped[key]=item;
           if not wantedJewelry[key] then
@@ -215,8 +277,8 @@ end
 -- The client sometimes supplies an accessory name instead of a catalog key.
 -- Only accept an exact, UNIQUE official name for the current class and slot;
 -- never compare icons, descriptions or partial names.
-local function resolvedAccessoryKey(card,kind,catalog,class,lang)
-  return resolveEquipment(card,catalog,lang,class,kind);
+local function resolvedAccessoryKey(card,kind,catalog,class,lang,snapshot)
+  return resolveEquipment(card,catalog,lang,class,kind,snapshot and snapshot.nativeNames);
 end
 
 function M.CardHint(build, phaseIndex, snapshot, card, catalog, lang)
@@ -227,7 +289,7 @@ function M.CardHint(build, phaseIndex, snapshot, card, catalog, lang)
   if not ph then return nil end
   local kind = snapshot.cards.kind;
   if kind == "jewel" or kind == "amulet" or kind == "ring" or kind == "trinket" then
-    local cardKey=resolvedAccessoryKey(card,kind,catalog,build.class,lang);
+    local cardKey=resolvedAccessoryKey(card,kind,catalog,build.class,lang,snapshot);
     if not cardKey then return nil end
     for _, listName in ipairs({ "rings", "trinkets", "amulets" }) do
       local list = ph[listName] or {};
@@ -236,13 +298,8 @@ function M.CardHint(build, phaseIndex, snapshot, card, catalog, lang)
         if cardKey == key and key ~= "" then
           local slot = listName == "rings" and "ring" or
             (listName == "trinkets" and "trinket" or "amulet");
-          local offeredSlot = card.slot;
-          if not offeredSlot then
-            if kind == "ring" then offeredSlot="ring"
-            elseif kind == "trinket" then offeredSlot="trinket"
-            elseif kind == "amulet" then offeredSlot="amulet" end
-          end
-          if offeredSlot == nil or offeredSlot == slot then
+          local offeredSlot = knownSlot(card.slot) or knownSlot(kind);
+          if offeredSlot == nil or offeredSlot == listName then
             return i <= main and "wanted" or "alternative", i
           end
         end
@@ -285,7 +342,7 @@ function M.OfferHasGoal(build,phaseIndex,snapshot,catalog,lang)
         identified=type(card.key)=="string" and
           (not catalog or catalog:Get("spell",card.key)~=nil);
       else
-        identified=resolvedAccessoryKey(card,kind,catalog,build.class,lang)~=nil;
+        identified=resolvedAccessoryKey(card,kind,catalog,build.class,lang,snapshot)~=nil;
       end
       if identified then
         known=known+1;
