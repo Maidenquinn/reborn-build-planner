@@ -777,6 +777,7 @@ function H.FallbackAction(self,build,snapshot,phase,catalog,lang,showing)
   end
   return fallback
 end
+local CARD_KINDS={spell=true,jewel=true,amulet=true,ring=true,trinket=true}
 function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
   if not self.cardRoot and type(CreateFrame)=="function" and UIParent then
     self.cardRoot=CreateFrame("Frame","RBPCardHighlights",UIParent);
@@ -790,7 +791,7 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
     end
   end
   if not self.cardRoot then return end
-  local kinds=H.CARD_KINDS or {spell=true,jewel=true,amulet=true,ring=true,trinket=true};
+  local kinds=CARD_KINDS;
   local cards=snapshot and snapshot.cards;
   local showing=cards and kinds[cards.kind] and
     AZSCardsFrame and AZSCardsFrame.IsShown and AZSCardsFrame:IsShown();
