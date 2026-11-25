@@ -1,0 +1,88 @@
+name: Gear resolver performance hotfix private recipe
+on:
+  push:
+    branches: [hotfix/gear-resolver-performance]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-recipe:
+    name: Generate personal test ZIP from public official data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install isolated build and Lua 5.1 validation dependencies
+        run: python -m pip install pillow lupa==2.8
+      - name: Fetch coherent public Reborn catalogue
+        run: python -I tools/fetch_catalog_public.py --out .local/catalog/public-preview
+      - name: Generate Lua catalogue (not committed)
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tools/generate_catalog.py
+      - name: Test catalogue generator against downloaded revision
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tests/py/test_generator.py
+      - name: Create original fantasy texture assets
+        run: |
+          python -I tools/make_textures.py addon_lab/RebornPlannerThemeLab/Media
+          python -I tools/make_ultimate_art.py addon_lab/RebornPlannerThemeLab/Media
+      - name: Run complete Lua 5.1 addon suites against public catalogue snapshot
+        env:
+          RBP_CATALOG_DIR: .local/catalog/public-preview
+        run: python -I tools/run_lua_tests.py
+      - name: Assemble separate installable preview (no user executable)
+        run: python -I tools/package_addon.py --out dist/private-preview
+      - name: Verify addon ZIP paths
+        run: |
+          python - <<'PY'
+          import pathlib,zipfile
+          zips=list(pathlib.Path("dist/private-preview").glob("RebornBuildPlanner-*-recette.zip"))
+          assert len(zips)==1, zips
+          with zipfile.ZipFile(zips[0]) as z:
+              assert z.testzip() is None
+              names=set(z.namelist())
+              required={
+                  "RebornBuildPlanner/RebornBuildPlanner.toc",
+                  "RebornBuildPlanner/GeneratedCatalog.lua",
+                  "RebornBuildPlanner/JewelryEffects.lua",
+                  "RebornBuildPlanner/GeneratedJewelryMechanics.lua",
+                  "RebornBuildPlanner/Media/ultimate_panel.tga",
+                  "RebornBuildPlanner/Media/ultimate_crest.tga",
+                  "RebornBuildPlanner/Media/ultimate_corner.tga",
+                  "RebornBuildPlanner/Media/ultimate_titlebar.tga",
+                  "RebornBuildPlanner/Media/ultimate_fav_on.tga",
+                  "RebornBuildPlanner/Media/ultimate_fav_off.tga",
+                  "RebornBuildPlanner/Media/ultimate_class_monk.tga",
+                  "RebornBuildPlanner/Media/ultimate_class_dh.tga",
+              }
+              assert required <= names, required-names
+          print("Private preview ZIP verified:",zips[0])
+          PY
+      - name: Validate ZIP against Syiana addon-index structural constraints
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from tools.validate_index_zip import validate
+          zips = list(Path("dist/private-preview").glob("RebornBuildPlanner-*-recette.zip"))
+          assert len(zips) == 1, zips
+          count, size = validate(str(zips[0]))
+          print(f"Addon index structure: PASS ({count} files, {size} unpacked bytes)")
+          PY
+      - name: Publish private 7-day recette artifact (NOT a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: RebornBuildPlanner-gear-perf-hotfix-private-recette
+          path: |
+            dist/private-preview/RebornBuildPlanner-*-recette.zip
+            dist/private-preview/SHA256SUMS.txt
+            dist/private-preview/INSTALL.md
+          retention-days: 7
+          if-no-files-found: error
