@@ -81,7 +81,7 @@ function M.Prepare(snapshot, class, catalog, lang, name)
   end
   local used={};
   for _,item in ipairs(snapshot.gear or {}) do
-    local key=ns.LiveTracker.ResolveEquipment(item,catalog,lang,class);
+    local key=ns.LiveTracker.ResolveEquipment(item,catalog,lang,class,nil,snapshot.nativeNames);
     local group=key and gearGroup(item,key,catalog) or nil;
     if group and not used[key] and catalog:CheckKey(group,key,class)=="ok" then
       used[key]=true;
