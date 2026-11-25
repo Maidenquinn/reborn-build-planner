@@ -161,15 +161,18 @@ function R.HookCardsFrame()
   frame:HookScript("OnShow",function()R.Refresh()end);
   frame:HookScript("OnHide",function()R.Refresh()end);
 end
-R.profile={calls=0,totalMs=0,maxMs=0};
+R.profile={calls=0,totalMs=0,maxMs=0,cardCalls=0,cardTotalMs=0,cardMaxMs=0};
 R.profileEnabled=false;
 function R.ResetProfile()
-  R.profile={calls=0,totalMs=0,maxMs=0};
+  R.profile={calls=0,totalMs=0,maxMs=0,cardCalls=0,cardTotalMs=0,cardMaxMs=0};
 end
 function R.ProfileSummary()
   local p=R.profile;
   return {calls=p.calls,totalMs=p.totalMs,maxMs=p.maxMs,
     averageMs=p.calls>0 and p.totalMs/p.calls or 0,
+    cardCalls=p.cardCalls or 0,cardTotalMs=p.cardTotalMs or 0,
+    cardMaxMs=p.cardMaxMs or 0,
+    cardAverageMs=(p.cardCalls or 0)>0 and (p.cardTotalMs or 0)/p.cardCalls or 0,
     callbacks=R.callbacks,enabled=R.profileEnabled};
 end
 -- AZSCARDS/AZSCARDTIP change the choice overlay but not the owned
@@ -180,6 +183,8 @@ function R.Refresh(event)
   if not R.ready then return end
   if (event=="AZSCARDS" or event=="AZSCARDTIP") and R.last
     and not R.mustFullRefresh then
+    local profileStart=R.profileEnabled and type(debugprofilestop)=="function"
+      and debugprofilestop() or nil
     local snapshot=R.Capture()
     R.HookCardsFrame()
     R.last=snapshot
@@ -187,6 +192,13 @@ function R.Refresh(event)
     local theme=ns.storage:GetSetting("trackerTheme") or "standard"
     ns.TrackHUD.UpdateCards(ns.TrackHUD,build,snapshot,R.stage or 1,theme,
       ns.catalog,ns.Locale.lang)
+    local p=R.profile
+    p.cardCalls=(p.cardCalls or 0)+1
+    if profileStart then
+      local ms=math.max(0,debugprofilestop()-profileStart)
+      p.cardTotalMs=(p.cardTotalMs or 0)+ms
+      p.cardMaxMs=math.max(p.cardMaxMs or 0,ms)
+    end
     return
   end
   R.mustFullRefresh=nil
