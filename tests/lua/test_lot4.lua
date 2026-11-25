@@ -383,6 +383,7 @@ return function(H)
     local cat=multilingualCatalog()
     cat.data.jewelry[#cat.data.jewelry+1]={
       key="another_mark",slot="trinket",name="Other Mark"}
+    cat.jewels.another_mark=cat.data.jewelry[#cat.data.jewelry]
     cat.i18n.frFR["Other Mark"]="Marque des élus"
     eq(T.ResolveEquipment({name="Marque des élus",slot="trinket"},cat,"enUS","mage"),nil)
     eq(T.ResolveEquipment({key="mark_chosen",slot="ring"},cat,"enUS","mage"),nil)
