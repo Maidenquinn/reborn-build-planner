@@ -66,6 +66,7 @@ function R.ConfirmBanish()
   R.pendingBan=nil;
   if tonumber(offer.bn)==pending.before-1 then
     R.bans[pending.key]=true;
+    R.mustFullRefresh=true -- confirmed ban changes HUD goals and status
     saveBans();
   end
 end
@@ -177,7 +178,8 @@ end
 -- Keep the card overlay and the fallback reroll marker responsive.
 function R.Refresh(event)
   if not R.ready then return end
-  if (event=="AZSCARDS" or event=="AZSCARDTIP") and R.last then
+  if (event=="AZSCARDS" or event=="AZSCARDTIP") and R.last
+    and not R.mustFullRefresh then
     local snapshot=R.Capture()
     R.HookCardsFrame()
     R.last=snapshot
@@ -187,6 +189,7 @@ function R.Refresh(event)
       ns.catalog,ns.Locale.lang)
     return
   end
+  R.mustFullRefresh=nil
   local started=R.profileEnabled and type(debugprofilestop)=="function" and debugprofilestop() or nil
   local build=R.Active();
   local snapshot=R.Capture();
