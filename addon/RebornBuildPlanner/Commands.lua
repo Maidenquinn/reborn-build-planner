@@ -48,8 +48,9 @@ function Commands.Handle(ui, controller, msg)
 	elseif arg == "profile" or arg == "profile report" then
 		if ns.Runtime and ns.Runtime.ProfileSummary then
 			local p=ns.Runtime.ProfileSummary();
-			say(string.format("Refreshes %d, total %.2fms, average %.3fms, peak %.2fms, API callbacks %d",
-				p.calls,p.totalMs,p.averageMs,p.maxMs,p.callbacks));
+			say(string.format("Full HUD %d, total %.2fms, average %.3fms, peak %.2fms; card-only %d, total %.2fms, average %.3fms, peak %.2fms; API callbacks %d",
+				p.calls,p.totalMs,p.averageMs,p.maxMs,p.cardCalls or 0,p.cardTotalMs or 0,
+				p.cardAverageMs or 0,p.cardMaxMs or 0,p.callbacks));
 		end
 	elseif arg == "history" then
 		local h=controller:Handle();
