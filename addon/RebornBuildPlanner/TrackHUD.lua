@@ -790,7 +790,7 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
     end
   end
   if not self.cardRoot then return end
-  local kinds={spell=true,jewel=true,amulet=true,ring=true,trinket=true};
+  local kinds=H.CARD_KINDS or {spell=true,jewel=true,amulet=true,ring=true,trinket=true};
   local cards=snapshot and snapshot.cards;
   local showing=cards and kinds[cards.kind] and
     AZSCardsFrame and AZSCardsFrame.IsShown and AZSCardsFrame:IsShown();
@@ -803,6 +803,9 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
     if mark then
       local style=hint and CARD_STYLES[hint];
       if style then
+        -- Pure re-paints are unnecessary when repeated packets preserve
+        -- the highlighted goal. Keep the existing 30Hz glow animation alive.
+        if mark.lastHint~=hint or mark.lastLang~=lang or not mark:IsShown() then
         local rgb=style.color;
         -- Gold is warm, not fluorescent yellow; the original FieldKit
         -- material supplies carved bevels/corners, not opaque strips.
@@ -827,8 +830,10 @@ function H.UpdateCards(self, build, snapshot, phase, theme, catalog, lang)
         if mark.note.SetWidth then mark.note:SetWidth(hint=="banish_after" and 109 or 82) end
         mark.note:SetText(caption);
         mark.note:SetTextColor(0.09,0.065,0.025,1);
+        mark.lastHint=hint;mark.lastLang=lang;
         mark:Show();
-      else mark.shineEnabled=false;mark:Hide() end
+        end
+      else mark.lastHint=nil;mark.shineEnabled=false;mark:Hide() end
     end
   end
   if showing then self.cardRoot:Show() else self.cardRoot:Hide() end
