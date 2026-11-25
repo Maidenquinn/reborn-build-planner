@@ -390,4 +390,26 @@ return function(H)
     eq(T.ResolveEquipment({key="legendary:holy_light",slot="amulet"},cat,"enUS","mage"),nil)
   end)
 
+  test("mage: shared legendary head only resolves with a unique spell in the native tooltip",function()
+    local cat=multilingualCatalog()
+    local another={key="legendary:frost_nova",class="mage",spell="frost_nova",
+      name="Amulet of the Inferno: Frost Nova",head="Amulet of the Inferno"}
+    cat.data.legends[#cat.data.legends+1]=another
+    cat.legends[another.key]=another
+    local spell={key="frost_nova",class="mage",name="Frost Nova"}
+    cat.data.spells[#cat.data.spells+1]=spell
+    cat.spells[spell.key]=spell
+    cat.i18n.frFR["Frost Nova"]="Nova de givre"
+    local native={["Amulet of the Inferno"]="Amulette de l'Inferno"}
+    local item={slot="amulet",name="Amulette de l'Inferno"}
+    eq(T.ResolveEquipment(item,cat,"enUS","mage",nil,native),nil,
+      "same head with no tooltip must stay ambiguous")
+    item.text="Améliore Éclair de givre : dégâts augmentés."
+    eq(T.ResolveEquipment(item,cat,"enUS","mage",nil,native),
+      "legendary:frostbolt","unique spell confirms exact legendary")
+    item.text="Éclair de givre et Nova de givre"
+    eq(T.ResolveEquipment(item,cat,"enUS","mage",nil,native),nil,
+      "two spell mentions must stay ambiguous")
+  end)
+
 end
