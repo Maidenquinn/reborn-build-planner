@@ -412,4 +412,30 @@ return function(H)
       "two spell mentions must stay ambiguous")
   end)
 
+  test("hotfix: repeated jewelry offer is resolved only once (no per-event catalogue scan)",function()
+    local cat=multilingualCatalog()
+    local oldName=cat.Name
+    local calls=0
+    function cat:Name(...)
+      calls=calls+1
+      return oldName(self,...)
+    end
+    local build=assert(BM.New({id="perf-mage",name="Mage",class="mage"},cat))
+    build.phases[1].trinkets[1]="mark_chosen"
+    local snap={inRun=true,cards={kind="jewel",cards={
+      {name="Marque des élus",slot="trinket"}}}
+    }
+    eq(T.CardHint(build,1,snap,snap.cards.cards[1],cat,"enUS"),"wanted")
+    local coldCalls=calls
+    for _=1,400 do
+      eq(T.CardHint(build,1,snap,snap.cards.cards[1],cat,"enUS"),"wanted")
+    end
+    eq(calls,coldCalls,"400 repeated refreshes must hit memoized exact match")
+    local miss={name="Accessory that does not exist",slot="trinket"}
+    eq(T.CardHint(build,1,snap,miss,cat,"enUS"),nil)
+    local missCalls=calls
+    for _=1,400 do eq(T.CardHint(build,1,snap,miss,cat,"enUS"),nil) end
+    eq(calls,missCalls,"unknown items also require negative result caching")
+  end)
+
 end
