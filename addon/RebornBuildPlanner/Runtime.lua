@@ -171,8 +171,22 @@ function R.ProfileSummary()
     averageMs=p.calls>0 and p.totalMs/p.calls or 0,
     callbacks=R.callbacks,enabled=R.profileEnabled};
 end
-function R.Refresh()
+-- AZSCARDS/AZSCARDTIP change the choice overlay but not the owned
+-- spell/equipment snapshots. A full rebuild here repeats catalogue scans,
+-- class build-list sorting and dozens of HUD texture updates needlessly.
+-- Keep the card overlay and the fallback reroll marker responsive.
+function R.Refresh(event)
   if not R.ready then return end
+  if (event=="AZSCARDS" or event=="AZSCARDTIP") and R.last then
+    local snapshot=R.Capture()
+    R.HookCardsFrame()
+    R.last=snapshot
+    local build=R.Active()
+    local theme=ns.storage:GetSetting("trackerTheme") or "standard"
+    ns.TrackHUD.UpdateCards(ns.TrackHUD,build,snapshot,R.stage or 1,theme,
+      ns.catalog,ns.Locale.lang)
+    return
+  end
   local started=R.profileEnabled and type(debugprofilestop)=="function" and debugprofilestop() or nil
   local build=R.Active();
   local snapshot=R.Capture();
@@ -248,7 +262,7 @@ function R.Start()
     AZS.On(event,function()
       R.callbacks=R.callbacks+1;
       R.Note(event);
-      R.Refresh();
+      R.Refresh(event);
     end);
   end
   if ns.controller then ns.controller:Subscribe(function()R.Refresh()end) end
